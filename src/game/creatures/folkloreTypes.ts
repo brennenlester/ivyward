@@ -59,12 +59,10 @@ export type MatchupResult = "neutral" | "hunter" | "immune";
 export function resolveMatchup(
   moveType: FolkloreType,
   defenderType: FolkloreType,
-  defenderHasImmunityTrait: boolean,
+  /** Rolled immunity target from the creature's trait, if any. */
+  immunityTo?: FolkloreType,
 ): MatchupResult {
-  if (
-    defenderHasImmunityTrait &&
-    IMMUNITY_CHART[defenderType] === moveType
-  ) {
+  if (immunityTo !== undefined && immunityTo === moveType) {
     return "immune";
   }
   if (HUNTER_CHART[moveType] === defenderType) {

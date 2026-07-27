@@ -56,8 +56,8 @@ export type BattleCombatant = {
   defense: number;
   moves: MoveDefinition[];
   folkloreType: FolkloreType;
-  /** True when this combatant has an immunity trait. */
-  hasImmunityTrait?: boolean;
+  /** Rolled immunity trait target (move type that deals 0). */
+  immunityTo?: FolkloreType;
   /** Signature damage-buff, if any. */
   damageBuff?: { moveId: string; multiplier: number };
 };

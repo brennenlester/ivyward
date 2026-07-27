@@ -268,7 +268,7 @@ export class BattleScene extends Phaser.Scene {
       defense: def.defense,
       moves,
       folkloreType: def.folkloreType,
-      hasImmunityTrait: trait?.kind === "immunity",
+      immunityTo: trait?.kind === "immunity" ? trait.to : undefined,
       damageBuff:
         trait?.kind === "damage-buff"
           ? { moveId: trait.moveId, multiplier: trait.multiplier }

@@ -57,7 +57,7 @@ export function resolveAttack(
   const matchup = resolveMatchup(
     move.type,
     defender.folkloreType,
-    defender.hasImmunityTrait === true,
+    defender.immunityTo,
   );
 
   if (!rollAccuracy(move, rng)) {

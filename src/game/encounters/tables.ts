@@ -26,8 +26,8 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
     { id: "stone-hound", weight: 10 },
   ],
   mistwood: [
-    { id: "thunder-finch", weight: 55 },
-    { id: "lantern-fox", weight: 30 },
+    { id: "thunder-finch", weight: 70 },
+    { id: "lantern-fox", weight: 10 },
     { id: "mist-serpent", weight: 8 },
   ],
   emberfen: [

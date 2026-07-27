@@ -3,7 +3,8 @@ import {
   HUNTER_MULTIPLIER,
   resolveMatchup,
 } from "./folkloreTypes";
-import { rollSignatureTrait } from "./traits";
+import { isSignatureSpecies, rollSignatureTrait } from "./traits";
+import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import {
   calcDamage,
   resolveAttack,
@@ -42,13 +43,15 @@ const coil: MoveDefinition = {
 
 describe("resolveMatchup", () => {
   it("marks hunter edges", () => {
-    expect(resolveMatchup("ember", "woodland", false)).toBe("hunter");
-    expect(resolveMatchup("woodland", "fen", false)).toBe("hunter");
+    expect(resolveMatchup("ember", "woodland")).toBe("hunter");
+    expect(resolveMatchup("woodland", "fen")).toBe("hunter");
   });
 
-  it("only applies immunity when the defender has the trait", () => {
-    expect(resolveMatchup("earth", "mist", false)).toBe("neutral");
-    expect(resolveMatchup("earth", "mist", true)).toBe("immune");
+  it("only applies immunity when trait.to matches the move type", () => {
+    expect(resolveMatchup("earth", "mist")).toBe("neutral");
+    expect(resolveMatchup("earth", "mist", "earth")).toBe("immune");
+    // Wrong/stale immunity target must not block (uses trait.to, not chart alone).
+    expect(resolveMatchup("earth", "mist", "storm")).toBe("neutral");
   });
 });
 
@@ -77,7 +80,7 @@ describe("resolveAttack", () => {
     const attacker = combatant({ folkloreType: "earth" });
     const defender = combatant({
       folkloreType: "mist",
-      hasImmunityTrait: true,
+      immunityTo: "earth",
     });
     const earthMove: MoveDefinition = {
       id: "ram",
@@ -124,5 +127,23 @@ describe("rollSignatureTrait", () => {
       moveId: "coil",
       multiplier: 1.35,
     });
+  });
+});
+
+describe("signature encounter weights", () => {
+  it("keeps signature species at low weight in late zones", () => {
+    for (const [zoneId, table] of Object.entries(ZONE_ENCOUNTERS)) {
+      if (zoneId === "grove" || zoneId === "shrine" || zoneId === "village") {
+        for (const entry of table) {
+          expect(isSignatureSpecies(entry.id)).toBe(false);
+        }
+        continue;
+      }
+      for (const entry of table) {
+        if (isSignatureSpecies(entry.id)) {
+          expect(entry.weight).toBeLessThanOrEqual(12);
+        }
+      }
+    }
   });
 });
