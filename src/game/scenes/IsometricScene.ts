@@ -60,7 +60,7 @@ import {
   STARTING_ZONE_ID,
   getZone,
 } from "../world/zones";
-import { toggleOverworldUnlock, worldState } from "../world/worldState";
+import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
 import {
   getZoneProps,
@@ -325,6 +325,7 @@ export class IsometricScene extends Phaser.Scene {
   private loadZone(zoneId: ZoneId): void {
     this.currentZoneId = zoneId;
     const zone = getZone(zoneId);
+    markZoneDiscovered(zoneId);
 
     this.children.removeAll(true);
     this.shrinePrompt = undefined;

@@ -2,6 +2,10 @@ import type { ZoneId } from "../world/zoneTypes";
 
 type EncounterEntry = { id: string; weight: number };
 
+/**
+ * Habitats = encounter pools only.
+ * Signature / immunity-capable species use late zones + low weight.
+ */
 export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
   grove: [
     { id: "mossling", weight: 70 },
@@ -17,19 +21,19 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
   ],
   // Late-game only — not in grove/shrine/village tables.
   overworld: [
-    { id: "stone-hound", weight: 35 },
-    { id: "rootwalker", weight: 35 },
-    { id: "lantern-fox", weight: 30 },
+    { id: "rootwalker", weight: 50 },
+    { id: "lantern-fox", weight: 12 },
+    { id: "stone-hound", weight: 10 },
   ],
   mistwood: [
-    { id: "mist-serpent", weight: 45 },
-    { id: "thunder-finch", weight: 35 },
-    { id: "lantern-fox", weight: 20 },
+    { id: "thunder-finch", weight: 70 },
+    { id: "lantern-fox", weight: 10 },
+    { id: "mist-serpent", weight: 8 },
   ],
   emberfen: [
-    { id: "peat-sprite", weight: 40 },
-    { id: "cinder-toad", weight: 35 },
-    { id: "bog-lantern", weight: 25 },
+    { id: "peat-sprite", weight: 45 },
+    { id: "cinder-toad", weight: 40 },
+    { id: "bog-lantern", weight: 12 },
   ],
 };
 
@@ -46,4 +50,8 @@ export function rollWildCreature(zoneId: ZoneId): string | null {
   }
 
   return table[0]?.id ?? null;
+}
+
+export function getCreaturesForZone(zoneId: ZoneId): string[] {
+  return ZONE_ENCOUNTERS[zoneId].map((e) => e.id);
 }

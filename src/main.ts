@@ -100,7 +100,15 @@ if (inviteResult.status === "invalid") {
               maxHp: 24,
               attack: 6,
               defense: 4,
-              moves: [{ id: "nudge", name: "Nudge", power: 5 }],
+              moves: [
+                {
+                  id: "nudge",
+                  name: "Nudge",
+                  power: 5,
+                  type: "hearth",
+                  accuracy: 100,
+                },
+              ],
             },
           });
         } else {

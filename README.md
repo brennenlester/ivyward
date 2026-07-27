@@ -15,6 +15,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
 | **E** | Interact — open Moon Shrine when standing on the moon altar |
 | **I** | Copy a friend invite link (host only) |
+| **Codex** (status panel) | Open the habitat codex — what lives where (unlocks as you explore) |
 | **Reset game** (status panel) | Wipe local host save and start fresh |
 
 ### Confined region
@@ -35,8 +36,10 @@ Gate status reads `Overworld gate: LOCKED (Story 2/4)` until the spar quest is d
 ### Encounters and crafting
 
 - Walk in zones to trigger encounters: **Befriend**, **Spar**, or **Flee**.
+- Creatures and moves have folklore **types**. Spars use accuracy, hunter matchups (~1.5×), and rare immunity traits on signature creatures.
 - Winning spars grants creature materials, Folklore Dust, and XP.
-- At Moon Shrine, craft relics and apply shrine effects to party creatures.
+- At Moon Shrine, craft relics and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot).
+- Open **Codex** to see which creatures appear in zones you have visited (discovered zones save with host progress). Undiscovered habitats stay locked until you enter them.
 
 ### Friend invites
 

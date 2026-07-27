@@ -4,6 +4,7 @@ import { getGateStatusText, getQuestHint, getQuestSummary } from "../story/quest
 import { getHostLabel, isVisitorMode } from "../world/worldSession";
 import { resetHostGame } from "../world/worldSave";
 import type { ZoneDefinition } from "../world/zoneTypes";
+import { openCodex } from "./codex";
 
 let inviteFeedbackActive = false;
 
@@ -97,5 +98,10 @@ export function initStatusPanelControls(): void {
         resetHostGame();
       }
     });
+  }
+
+  const codexBtn = document.getElementById("codex-btn");
+  if (codexBtn) {
+    codexBtn.addEventListener("click", () => openCodex());
   }
 }
