@@ -12,8 +12,8 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x5a9a4a,
     early: true,
     moves: [
-      { id: "tangle", name: "Tangle", power: 5 },
-      { id: "spore", name: "Spore", power: 8 },
+      { id: "tangle", name: "Tangle", power: 5, type: "woodland", accuracy: 100 },
+      { id: "spore", name: "Spore", power: 8, type: "woodland", accuracy: 90 },
     ],
   },
   {
@@ -27,9 +27,9 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0xe87830,
     early: true,
     moves: [
-      { id: "flare", name: "Flare", power: 7 },
-      { id: "kindle", name: "Kindle", power: 10 },
-      { id: "glow", name: "Glow", power: 4 },
+      { id: "flare", name: "Flare", power: 7, type: "hearth", accuracy: 95 },
+      { id: "kindle", name: "Kindle", power: 10, type: "hearth", accuracy: 80 },
+      { id: "glow", name: "Glow", power: 4, type: "hearth", accuracy: 100 },
     ],
   },
   {
@@ -43,8 +43,8 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x4a8ac8,
     early: true,
     moves: [
-      { id: "ripple", name: "Ripple", power: 6 },
-      { id: "current", name: "Current", power: 9 },
+      { id: "ripple", name: "Ripple", power: 6, type: "water", accuracy: 100 },
+      { id: "current", name: "Current", power: 9, type: "water", accuracy: 85 },
     ],
   },
   {
@@ -58,8 +58,8 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x7a7a82,
     early: false,
     moves: [
-      { id: "bark", name: "Bark", power: 5 },
-      { id: "ram", name: "Ram", power: 11 },
+      { id: "bark", name: "Bark", power: 5, type: "earth", accuracy: 100 },
+      { id: "ram", name: "Ram", power: 11, type: "earth", accuracy: 75 },
     ],
   },
   {
@@ -73,15 +73,15 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x9a8ac0,
     early: false,
     moves: [
-      { id: "haze", name: "Haze", power: 6 },
-      { id: "coil", name: "Coil", power: 10 },
-      { id: "drift", name: "Drift", power: 7 },
+      { id: "haze", name: "Haze", power: 6, type: "mist", accuracy: 95 },
+      { id: "coil", name: "Coil", power: 10, type: "mist", accuracy: 80 },
+      { id: "drift", name: "Drift", power: 7, type: "mist", accuracy: 90 },
     ],
   },
   {
     id: "rootwalker",
     name: "Rootwalker",
-    folkloreType: "forest",
+    folkloreType: "woodland",
     maxHp: 32,
     attack: 6,
     defense: 7,
@@ -89,8 +89,8 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x6a5030,
     early: false,
     moves: [
-      { id: "stomp", name: "Stomp", power: 8 },
-      { id: "bloom", name: "Bloom", power: 6 },
+      { id: "stomp", name: "Stomp", power: 8, type: "woodland", accuracy: 90 },
+      { id: "bloom", name: "Bloom", power: 6, type: "woodland", accuracy: 100 },
     ],
   },
   {
@@ -104,9 +104,9 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0xe8c040,
     early: false,
     moves: [
-      { id: "gleam", name: "Gleam", power: 7 },
-      { id: "dash", name: "Dash", power: 9 },
-      { id: "flicker", name: "Flicker", power: 5 },
+      { id: "gleam", name: "Gleam", power: 7, type: "twilight", accuracy: 95 },
+      { id: "dash", name: "Dash", power: 9, type: "twilight", accuracy: 85 },
+      { id: "flicker", name: "Flicker", power: 5, type: "twilight", accuracy: 100 },
     ],
   },
   {
@@ -120,8 +120,8 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0xd0d8f0,
     early: false,
     moves: [
-      { id: "peck", name: "Peck", power: 6 },
-      { id: "bolt", name: "Bolt", power: 12 },
+      { id: "peck", name: "Peck", power: 6, type: "storm", accuracy: 100 },
+      { id: "bolt", name: "Bolt", power: 12, type: "storm", accuracy: 70 },
     ],
   },
   {
@@ -135,9 +135,9 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x3a7a32,
     early: true,
     moves: [
-      { id: "bramble", name: "Bramble", power: 10 },
-      { id: "ward", name: "Ward", power: 8 },
-      { id: "spore", name: "Spore", power: 9 },
+      { id: "bramble", name: "Bramble", power: 10, type: "woodland", accuracy: 85 },
+      { id: "ward", name: "Ward", power: 8, type: "woodland", accuracy: 95 },
+      { id: "spore", name: "Spore", power: 9, type: "woodland", accuracy: 90 },
     ],
   },
   {
@@ -151,9 +151,9 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0xff6020,
     early: true,
     moves: [
-      { id: "blaze", name: "Blaze", power: 12 },
-      { id: "kindle", name: "Kindle", power: 11 },
-      { id: "warmth", name: "Warmth", power: 7 },
+      { id: "blaze", name: "Blaze", power: 12, type: "hearth", accuracy: 75 },
+      { id: "kindle", name: "Kindle", power: 11, type: "hearth", accuracy: 80 },
+      { id: "warmth", name: "Warmth", power: 7, type: "hearth", accuracy: 100 },
     ],
   },
   {
@@ -167,8 +167,8 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0x8a6038,
     early: false,
     moves: [
-      { id: "mire", name: "Mire", power: 7 },
-      { id: "smolder", name: "Smolder", power: 9 },
+      { id: "mire", name: "Mire", power: 7, type: "fen", accuracy: 95 },
+      { id: "smolder", name: "Smolder", power: 9, type: "fen", accuracy: 85 },
     ],
   },
   {
@@ -182,9 +182,9 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0xd06030,
     early: false,
     moves: [
-      { id: "hop", name: "Hop", power: 6 },
-      { id: "ember-spit", name: "Ember Spit", power: 11 },
-      { id: "ash", name: "Ash", power: 5 },
+      { id: "hop", name: "Hop", power: 6, type: "ember", accuracy: 100 },
+      { id: "ember-spit", name: "Ember Spit", power: 11, type: "ember", accuracy: 75 },
+      { id: "ash", name: "Ash", power: 5, type: "ember", accuracy: 95 },
     ],
   },
   {
@@ -198,9 +198,9 @@ export const CREATURES: CreatureDefinition[] = [
     spriteColor: 0xffc050,
     early: false,
     moves: [
-      { id: "lure", name: "Lure", power: 6 },
-      { id: "flare", name: "Flare", power: 10 },
-      { id: "drift", name: "Drift", power: 7 },
+      { id: "lure", name: "Lure", power: 6, type: "will-o-wisp", accuracy: 95 },
+      { id: "flare", name: "Flare", power: 10, type: "will-o-wisp", accuracy: 80 },
+      { id: "drift", name: "Drift", power: 7, type: "will-o-wisp", accuracy: 90 },
     ],
   },
 ];

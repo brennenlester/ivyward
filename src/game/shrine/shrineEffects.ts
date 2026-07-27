@@ -1,3 +1,4 @@
+import type { FolkloreType } from "../creatures/folkloreTypes";
 import type { MoveDefinition } from "../creatures/types";
 
 export type ShrineEffectType = "attack-buff" | "health-buff" | "evolution";
@@ -7,8 +8,8 @@ export type ShrineEffect = {
   itemId: string;
   minLevel: number;
   effectType: ShrineEffectType;
-  /** For attack buff: secondary element label and bonus move. */
-  secondaryElement?: string;
+  /** For attack buff: secondary element and bonus move (may be 5th slot). */
+  secondaryElement?: FolkloreType;
   secondaryMove?: MoveDefinition;
   attackBonus?: number;
   /** For health buff: bonus max HP. */
@@ -26,7 +27,13 @@ export const SHRINE_EFFECTS: ShrineEffect[] = [
     effectType: "attack-buff",
     secondaryElement: "hearth",
     attackBonus: 4,
-    secondaryMove: { id: "ember-lash", name: "Ember Lash", power: 9 },
+    secondaryMove: {
+      id: "ember-lash",
+      name: "Ember Lash",
+      power: 9,
+      type: "hearth",
+      accuracy: 90,
+    },
   },
   {
     creatureId: "ember-wisp",

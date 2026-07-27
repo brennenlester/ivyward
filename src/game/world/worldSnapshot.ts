@@ -11,7 +11,7 @@ import {
 import { restoreQuestProgress, questProgress } from "../story/questProgress";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
-import { setOverworldUnlocked, worldState } from "./worldState";
+import { setDiscoveredZones, setOverworldUnlocked, worldState } from "./worldState";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -20,6 +20,8 @@ export type WorldSnapshot = {
   version: 1;
   hostLabel: string;
   overworldUnlocked: boolean;
+  /** Zones visited for the habitat codex. Optional for older saves. */
+  discoveredZones?: ZoneId[];
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -158,6 +160,27 @@ function isValidPartyMember(value: unknown): boolean {
   ) {
     return false;
   }
+  if (creature.trait !== undefined) {
+    if (typeof creature.trait !== "object" || creature.trait === null) {
+      return false;
+    }
+    const trait = creature.trait as Record<string, unknown>;
+    if (trait.kind === "immunity") {
+      if (typeof trait.to !== "string") {
+        return false;
+      }
+    } else if (trait.kind === "damage-buff") {
+      if (
+        typeof trait.moveId !== "string" ||
+        !isFiniteNumber(trait.multiplier) ||
+        trait.multiplier <= 0
+      ) {
+        return false;
+      }
+    } else {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -167,6 +190,15 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   if (s.version !== 1) return false;
   if (typeof s.hostLabel !== "string") return false;
   if (typeof s.overworldUnlocked !== "boolean") return false;
+
+  if (s.discoveredZones !== undefined) {
+    if (!Array.isArray(s.discoveredZones)) return false;
+    for (const zoneId of s.discoveredZones) {
+      if (typeof zoneId !== "string" || !VALID_ZONE_IDS.has(zoneId as ZoneId)) {
+        return false;
+      }
+    }
+  }
 
   const pos = s.position as Record<string, unknown> | undefined;
   if (
@@ -215,6 +247,7 @@ export function exportWorldSnapshot(
     version: 1,
     hostLabel,
     overworldUnlocked: worldState.overworldUnlocked,
+    discoveredZones: [...worldState.discoveredZones],
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -231,6 +264,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
 
   restoreQuestProgress(snapshot.questProgress);
   setOverworldUnlocked(questProgress["first-spar"] === "complete");
+  setDiscoveredZones(snapshot.discoveredZones ?? [snapshot.position.zoneId]);
   setPartyFromSnapshot(snapshot.party, snapshot.nextInstanceId);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   pendingPosition = snapshot.position;

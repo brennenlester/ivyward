@@ -3,6 +3,7 @@ import { createNewCreatureProgress } from "../progression/leveling";
 import { hasCraftedWeapon } from "../battle/wandererWeapons";
 import { recordQuestEvent } from "../story/questProgress";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
+import { formatTraitLabel, rollSignatureTrait } from "./traits";
 import type { CreatureInstance } from "./types";
 
 export const playerParty = {
@@ -32,6 +33,7 @@ export function addToParty(definitionId: string): CreatureInstance {
     speciesId: definitionId,
     currentHp: def.maxHp,
     ...createNewCreatureProgress(),
+    trait: rollSignatureTrait(definitionId, def.folkloreType),
   };
   playerParty.creatures.push(instance);
   recordQuestEvent({ type: "befriend_creature" });
@@ -72,6 +74,10 @@ export function getPartySummary(): string {
     }
     if (c.hpBonus) {
       buffs.push(`+${c.hpBonus}hp`);
+    }
+    const traitLabel = formatTraitLabel(c.trait);
+    if (traitLabel) {
+      buffs.push(traitLabel);
     }
     const buffLabel = buffs.length > 0 ? ` [${buffs.join(",")}]` : "";
     return `${def.name} Lv.${c.level}${buffLabel}`;

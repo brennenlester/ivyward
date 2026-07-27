@@ -22,7 +22,9 @@ const WEAPON_STATS: Record<
     maxHp: 20,
     attack: 4,
     defense: 3,
-    moves: [{ id: "swing", name: "Swing", power: 6 }],
+    moves: [
+      { id: "swing", name: "Swing", power: 6, type: "earth", accuracy: 95 },
+    ],
   },
   "stone-knife": {
     name: "Wanderer (Stone Knife)",
@@ -30,8 +32,8 @@ const WEAPON_STATS: Record<
     attack: 8,
     defense: 3,
     moves: [
-      { id: "slash", name: "Slash", power: 8 },
-      { id: "stab", name: "Stab", power: 6 },
+      { id: "slash", name: "Slash", power: 8, type: "earth", accuracy: 90 },
+      { id: "stab", name: "Stab", power: 6, type: "earth", accuracy: 100 },
     ],
   },
 };
@@ -41,7 +43,9 @@ export const UNARMED_WANDERER: WandererPartner = {
   maxHp: 24,
   attack: 6,
   defense: 4,
-  moves: [{ id: "nudge", name: "Nudge", power: 5 }],
+  moves: [
+    { id: "nudge", name: "Nudge", power: 5, type: "hearth", accuracy: 100 },
+  ],
 };
 
 export function getBestWeaponId(): string | undefined {

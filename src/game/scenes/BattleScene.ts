@@ -18,8 +18,10 @@ import type { BattleCombatant, MoveDefinition } from "../creatures/types";
 import {
   applyDamage,
   calcDamage,
+  formatMatchupHint,
   isFainted,
   pickRandomMove,
+  resolveAttack,
 } from "../battle/battleLogic";
 import {
   formatRewardMessage,
@@ -84,6 +86,7 @@ export class BattleScene extends Phaser.Scene {
       attack: wildDef.attack,
       defense: wildDef.defense,
       moves: wildDef.moves,
+      folkloreType: wildDef.folkloreType,
     };
 
     const activeIndex = playerParty.creatures.findIndex((c) => c.currentHp > 0);
@@ -108,6 +111,7 @@ export class BattleScene extends Phaser.Scene {
       attack: wanderer.attack,
       defense: wanderer.defense,
       moves: wanderer.moves,
+      folkloreType: wanderer.moves[0]?.type ?? "hearth",
     };
   }
 
@@ -250,10 +254,12 @@ export class BattleScene extends Phaser.Scene {
   private combatantFromPartyIndex(index: number): BattleCombatant {
     const partyCreature = playerParty.creatures[index];
     const def = getCreatureDefinition(partyCreature.definitionId);
+    // Normal kit 3–4 moves; shrine dual may be a one-time 5th slot.
     const moves = [...def.moves];
     if (partyCreature.secondaryMove) {
       moves.push(partyCreature.secondaryMove);
     }
+    const trait = partyCreature.trait;
     return {
       name: def.name,
       maxHp: getEffectiveMaxHp(partyCreature),
@@ -261,6 +267,12 @@ export class BattleScene extends Phaser.Scene {
       attack: getEffectiveAttack(partyCreature),
       defense: def.defense,
       moves,
+      folkloreType: def.folkloreType,
+      hasImmunityTrait: trait?.kind === "immunity",
+      damageBuff:
+        trait?.kind === "damage-buff"
+          ? { moveId: trait.moveId, multiplier: trait.multiplier }
+          : undefined,
     };
   }
 
@@ -294,12 +306,12 @@ export class BattleScene extends Phaser.Scene {
     this.hideWandererFallbackMenu();
 
     const cx = DESIGN_SIZE / 2;
-    let buttonY = 320;
+    let buttonY = 300;
 
     if (!this.forcedSwitch) {
       for (const move of this.player.moves) {
         this.actionButtons.push(this.addMoveButton(cx, buttonY, move));
-        buttonY += 44;
+        buttonY += 38;
       }
     }
 
@@ -340,12 +352,28 @@ export class BattleScene extends Phaser.Scene {
     move: MoveDefinition,
   ): Phaser.GameObjects.Text {
     const damage = calcDamage(this.player, move, this.wild);
-    return this.addActionButton(x, y, `${move.name}  −${damage}`, () => {
+    const label = `${move.name} [${move.type}] −${damage}`;
+    const btn = this.add
+      .text(x, y, label, {
+        color: "#1a3040",
+        backgroundColor: "#dff4ec",
+        fontFamily: "Source Sans 3, system-ui, sans-serif",
+        fontSize: "14px",
+        fontStyle: "bold",
+        padding: { x: 14, y: 7 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    btn.on("pointerover", () => btn.setAlpha(0.88));
+    btn.on("pointerout", () => btn.setAlpha(1));
+    btn.on("pointerdown", () => {
       if (!this.waitingForPlayer || this.switchMenuOpen || this.wandererFallbackOpen) {
         return;
       }
       this.playerTurn(move);
     });
+    return btn;
   }
 
   private showSwitchMenu(): void {
@@ -567,11 +595,22 @@ export class BattleScene extends Phaser.Scene {
 
   private playerTurn(move: MoveDefinition): void {
     this.waitingForPlayer = false;
-    const damage = calcDamage(this.player, move, this.wild);
-    applyDamage(this.wild, damage);
-    this.showDamageCounter("wild", damage);
-    this.flashCombatant("wild");
-    this.log(`${this.player.name} used ${move.name}.`);
+    const outcome = resolveAttack(this.player, move, this.wild);
+    if (outcome.kind === "miss") {
+      this.log(`${this.player.name} used ${move.name} — missed!`);
+    } else if (outcome.kind === "immune") {
+      this.log(
+        `${this.player.name} used ${move.name} — it had no effect${formatMatchupHint(outcome.matchup)}`,
+      );
+      this.showDamageCounter("wild", 0);
+    } else {
+      applyDamage(this.wild, outcome.damage);
+      this.showDamageCounter("wild", outcome.damage);
+      this.flashCombatant("wild");
+      this.log(
+        `${this.player.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
+      );
+    }
     this.refreshHp();
 
     if (isFainted(this.wild)) {
@@ -584,11 +623,22 @@ export class BattleScene extends Phaser.Scene {
 
   private wildTurn(): void {
     const move = pickRandomMove(this.wild);
-    const damage = calcDamage(this.wild, move, this.player);
-    applyDamage(this.player, damage);
-    this.showDamageCounter("player", damage);
-    this.flashCombatant("player");
-    this.log(`${this.wild.name} used ${move.name}.`);
+    const outcome = resolveAttack(this.wild, move, this.player);
+    if (outcome.kind === "miss") {
+      this.log(`${this.wild.name} used ${move.name} — missed!`);
+    } else if (outcome.kind === "immune") {
+      this.log(
+        `${this.wild.name} used ${move.name} — it had no effect${formatMatchupHint(outcome.matchup)}`,
+      );
+      this.showDamageCounter("player", 0);
+    } else {
+      applyDamage(this.player, outcome.damage);
+      this.showDamageCounter("player", outcome.damage);
+      this.flashCombatant("player");
+      this.log(
+        `${this.wild.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
+      );
+    }
     this.refreshHp();
 
     if (isFainted(this.player)) {
