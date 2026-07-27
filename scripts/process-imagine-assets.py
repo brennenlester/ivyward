@@ -65,12 +65,15 @@ def process(src_name, dest_rel, max_w, max_h, pad=4, dark_studio_bg=False):
     im = Image.open(SRC / src_name).convert("RGBA")
     if dark_studio_bg:
         im = punch_dark_studio_bg(im)
-    pixels = im.load()
-    w, h = im.size
-    for y in range(h):
-        for x in range(w):
-            if near_key(pixels[x, y]):
-                pixels[x, y] = (0, 0, 0, 0)
+    else:
+        # Light chroma only for Imagine sheets; black-studio art keeps pale
+        # highlights/smoke that would match KEYS (eye glints, bog wisps).
+        pixels = im.load()
+        w, h = im.size
+        for y in range(h):
+            for x in range(w):
+                if near_key(pixels[x, y]):
+                    pixels[x, y] = (0, 0, 0, 0)
     bbox = im.getbbox()
     if not bbox:
         print("EMPTY", src_name)
