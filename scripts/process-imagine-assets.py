@@ -19,17 +19,61 @@ def near_key(px, tol=38):
     return False
 
 
+def near_black(px, tol=28):
+    r, g, b, a = px
+    if a < 8:
+        return True
+    return r <= tol and g <= tol and b <= tol
+
+
+def punch_dark_studio_bg(im: Image.Image, tol: int = 28) -> Image.Image:
+    """Flood-fill near-black from image edges so dark outlines stay intact."""
+    src = im.convert("RGBA")
+    w, h = src.size
+    px = src.load()
+    visited = [[False] * w for _ in range(h)]
+    stack: list[tuple[int, int]] = []
+    for x, y in (
+        (0, 0),
+        (w - 1, 0),
+        (0, h - 1),
+        (w - 1, h - 1),
+        (w // 2, 0),
+        (w // 2, h - 1),
+        (0, h // 2),
+        (w - 1, h // 2),
+    ):
+        if near_black(px[x, y], tol):
+            stack.append((x, y))
+
+    while stack:
+        x, y = stack.pop()
+        if x < 0 or y < 0 or x >= w or y >= h or visited[y][x]:
+            continue
+        visited[y][x] = True
+        if not near_black(px[x, y], tol):
+            continue
+        px[x, y] = (0, 0, 0, 0)
+        stack.extend(((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)))
+    return src
+
+
 SCALE = 4
 
 
-def process(src_name, dest_rel, max_w, max_h, pad=4):
+def process(src_name, dest_rel, max_w, max_h, pad=4, dark_studio_bg=False):
     im = Image.open(SRC / src_name).convert("RGBA")
-    pixels = im.load()
-    w, h = im.size
-    for y in range(h):
-        for x in range(w):
-            if near_key(pixels[x, y]):
-                pixels[x, y] = (0, 0, 0, 0)
+    if dark_studio_bg:
+        im = punch_dark_studio_bg(im)
+    else:
+        # Light chroma only for Imagine sheets; black-studio art keeps pale
+        # highlights/smoke that would match KEYS (eye glints, bog wisps).
+        pixels = im.load()
+        w, h = im.size
+        for y in range(h):
+            for x in range(w):
+                if near_key(pixels[x, y]):
+                    pixels[x, y] = (0, 0, 0, 0)
     bbox = im.getbbox()
     if not bbox:
         print("EMPTY", src_name)
@@ -100,6 +144,15 @@ def main():
             f"creatures/creature-{c}.png",
             48 * SCALE,
             52 * SCALE,
+        )
+    # Fen exclusives: Style D sheets on black studio bg (not light chroma).
+    for c in ("peat-sprite", "cinder-toad", "bog-lantern"):
+        process(
+            f"creature-{c}.png",
+            f"creatures/creature-{c}.png",
+            48 * SCALE,
+            52 * SCALE,
+            dark_studio_bg=True,
         )
     for name, size in {
         "prop-tree.png": (48, 50),
