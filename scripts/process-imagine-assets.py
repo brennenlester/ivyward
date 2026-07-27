@@ -58,13 +58,67 @@ def punch_dark_studio_bg(im: Image.Image, tol: int = 28) -> Image.Image:
     return src
 
 
+def is_soft_rim(px, alpha_cut: int = 160) -> bool:
+    """Semi-transparent fringe only — never punch solid peat/ember body color."""
+    _r, _g, _b, a = px
+    return a < alpha_cut
+
+
+def punch_soft_rim(im: Image.Image) -> Image.Image:
+    """After dark cutout, erase edge-connected semi-transparent fringe."""
+    src = im.convert("RGBA")
+    w, h = src.size
+    px = src.load()
+    stack: list[tuple[int, int]] = []
+    visited = [[False] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            if px[x, y][3] < 8:
+                stack.append((x, y))
+                visited[y][x] = True
+
+    while stack:
+        x, y = stack.pop()
+        for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if nx < 0 or ny < 0 or nx >= w or ny >= h or visited[ny][nx]:
+                continue
+            visited[ny][nx] = True
+            if not is_soft_rim(px[nx, ny]):
+                continue
+            px[nx, ny] = (0, 0, 0, 0)
+            stack.append((nx, ny))
+    return src
+
+
 SCALE = 4
+
+
+def harden_edge_alpha(im: Image.Image, alpha_cut: int = 160) -> None:
+    """Zero soft pixels that touch transparency (post-downscale fringe only)."""
+    px = im.load()
+    w, h = im.size
+    doomed: list[tuple[int, int]] = []
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if a < 8 or a >= alpha_cut:
+                continue
+            edge = False
+            for nx, ny in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+                if nx < 0 or ny < 0 or nx >= w or ny >= h or px[nx, ny][3] < 8:
+                    edge = True
+                    break
+            if edge:
+                doomed.append((x, y))
+    for x, y in doomed:
+        px[x, y] = (0, 0, 0, 0)
 
 
 def process(src_name, dest_rel, max_w, max_h, pad=4, dark_studio_bg=False):
     im = Image.open(SRC / src_name).convert("RGBA")
     if dark_studio_bg:
         im = punch_dark_studio_bg(im)
+        im = punch_soft_rim(im)
     else:
         # Light chroma only for Imagine sheets; black-studio art keeps pale
         # highlights/smoke that would match KEYS (eye glints, bog wisps).
@@ -82,6 +136,8 @@ def process(src_name, dest_rel, max_w, max_h, pad=4, dark_studio_bg=False):
     padded = Image.new("RGBA", (im.width + pad * 2, im.height + pad * 2), (0, 0, 0, 0))
     padded.paste(im, (pad, pad))
     padded.thumbnail((max_w, max_h), Image.Resampling.LANCZOS)
+    if dark_studio_bg:
+        harden_edge_alpha(padded)
     canvas = Image.new("RGBA", (max_w, max_h), (0, 0, 0, 0))
     ox = (max_w - padded.width) // 2
     oy = max_h - padded.height
