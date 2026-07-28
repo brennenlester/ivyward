@@ -4,6 +4,10 @@ import {
   ZONE_ENCOUNTERS,
 } from "../encounters/tables";
 import { worldState } from "../world/worldState";
+import {
+  isAchievementUnlocked,
+  isCodexComplete,
+} from "../progression/achievements";
 import { ZONES } from "../world/zones";
 import type { ZoneId } from "../world/zoneTypes";
 
@@ -26,6 +30,7 @@ function ensureCodexRoot(): HTMLElement {
       </div>
       <p class="codex-intro">What lives where — fills in as you encounter creatures.</p>
       <div id="codex-body" class="codex-body"></div>
+      <p id="codex-footer" class="codex-footer"></p>
     </div>
   `;
   document.getElementById("app")?.appendChild(root);
@@ -76,9 +81,28 @@ function renderCodexBody(): void {
     .join("");
 }
 
+/**
+ * Footer carries the only in-game nudge toward the secret achievement. It
+ * never names the reward or shows a completion count until the codex is full.
+ */
+function renderCodexFooter(): void {
+  const footer = document.getElementById("codex-footer");
+  if (!footer) {
+    return;
+  }
+  if (isAchievementUnlocked("full-codex")) {
+    footer.textContent = "Codex Keeper — no blank pages remain.";
+    return;
+  }
+  footer.textContent = isCodexComplete(worldState.discoveredCreatures)
+    ? ""
+    : "Blank pages nag at every keeper.";
+}
+
 export function openCodex(): void {
   const root = ensureCodexRoot();
   renderCodexBody();
+  renderCodexFooter();
   root.hidden = false;
   codexOpen = true;
 }

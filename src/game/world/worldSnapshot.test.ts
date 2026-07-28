@@ -125,4 +125,20 @@ describe("isValidWorldSnapshot", () => {
       ),
     ).toBe(false);
   });
+
+  it("accepts known unlockedAchievements", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ unlockedAchievements: ["full-codex"] }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects unknown unlockedAchievements ids", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ unlockedAchievements: ["not-an-achievement"] }),
+      ),
+    ).toBe(false);
+  });
 });

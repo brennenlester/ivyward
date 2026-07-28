@@ -1,5 +1,6 @@
 import type { ZoneId } from "./zoneTypes";
 import { notifyWorldChanged } from "./worldSaveSchedule";
+import { evaluateCodexAchievement } from "../progression/achievements";
 
 /** Story progression flags — quest completion updates overworld access. */
 export const worldState = {
@@ -36,6 +37,7 @@ export function markCreatureDiscovered(creatureId: string): void {
   }
   worldState.discoveredCreatures.push(creatureId);
   notifyWorldChanged();
+  evaluateCodexAchievement(worldState.discoveredCreatures);
 }
 
 /** Dev-only gate toggle. */

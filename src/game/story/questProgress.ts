@@ -1,4 +1,5 @@
-import { setOverworldUnlocked } from "../world/worldState";
+import { setOverworldUnlocked, worldState } from "../world/worldState";
+import { isCodexComplete } from "../progression/achievements";
 import { isVisitorMode } from "../world/worldSession";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { QUEST_ORDER, QUESTS } from "./quests";
@@ -58,9 +59,13 @@ export function getQuestHint(): string {
   const activeId = getActiveQuestId();
   if (!activeId) {
     const done = QUEST_ORDER.every((id) => questProgress[id] === "complete");
-    return done
+    if (!done) {
+      return "";
+    }
+    // Subtle nudge only — the codex reward is never named before it is earned.
+    return isCodexComplete(worldState.discoveredCreatures)
       ? "All story beats finished — explore freely or press I to invite friends."
-      : "";
+      : "All story beats finished — explore freely or press I to invite friends. Your codex still has blank pages.";
   }
   return `Next: ${QUESTS[activeId].hint}`;
 }

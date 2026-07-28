@@ -17,6 +17,12 @@ import {
   setOverworldUnlocked,
   worldState,
 } from "./worldState";
+import {
+  evaluateCodexAchievement,
+  getUnlockedAchievements,
+  isAchievementId,
+  setUnlockedAchievements,
+} from "../progression/achievements";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -29,6 +35,8 @@ export type WorldSnapshot = {
   discoveredZones?: ZoneId[];
   /** Creature species discovered via encounter. Optional for older saves. */
   discoveredCreatures?: string[];
+  /** Secret achievements already earned. Optional for older saves. */
+  unlockedAchievements?: string[];
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -219,6 +227,15 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.unlockedAchievements !== undefined) {
+    if (!Array.isArray(s.unlockedAchievements)) return false;
+    for (const achievementId of s.unlockedAchievements) {
+      if (typeof achievementId !== "string" || !isAchievementId(achievementId)) {
+        return false;
+      }
+    }
+  }
+
   const pos = s.position as Record<string, unknown> | undefined;
   if (
     !pos ||
@@ -268,6 +285,7 @@ export function exportWorldSnapshot(
     overworldUnlocked: worldState.overworldUnlocked,
     discoveredZones: [...worldState.discoveredZones],
     discoveredCreatures: [...worldState.discoveredCreatures],
+    unlockedAchievements: getUnlockedAchievements(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -287,11 +305,16 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setDiscoveredZones(snapshot.discoveredZones ?? [snapshot.position.zoneId]);
   // Older saves lack discoveredCreatures — treat party species as known.
   const fromParty = snapshot.party.map((member) => member.definitionId);
+  // Restore before discoveries so a completed codex does not re-award rewards.
+  setUnlockedAchievements(snapshot.unlockedAchievements ?? []);
   setDiscoveredCreatures([
     ...(snapshot.discoveredCreatures ?? []),
     ...fromParty,
   ]);
   setPartyFromSnapshot(snapshot.party, snapshot.nextInstanceId);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
+  // Saves predating the achievement can already have a full codex; award after
+  // the inventory is restored so the items are not overwritten.
+  evaluateCodexAchievement(worldState.discoveredCreatures);
   pendingPosition = snapshot.position;
 }

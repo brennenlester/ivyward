@@ -41,6 +41,17 @@ Gate status reads `Overworld gate: LOCKED (Story 2/4)` until the spar quest is d
 - At Moon Shrine, craft relics and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot).
 - Open **Codex** to see which creatures live where. Encountering a creature once lists it under **every** habitat that can spawn it. Habitats with no known dwellers stay blank until you meet something from that pool.
 
+### Secrets
+
+The game hides one achievement. It is never listed, counted, or named in the UI before you earn it — the story hints and the codex only nudge you toward it.
+
+<details>
+<summary>Spoiler</summary>
+
+Filling every codex page (all 11 creatures that appear in habitat encounter tables) unlocks **Codex Keeper** and grants **Brook Tonic ×5** and **Moonwake Draught ×5** — five heals and five revives. It awards once per save. `Bramblewarden` and `Hearthflame` are evolution-only and are not required.
+
+</details>
+
 ### Friend invites
 
 1. As **host**, press **I** to copy an invite URL (party, inventory, quests, and position).
