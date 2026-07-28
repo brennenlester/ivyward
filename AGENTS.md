@@ -4,12 +4,12 @@ This repository follows the shared agent baseline supplied by the active harness
 
 ## Project links
 
-- **Linear project:** [Poke](https://linear.app/brennen-lester/project/poke-f73601c7fa30)
-- **GitHub repo:** [brennenlester/poke](https://github.com/brennenlester/poke)
+- **Linear project:** [Ivyward](https://linear.app/brennen-lester/project/poke-f73601c7fa30)
+- **GitHub repo:** [brennenlester/ivyward](https://github.com/brennenlester/ivyward)
 
 ## Linear-first workflow
 
-All implementation changes must be tied to a Linear issue in the **Poke** project.
+All implementation changes must be tied to a Linear issue in the **Ivyward** project.
 
 | Mode | When to use | Cursor skill |
 |------|-------------|--------------|

@@ -1,8 +1,8 @@
-# Poke
+# Ivyward
 
 A browser folklore RPG: explore isometric zones, befriend creatures, spar for materials, craft at Moon Shrine, then invite friends into your world.
 
-**Play:** [poke-brennen1.vercel.app](https://poke-brennen1.vercel.app)
+**Play:** [ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app)
 
 ---
 

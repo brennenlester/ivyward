@@ -122,7 +122,7 @@ async function main() {
   const atlas = {
     frames,
     meta: {
-      app: "poke/scripts/pack-imagine-atlas.mjs",
+      app: "ivyward/scripts/pack-imagine-atlas.mjs",
       version: "1.0",
       image: "imagine.png",
       format: "RGBA8888",

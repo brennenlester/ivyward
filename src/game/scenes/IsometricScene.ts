@@ -808,7 +808,7 @@ export class IsometricScene extends Phaser.Scene {
         setInviteStatus("Invite link copied!", "#d8f0c0");
       } else {
         setInviteStatus("Invite ready (copy from console)", "#d8f0c0");
-        console.info("Poke invite link:", url);
+        console.info("Ivyward invite link:", url);
       }
       this.time.delayedCall(2500, () => resetInviteStatus());
     } catch (error) {
