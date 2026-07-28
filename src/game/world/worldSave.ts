@@ -15,13 +15,33 @@ import {
 import { STARTING_ZONE_ID } from "./zones";
 import type { ZoneId } from "./zoneTypes";
 
-const STORAGE_KEY = "poke-save-v1";
+const STORAGE_KEY = "ivyward-save-v1";
+/** Pre-rename key; migrate on read so existing host saves are not lost. */
+const LEGACY_STORAGE_KEY = "poke-save-v1";
 
 let hostPosition: WorldSnapshot["position"] = {
   zoneId: STARTING_ZONE_ID,
   x: 3,
   y: 7,
 };
+
+function readRawSave(): string | null {
+  try {
+    const current = localStorage.getItem(STORAGE_KEY);
+    if (current) {
+      return current;
+    }
+    const legacy = localStorage.getItem(LEGACY_STORAGE_KEY);
+    if (!legacy) {
+      return null;
+    }
+    localStorage.setItem(STORAGE_KEY, legacy);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
+    return legacy;
+  } catch {
+    return null;
+  }
+}
 
 export function updateHostPosition(zoneId: ZoneId, x: number, y: number): void {
   hostPosition = { zoneId, x, y };
@@ -35,6 +55,7 @@ export function persistHostSave(): void {
   try {
     const snapshot = exportWorldSnapshot(hostPosition);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(snapshot));
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     // ponytail: ignore quota/private-mode failures
   }
@@ -45,6 +66,7 @@ registerWorldPersistHandler(persistHostSave);
 export function clearHostSave(): void {
   try {
     localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(LEGACY_STORAGE_KEY);
   } catch {
     // ignore
   }
@@ -61,7 +83,7 @@ export function resetHostGame(): void {
 
 export function loadHostSave(): WorldSnapshot | null {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = readRawSave();
     if (!raw) {
       return null;
     }

@@ -11,9 +11,29 @@ const SFX = {
 const MUSIC_GROVE = "music-grove-loop";
 
 const STEP_COOLDOWN_MS = 220;
-const MUTE_KEY = "poke-audio-muted";
+const MUTE_KEY = "ivyward-audio-muted";
+/** Pre-rename key; migrate on read so mute preference is not lost. */
+const LEGACY_MUTE_KEY = "poke-audio-muted";
 
-let muted = localStorage.getItem(MUTE_KEY) === "1";
+function readMutedPreference(): boolean {
+  try {
+    const current = localStorage.getItem(MUTE_KEY);
+    if (current !== null) {
+      return current === "1";
+    }
+    const legacy = localStorage.getItem(LEGACY_MUTE_KEY);
+    if (legacy === null) {
+      return false;
+    }
+    localStorage.setItem(MUTE_KEY, legacy);
+    localStorage.removeItem(LEGACY_MUTE_KEY);
+    return legacy === "1";
+  } catch {
+    return false;
+  }
+}
+
+let muted = readMutedPreference();
 let lastStepAt = 0;
 let music: Phaser.Sound.BaseSound | null = null;
 let unlocked = false;
@@ -34,7 +54,12 @@ export function isAudioMuted(): boolean {
 
 export function setAudioMuted(next: boolean, scene?: Phaser.Scene): void {
   muted = next;
-  localStorage.setItem(MUTE_KEY, next ? "1" : "0");
+  try {
+    localStorage.setItem(MUTE_KEY, next ? "1" : "0");
+    localStorage.removeItem(LEGACY_MUTE_KEY);
+  } catch {
+    // ponytail: ignore quota/private-mode failures
+  }
   if (scene) {
     scene.sound.mute = muted;
   }
