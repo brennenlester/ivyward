@@ -14,10 +14,12 @@ import {
   getItemCount,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
+import { setVisitorMode } from "../world/worldSession";
 
 beforeEach(() => {
   resetAchievementsForTest();
   setInventoryFromSnapshot({}, {});
+  setVisitorMode(false);
 });
 
 describe("isCodexComplete", () => {
@@ -62,6 +64,14 @@ describe("evaluateCodexAchievement", () => {
     setUnlockedAchievements(["full-codex"]);
     expect(evaluateCodexAchievement(ENCOUNTERABLE_CREATURE_IDS)).toBe(false);
     expect(getItemCount("brook-tonic")).toBe(0);
+  });
+
+  it("never awards a visitor viewing a host snapshot", () => {
+    setVisitorMode(true);
+    expect(evaluateCodexAchievement(ENCOUNTERABLE_CREATURE_IDS)).toBe(false);
+    expect(isAchievementUnlocked("full-codex")).toBe(false);
+    expect(getItemCount("brook-tonic")).toBe(0);
+    expect(getItemCount("moonwake-draught")).toBe(0);
   });
 
   it("names the achievement only in the unlock toast", () => {
