@@ -109,4 +109,20 @@ describe("isValidWorldSnapshot", () => {
       ),
     ).toBe(false);
   });
+
+  it("accepts discoveredCreatures when all ids are known", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ discoveredCreatures: ["mossling", "ember-wisp"] }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects unknown discoveredCreatures ids", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ discoveredCreatures: ["not-a-creature"] }),
+      ),
+    ).toBe(false);
+  });
 });

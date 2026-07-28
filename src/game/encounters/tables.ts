@@ -55,3 +55,20 @@ export function rollWildCreature(zoneId: ZoneId): string | null {
 export function getCreaturesForZone(zoneId: ZoneId): string[] {
   return ZONE_ENCOUNTERS[zoneId].map((e) => e.id);
 }
+
+/** Habitats whose encounter table includes this creature. */
+export function getHabitatsForCreature(creatureId: string): ZoneId[] {
+  return (Object.keys(ZONE_ENCOUNTERS) as ZoneId[]).filter((zoneId) =>
+    ZONE_ENCOUNTERS[zoneId].some((entry) => entry.id === creatureId),
+  );
+}
+
+/** Creatures known in a habitat after encounter discoveries. */
+export function getKnownCreaturesForZone(
+  zoneId: ZoneId,
+  discoveredCreatureIds: ReadonlySet<string>,
+): string[] {
+  return getCreaturesForZone(zoneId).filter((id) =>
+    discoveredCreatureIds.has(id),
+  );
+}
