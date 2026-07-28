@@ -1,5 +1,8 @@
 import { getCreatureDefinition } from "../creatures/catalog";
-import { getCreaturesForZone, ZONE_ENCOUNTERS } from "../encounters/tables";
+import {
+  getKnownCreaturesForZone,
+  ZONE_ENCOUNTERS,
+} from "../encounters/tables";
 import { worldState } from "../world/worldState";
 import { ZONES } from "../world/zones";
 import type { ZoneId } from "../world/zoneTypes";
@@ -21,7 +24,7 @@ function ensureCodexRoot(): HTMLElement {
         <h2 id="codex-title">Creature Codex</h2>
         <button type="button" id="codex-close" class="codex-close">Close</button>
       </div>
-      <p class="codex-intro">What lives where — unlocks as you explore.</p>
+      <p class="codex-intro">What lives where — fills in as you encounter creatures.</p>
       <div id="codex-body" class="codex-body"></div>
     </div>
   `;
@@ -40,25 +43,26 @@ function renderCodexBody(): void {
   if (!body) {
     return;
   }
-  const discovered = new Set(worldState.discoveredZones);
+  const discovered = new Set(worldState.discoveredCreatures);
   const zoneIds = Object.keys(ZONE_ENCOUNTERS) as ZoneId[];
 
   if (discovered.size === 0) {
     body.innerHTML =
-      "<p class=\"codex-empty\">Explore a zone to learn what dwells there.</p>";
+      "<p class=\"codex-empty\">Encounter a wild creature to learn where its kind dwells.</p>";
     return;
   }
 
   body.innerHTML = zoneIds
     .map((zoneId) => {
       const zone = ZONES[zoneId];
-      if (!discovered.has(zoneId)) {
+      const known = getKnownCreaturesForZone(zoneId, discovered);
+      if (known.length === 0) {
         return `<section class="codex-zone codex-zone-locked">
           <h3>${zone.name}</h3>
-          <p>Not yet explored.</p>
+          <p>No known dwellers yet.</p>
         </section>`;
       }
-      const creatures = getCreaturesForZone(zoneId)
+      const creatures = known
         .map((id) => {
           const def = getCreatureDefinition(id);
           return `<li><strong>${def.name}</strong> <span class="codex-type">${def.folkloreType}</span></li>`;

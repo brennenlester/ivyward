@@ -35,6 +35,7 @@ import {
   type WandererPartner,
 } from "../battle/wandererWeapons";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
+import { markCreatureDiscovered } from "../world/worldState";
 
 type WandererPartnerData = WandererPartner;
 
@@ -68,6 +69,7 @@ export class BattleScene extends Phaser.Scene {
     wandererPartner: WandererPartnerData;
   }): void {
     this.wildCreatureId = data.wildCreatureId;
+    markCreatureDiscovered(data.wildCreatureId);
     this.waitingForPlayer = true;
     this.partyInstanceIndex = -1;
     this.forcedSwitch = false;

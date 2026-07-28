@@ -12,6 +12,7 @@ import {
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import { isVisitorMode } from "../world/worldSession";
+import { markCreatureDiscovered } from "../world/worldState";
 
 const PANEL_WIDTH = 460;
 const PANEL_HEIGHT = 500;
@@ -38,6 +39,7 @@ export class EncounterScene extends Phaser.Scene {
     bindOverlayPixelRatio(this);
     ensureCreatureTextures(this);
     playEncounterSfx(this);
+    markCreatureDiscovered(this.creatureId);
     const def = getCreatureDefinition(this.creatureId);
 
     this.cameras.main.fadeIn(160, 255, 255, 255);

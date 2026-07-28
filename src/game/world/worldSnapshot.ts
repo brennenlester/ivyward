@@ -11,7 +11,12 @@ import {
 import { restoreQuestProgress, questProgress } from "../story/questProgress";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
-import { setDiscoveredZones, setOverworldUnlocked, worldState } from "./worldState";
+import {
+  setDiscoveredCreatures,
+  setDiscoveredZones,
+  setOverworldUnlocked,
+  worldState,
+} from "./worldState";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -20,8 +25,10 @@ export type WorldSnapshot = {
   version: 1;
   hostLabel: string;
   overworldUnlocked: boolean;
-  /** Zones visited for the habitat codex. Optional for older saves. */
+  /** Zones visited. Optional for older saves. */
   discoveredZones?: ZoneId[];
+  /** Creature species discovered via encounter. Optional for older saves. */
+  discoveredCreatures?: string[];
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -200,6 +207,18 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.discoveredCreatures !== undefined) {
+    if (!Array.isArray(s.discoveredCreatures)) return false;
+    for (const creatureId of s.discoveredCreatures) {
+      if (
+        typeof creatureId !== "string" ||
+        !VALID_CREATURE_IDS.has(creatureId)
+      ) {
+        return false;
+      }
+    }
+  }
+
   const pos = s.position as Record<string, unknown> | undefined;
   if (
     !pos ||
@@ -248,6 +267,7 @@ export function exportWorldSnapshot(
     hostLabel,
     overworldUnlocked: worldState.overworldUnlocked,
     discoveredZones: [...worldState.discoveredZones],
+    discoveredCreatures: [...worldState.discoveredCreatures],
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -265,6 +285,12 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   restoreQuestProgress(snapshot.questProgress);
   setOverworldUnlocked(questProgress["first-spar"] === "complete");
   setDiscoveredZones(snapshot.discoveredZones ?? [snapshot.position.zoneId]);
+  // Older saves lack discoveredCreatures — treat party species as known.
+  const fromParty = snapshot.party.map((member) => member.definitionId);
+  setDiscoveredCreatures([
+    ...(snapshot.discoveredCreatures ?? []),
+    ...fromParty,
+  ]);
   setPartyFromSnapshot(snapshot.party, snapshot.nextInstanceId);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   pendingPosition = snapshot.position;
