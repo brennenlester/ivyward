@@ -365,6 +365,17 @@ body,
   color: #4d879d;
 }
 
+.codex-footer {
+  margin-top: 14px;
+  font-size: 12px;
+  font-style: italic;
+  color: #7aa8b8;
+}
+
+.codex-footer:empty {
+  display: none;
+}
+
 .codex-body {
   margin-top: 14px;
   display: grid;

@@ -1,8 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
+import {
+  ENCOUNTERABLE_CREATURE_IDS,
+  getUnlockedAchievements,
+  resetAchievementsForTest,
+} from "../progression/achievements";
+import {
+  getItemCount,
+  setInventoryFromSnapshot,
+} from "../inventory/playerInventory";
+import { setVisitorMode } from "./worldSession";
 import type { CreatureInstance } from "../creatures/types";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import {
+  applyWorldSnapshot,
   isValidWorldSnapshot,
   type WorldSnapshot,
 } from "./worldSnapshot";
@@ -124,5 +135,71 @@ describe("isValidWorldSnapshot", () => {
         validSnapshot({ discoveredCreatures: ["not-a-creature"] }),
       ),
     ).toBe(false);
+  });
+
+  it("accepts known unlockedAchievements", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ unlockedAchievements: ["full-codex"] }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects unknown unlockedAchievements ids", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ unlockedAchievements: ["not-an-achievement"] }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("applyWorldSnapshot codex achievement", () => {
+  beforeEach(() => {
+    resetAchievementsForTest();
+    setInventoryFromSnapshot({}, {});
+    setVisitorMode(false);
+  });
+
+  it("awards a legacy full-codex save after the inventory is restored", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        discoveredCreatures: [...ENCOUNTERABLE_CREATURE_IDS],
+        unlockedAchievements: undefined,
+      }),
+    );
+
+    expect(getUnlockedAchievements()).toEqual(["full-codex"]);
+    expect(getItemCount("brook-tonic")).toBe(5);
+    expect(getItemCount("moonwake-draught")).toBe(5);
+  });
+
+  it("does not re-award a save that already earned the achievement", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        discoveredCreatures: [...ENCOUNTERABLE_CREATURE_IDS],
+        unlockedAchievements: ["full-codex"],
+        items: { "brook-tonic": 5, "moonwake-draught": 5 },
+      }),
+    );
+
+    expect(getItemCount("brook-tonic")).toBe(5);
+    expect(getItemCount("moonwake-draught")).toBe(5);
+  });
+
+  it("leaves an incomplete codex unrewarded", () => {
+    // Drop a species the party cannot re-add on restore.
+    const missing = "bog-lantern";
+    expect(partyMember().definitionId).not.toBe(missing);
+    applyWorldSnapshot(
+      validSnapshot({
+        discoveredCreatures: ENCOUNTERABLE_CREATURE_IDS.filter(
+          (id) => id !== missing,
+        ),
+      }),
+    );
+
+    expect(getUnlockedAchievements()).toEqual([]);
+    expect(getItemCount("brook-tonic")).toBe(0);
   });
 });

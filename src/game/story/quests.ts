@@ -24,7 +24,7 @@ export const QUESTS: Record<QuestId, QuestDefinition> = {
   "reach-village": {
     id: "reach-village",
     title: "Reach Hearth Crossing",
-    hint: "Follow the paths through Moon Shrine to Hearth Crossing.",
+    hint: "Follow the paths through Moon Shrine to Hearth Crossing — folk there trade tales of every creature they have met.",
     objective: { type: "enter_zone", zoneId: "village" },
   },
   "shrine-craft": {

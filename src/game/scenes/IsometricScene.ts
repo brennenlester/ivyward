@@ -35,6 +35,7 @@ import {
   consumeQuestToast,
   recordQuestEvent,
 } from "../story/questProgress";
+import { consumeAchievementToast } from "../progression/achievements";
 import {
   measureStatusPanelHeight,
   resetInviteStatus,
@@ -114,6 +115,7 @@ export class IsometricScene extends Phaser.Scene {
   private shrinePrompt?: Phaser.GameObjects.Text;
   private gatherToast?: Phaser.GameObjects.Text;
   private questToast?: Phaser.GameObjects.Text;
+  private achievementToast?: Phaser.GameObjects.Text;
   private worldOrigin = { x: 0, y: 0 };
   private onWindowResize = () => this.onResize();
   private layoutLocked = false;
@@ -192,6 +194,7 @@ export class IsometricScene extends Phaser.Scene {
     }
 
     this.updateQuestToast();
+    this.updateAchievementToast();
 
     if (
       Phaser.Input.Keyboard.JustDown(this.interactKey) ||
@@ -450,6 +453,9 @@ export class IsometricScene extends Phaser.Scene {
     }
     if (this.questToast) {
       placeWorldHudText(this, this.questToast, "top", 120);
+    }
+    if (this.achievementToast) {
+      placeWorldHudText(this, this.achievementToast, "top", 176);
     }
   }
 
@@ -789,6 +795,37 @@ export class IsometricScene extends Phaser.Scene {
     this.time.delayedCall(2800, () => {
       this.questToast?.destroy();
       this.questToast = undefined;
+    });
+  }
+
+  private updateAchievementToast(): void {
+    const message = consumeAchievementToast();
+    if (!message) {
+      return;
+    }
+
+    updateStatusPanel(getZone(this.currentZoneId));
+
+    // Own slot below the quest toast so a simultaneous quest completion
+    // does not hide the unlock.
+    this.achievementToast?.destroy();
+    this.achievementToast = this.add
+      .text(0, 0, message, {
+        color: "#f4e3a1",
+        backgroundColor: "#2a2a3e",
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "15px",
+        padding: { x: 12, y: 8 },
+        align: "center",
+        wordWrap: { width: 360 },
+      })
+      .setOrigin(0.5, 0)
+      .setDepth(10_001);
+    placeWorldHudText(this, this.achievementToast, "top", 176);
+
+    this.time.delayedCall(4200, () => {
+      this.achievementToast?.destroy();
+      this.achievementToast = undefined;
     });
   }
 
