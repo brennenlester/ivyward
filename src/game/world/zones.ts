@@ -149,6 +149,7 @@ const HEARTHKEEP_COTTAGE = cottageInterior(
 /** Folklore Fields — first unlocked overworld region (south back to village). */
 const overworldTiles = borderedFloor(15, 15, [
   { x: 14, y: 7 },
+  { x: 7, y: 0 }, // north gate → Harbor
 ]);
 // South shoreline bay: two water rows with a walkable dock + pier at the village gate.
 for (const y of [13, 14]) {
@@ -158,7 +159,6 @@ for (const y of [13, 14]) {
 }
 overworldTiles[14][7] = TileType.Dock;
 overworldTiles[13][7] = TileType.Floor; // pier from land spawn (7,12) onto the dock
-
 
 const OVERWORLD: ZoneDefinition = {
   id: "overworld",
@@ -171,6 +171,38 @@ const OVERWORLD: ZoneDefinition = {
   transitions: [
     { x: 7, y: 14, targetZone: "village", targetX: 5, targetY: 1 },
     { x: 14, y: 7, targetZone: "mistwood", targetX: 1, targetY: 6 },
+    { x: 7, y: 0, targetZone: "harbor", targetX: 1, targetY: 4 },
+  ],
+};
+
+/**
+ * Harbor — dock-area shell north of Folklore Fields.
+ * Horizontal water corridor is sized for later side-scroll (#90); boat gameplay relocates in #89.
+ */
+const harborTiles = borderedFloor(18, 9, [{ x: 0, y: 4 }]);
+for (const y of [6, 7]) {
+  for (let x = 0; x < 18; x++) {
+    harborTiles[y][x] = TileType.Water;
+  }
+}
+harborTiles[7][3] = TileType.Dock;
+harborTiles[6][3] = TileType.Floor; // pier from the west entry path
+// East Landing shell (destination pad for later side-scroll end).
+harborTiles[4][15] = TileType.Floor;
+harborTiles[4][16] = TileType.Floor;
+harborTiles[5][15] = TileType.Floor;
+harborTiles[5][16] = TileType.Floor;
+
+const HARBOR: ZoneDefinition = {
+  id: "harbor",
+  name: "Moonwake Harbor",
+  width: 18,
+  height: 9,
+  tiles: harborTiles,
+  lightTint: 0xb8d8e8,
+  darkTint: 0x5a8098,
+  transitions: [
+    { x: 0, y: 4, targetZone: "overworld", targetX: 7, targetY: 1 },
   ],
 };
 
@@ -211,6 +243,7 @@ export const ZONES: Record<ZoneId, ZoneDefinition> = {
   shrine: SHRINE,
   village: VILLAGE,
   overworld: OVERWORLD,
+  harbor: HARBOR,
   mistwood: MISTWOOD,
   emberfen: EMBERFEN,
   "warden-cottage": WARDEN_COTTAGE,

@@ -3,6 +3,7 @@ export type ZoneId =
   | "shrine"
   | "village"
   | "overworld"
+  | "harbor"
   | "mistwood"
   | "emberfen"
   | "warden-cottage"

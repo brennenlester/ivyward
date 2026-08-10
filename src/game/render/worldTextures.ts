@@ -17,6 +17,7 @@ const ZONE_PALETTES: Record<ZoneId, ZonePalette> = {
   shrine: { light: 0xd9d5ed, dark: 0xa9a8cf, accent: 0xf4e8ff, edge: 0x696a9d },
   village: { light: 0xeec58a, dark: 0xd89a5e, accent: 0xffe2a2, edge: 0xa96a43 },
   overworld: { light: 0x78c8e0, dark: 0x4fa8c8, accent: 0xb8e8f0, edge: 0x387898 },
+  harbor: { light: 0x88c0d8, dark: 0x5898b0, accent: 0xc8e8f4, edge: 0x3a7088 },
   mistwood: { light: 0xb8a8d8, dark: 0x8878b0, accent: 0xe0d4f8, edge: 0x5a4a80 },
   emberfen: { light: 0xe0b070, dark: 0xb87848, accent: 0xffd090, edge: 0x8a5030 },
   "warden-cottage": COTTAGE_PALETTE,
