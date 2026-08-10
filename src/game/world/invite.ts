@@ -1,11 +1,25 @@
 import { getHostLabel, isVisitorMode } from "./worldSession";
 import type { WorldSnapshot } from "./worldSnapshot";
+import { OVERWORLD_PIER } from "./dockBoat";
 import {
   exportWorldSnapshot,
   isValidWorldSnapshot,
   repairLegacyOverworldShorePosition,
 } from "./worldSnapshot";
 import type { ZoneId } from "./zoneTypes";
+
+/** Visitors cannot sail; mid-sail invites must land on the pier on foot. */
+export function normalizeInviteSailingSnapshot(snapshot: WorldSnapshot): void {
+  if (snapshot.sailing !== true) {
+    return;
+  }
+  snapshot.sailing = false;
+  snapshot.position = {
+    zoneId: "overworld",
+    x: OVERWORLD_PIER.x,
+    y: OVERWORLD_PIER.y,
+  };
+}
 
 function toBase64Url(value: string): string {
   const bytes = new TextEncoder().encode(value);
@@ -34,6 +48,7 @@ export function buildInviteUrl(
     { zoneId, x, y },
     getHostLabel(),
   );
+  normalizeInviteSailingSnapshot(snapshot);
   const encoded = toBase64Url(JSON.stringify(snapshot));
   const url = new URL(window.location.href);
   url.search = "";
@@ -63,6 +78,7 @@ export function parseInviteParam(): InviteParseResult {
     if (!isValidWorldSnapshot(parsed)) {
       return { status: "invalid" };
     }
+    normalizeInviteSailingSnapshot(parsed);
     return { status: "ok", snapshot: parsed };
   } catch {
     return { status: "invalid" };

@@ -1,3 +1,4 @@
+import { isSailing } from "./dockBoat";
 import { worldState } from "./worldState";
 import { TileType, type ZoneDefinition } from "./zoneTypes";
 
@@ -16,6 +17,10 @@ export function isTileWalkable(
   }
 
   const tile = zone.tiles[tileY][tileX];
+  if (isSailing()) {
+    // Shore cruise: only water and the dock pad — not land Floor or walls.
+    return tile === TileType.Water || tile === TileType.Dock;
+  }
   if (tile === TileType.Floor || tile === TileType.Dock) {
     return true;
   }

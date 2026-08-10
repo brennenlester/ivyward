@@ -11,6 +11,7 @@ import {
   buildInviteUrl,
   parseInviteParam,
 } from "./invite";
+import { setPlacedBoat, setSailing } from "./dockBoat";
 import { setVisitorMode } from "./worldSession";
 import { setOverworldUnlocked } from "./worldState";
 
@@ -23,6 +24,8 @@ function lockedProgress(): Record<QuestId, QuestStatus> {
 describe("invite encode/decode", () => {
   beforeEach(() => {
     setVisitorMode(false);
+    setPlacedBoat(false);
+    setSailing(false);
     setOverworldUnlocked(false);
     restoreQuestProgress(lockedProgress());
     initQuestProgress();
@@ -71,5 +74,26 @@ describe("invite encode/decode", () => {
   it("treats missing join as absent", () => {
     window.history.replaceState({}, "", "/");
     expect(parseInviteParam().status).toBe("absent");
+  });
+
+  it("normalizes mid-sail invites onto the pier without sailing", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    setOverworldUnlocked(true);
+    const url = buildInviteUrl("overworld", 6, 14);
+    const parsedUrl = new URL(url);
+    window.history.replaceState({}, "", `${parsedUrl.pathname}${parsedUrl.search}`);
+    const result = parseInviteParam();
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") {
+      return;
+    }
+    expect(result.snapshot.sailing).toBe(false);
+    expect(result.snapshot.position).toEqual({
+      zoneId: "overworld",
+      x: 7,
+      y: 13,
+    });
+    expect(result.snapshot.placedBoat).toBe(true);
   });
 });

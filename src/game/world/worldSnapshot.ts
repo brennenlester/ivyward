@@ -31,7 +31,12 @@ import {
   setSideQuestStatuses,
 } from "./npcState";
 import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQuests";
-import { isBoatPlaced, setPlacedBoat } from "./dockBoat";
+import {
+  isBoatPlaced,
+  isSailing,
+  setPlacedBoat,
+  setSailing,
+} from "./dockBoat";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -52,6 +57,8 @@ export type WorldSnapshot = {
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
   /** Boat moored at the Folklore Fields dock. Optional for older saves. */
   placedBoat?: boolean;
+  /** Player is sailing the Folklore Fields shore. Optional for older saves. */
+  sailing?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -91,6 +98,7 @@ function isSpawnWalkable(
   x: number,
   y: number,
   overworldUnlocked: boolean,
+  sailing = false,
 ): boolean {
   const zone = ZONES[zoneId];
   const tileX = Math.round(x);
@@ -105,6 +113,10 @@ function isSpawnWalkable(
   }
   const tile = zone.tiles[tileY][tileX];
   if (tile === TileType.Floor || tile === TileType.Dock) {
+    return true;
+  }
+  // Mid-sail saves restore onto Water in Folklore Fields.
+  if (sailing && zoneId === "overworld" && tile === TileType.Water) {
     return true;
   }
   if (tile === TileType.OverworldGate) {
@@ -230,8 +242,20 @@ export function repairLegacyOverworldShorePosition(value: unknown): void {
   if (!isFiniteNumber(pos.x) || !isFiniteNumber(pos.y)) {
     return;
   }
+  // Mid-sail on the y=13 water bay is legitimate — do not relocate.
+  if (s.sailing === true && Math.round(pos.y) === 13) {
+    return;
+  }
   const overworldUnlocked = s.overworldUnlocked === true;
-  if (isSpawnWalkable("overworld", pos.x, pos.y, overworldUnlocked)) {
+  if (
+    isSpawnWalkable(
+      "overworld",
+      pos.x,
+      pos.y,
+      overworldUnlocked,
+      s.sailing === true,
+    )
+  ) {
     return;
   }
   if (Math.round(pos.y) !== 13) {
@@ -309,6 +333,10 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
 
+  if (s.sailing !== undefined && typeof s.sailing !== "boolean") {
+    return false;
+  }
+
   const pos = s.position as Record<string, unknown> | undefined;
   if (
     !pos ||
@@ -323,7 +351,8 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
       pos.zoneId as ZoneId,
       pos.x,
       pos.y,
-      s.overworldUnlocked,
+      s.overworldUnlocked === true,
+      s.sailing === true,
     )
   ) {
     return false;
@@ -362,6 +391,7 @@ export function exportWorldSnapshot(
     claimedNpcGifts: getClaimedNpcGifts(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
+    sailing: isSailing(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -392,6 +422,20 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setPlacedBoat(snapshot.placedBoat === true);
+  setSailing(snapshot.sailing === true);
+  // Sailing only makes sense on Folklore Fields Water/Dock; otherwise clear it.
+  if (isSailing()) {
+    const zone = ZONES[snapshot.position.zoneId];
+    const tileX = Math.round(snapshot.position.x);
+    const tileY = Math.round(snapshot.position.y);
+    const tile = zone.tiles[tileY]?.[tileX];
+    if (
+      snapshot.position.zoneId !== "overworld" ||
+      (tile !== TileType.Water && tile !== TileType.Dock)
+    ) {
+      setSailing(false);
+    }
+  }
   // Saves predating the achievement can already have a full codex; award after
   // the inventory is restored so the items are not overwritten.
   evaluateCodexAchievement(worldState.discoveredCreatures);
