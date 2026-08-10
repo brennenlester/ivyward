@@ -80,9 +80,11 @@ import {
 } from "../world/gatherState";
 import {
   isBoatPlaced,
+  EAST_LANDING_NAME,
   isNearHarborDock,
   isSailing,
   HARBOR_DOCK,
+  tryArriveEastLanding,
   tryDisembark,
   tryEmbark,
   tryPlaceBoat,
@@ -292,10 +294,38 @@ export class IsometricScene extends Phaser.Scene {
         this.playerGridX,
         this.playerGridY,
       );
+      this.tryEastLandingArrival();
       this.tryZoneTransition(zone);
       this.tryRandomEncounter(step);
     }
     this.syncPlayerToGrid();
+  }
+
+  /** Auto-end Harbor sail when the boat reaches East Landing approach water. */
+  private tryEastLandingArrival(): void {
+    if (!isSailing()) {
+      return;
+    }
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    const result = tryArriveEastLanding(this.currentZoneId, tileX, tileY);
+    if (!result.ok || !result.disembarked) {
+      return;
+    }
+    if (result.playerX !== undefined && result.playerY !== undefined) {
+      this.playerGridX = result.playerX;
+      this.playerGridY = result.playerY;
+      updateHostPosition(
+        this.currentZoneId,
+        this.playerGridX,
+        this.playerGridY,
+      );
+      this.syncPlayerToGrid();
+      this.drawPlacedBoat(getZone(this.currentZoneId));
+    }
+    this.showGatherToast(result.message, true);
+    updateStatusPanel(getZone(this.currentZoneId));
+    this.updateInteractPrompt();
   }
 
   private updateFacing(dx: number, dy: number): void {
@@ -694,8 +724,12 @@ export class IsometricScene extends Phaser.Scene {
     const npc = !shrine && !door ? this.getNearbyNpc() : undefined;
     const dock =
       !shrine && !door && !npc ? this.getNearbyDockPrompt() : undefined;
+    const sailingHint =
+      !shrine && !door && !npc && !dock && isSailing()
+        ? `Sailing to ${EAST_LANDING_NAME}`
+        : undefined;
     const gather =
-      !shrine && !door && !npc && !dock && !isVisitorMode()
+      !shrine && !door && !npc && !dock && !sailingHint && !isVisitorMode()
         ? this.getNearbyGatherProp()
         : undefined;
 
@@ -708,6 +742,8 @@ export class IsometricScene extends Phaser.Scene {
       label = `Press E — Talk to ${npc.name}`;
     } else if (dock) {
       label = dock;
+    } else if (sailingHint) {
+      label = sailingHint;
     } else if (gather) {
       label = this.formatGatherPrompt(gather);
     }

@@ -36,9 +36,11 @@ describe("harbor zone shell", () => {
     expect(isTileWalkable(harbor, 3, 7)).toBe(true);
     expect(isTileWalkable(harbor, 3, 6)).toBe(true);
     expect(isTileWalkable(harbor, 4, 7)).toBe(false);
-    // East Landing shell pads
+    // East Landing destination pads
     expect(isTileWalkable(harbor, 15, 4)).toBe(true);
     expect(isTileWalkable(harbor, 16, 5)).toBe(true);
+    expect(harbor.tiles[6][15]).toBe(TileType.Water);
+    expect(harbor.tiles[6][16]).toBe(TileType.Water);
   });
 
   it("wires Folklore Fields north gate ↔ Harbor bidirectionally", () => {

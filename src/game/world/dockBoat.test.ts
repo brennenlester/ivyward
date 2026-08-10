@@ -11,7 +11,11 @@ import {
   setSailing,
   tryDisembark,
   tryEmbark,
+  tryArriveEastLanding,
   tryPlaceBoat,
+  EAST_LANDING,
+  EAST_LANDING_NAME,
+  isOnEastLandingApproach,
 } from "./dockBoat";
 import { canOccupy, isTileWalkable } from "./collision";
 import { getZone } from "./zones";
@@ -148,6 +152,7 @@ describe("embark and disembark", () => {
       playerX: HARBOR_EMBARK_WATER.x,
       playerY: HARBOR_EMBARK_WATER.y,
     });
+    expect(result.message).toContain(EAST_LANDING_NAME);
     expect(isSailing()).toBe(true);
   });
 
@@ -312,6 +317,44 @@ describe("sailing snapshot", () => {
       position: { zoneId: "harbor", x: HARBOR_PIER.x, y: HARBOR_PIER.y },
     });
     expect(isSailing()).toBe(false);
+  });
+});
+
+describe("East Landing side-scroll destination", () => {
+  it("ends sail mode on approach and places the player on East Landing", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(isOnEastLandingApproach("harbor", 15, 6)).toBe(true);
+    const result = tryArriveEastLanding("harbor", 15, 6);
+    expect(result).toMatchObject({
+      ok: true,
+      disembarked: true,
+      playerX: EAST_LANDING.x,
+      playerY: EAST_LANDING.y,
+    });
+    expect(result.message).toContain(EAST_LANDING_NAME);
+    expect(isSailing()).toBe(false);
+    expect(isTileWalkable(getZone("harbor"), EAST_LANDING.x, EAST_LANDING.y)).toBe(
+      true,
+    );
+  });
+
+  it("does not end sail mode away from East Landing", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    const midBay = tryArriveEastLanding("harbor", 8, 7);
+    expect(midBay.ok).toBe(false);
+    expect(isSailing()).toBe(true);
+    expect(isOnEastLandingApproach("harbor", 8, 7)).toBe(false);
+  });
+
+  it("blocks visitors from completing the voyage", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    setVisitorMode(true);
+    const result = tryArriveEastLanding("harbor", 16, 6);
+    expect(result.ok).toBe(false);
+    expect(isSailing()).toBe(true);
   });
 });
 

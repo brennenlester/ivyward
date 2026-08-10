@@ -177,7 +177,7 @@ const OVERWORLD: ZoneDefinition = {
 
 /**
  * Harbor — dock-area shell north of Folklore Fields.
- * Horizontal water corridor is sized for later side-scroll (#90); boat gameplay lives here (#89).
+ * Horizontal water corridor is the side-scroll sail path ending at East Landing (#90).
  */
 const harborTiles = borderedFloor(18, 9, [{ x: 0, y: 4 }]);
 for (const y of [6, 7]) {
@@ -187,7 +187,7 @@ for (const y of [6, 7]) {
 }
 harborTiles[7][3] = TileType.Dock;
 harborTiles[6][3] = TileType.Floor; // pier from the west entry path
-// East Landing shell (destination pad for later side-scroll end).
+// East Landing — named sail destination pads (approach water is y=6 at x=15–16).
 harborTiles[4][15] = TileType.Floor;
 harborTiles[4][16] = TileType.Floor;
 harborTiles[5][15] = TileType.Floor;
