@@ -53,6 +53,9 @@ export class ShrineScene extends Phaser.Scene {
   private contentScroll = 0;
   private contentHeight = 0;
   private contentMask?: Phaser.Display.Masks.GeometryMask;
+  private dragScrollActive = false;
+  private dragScrollStartY = 0;
+  private dragScrollOrigin = 0;
 
   constructor() {
     super({ key: "ShrineScene" });
@@ -177,21 +180,59 @@ export class ShrineScene extends Phaser.Scene {
         _deltaX: number,
         deltaY: number,
       ) => {
-        this.scrollContent(deltaY);
+        this.scrollContentBy(deltaY * 0.35);
       },
+    );
+
+    // Touch / pointer drag — wheel alone cannot reach recipes below the mask.
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      if (!this.isPointerInContentBounds(pointer, cx)) {
+        return;
+      }
+      this.dragScrollActive = true;
+      this.dragScrollStartY = pointer.y;
+      this.dragScrollOrigin = this.contentScroll;
+    });
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (!this.dragScrollActive || !pointer.isDown) {
+        return;
+      }
+      this.setContentScroll(
+        this.dragScrollOrigin + (this.dragScrollStartY - pointer.y),
+      );
+    });
+    this.input.on("pointerup", () => {
+      this.dragScrollActive = false;
+    });
+    this.input.on("pointerupoutside", () => {
+      this.dragScrollActive = false;
+    });
+  }
+
+  private isPointerInContentBounds(
+    pointer: Phaser.Input.Pointer,
+    cx: number,
+  ): boolean {
+    const left = cx - PANEL_WIDTH / 2 + 12;
+    const right = cx + PANEL_WIDTH / 2 - 12;
+    return (
+      pointer.x >= left &&
+      pointer.x <= right &&
+      pointer.y >= this.contentBounds.top &&
+      pointer.y <= this.contentBounds.bottom
     );
   }
 
-  private scrollContent(deltaY: number): void {
+  private scrollContentBy(deltaY: number): void {
+    this.setContentScroll(this.contentScroll + deltaY);
+  }
+
+  private setContentScroll(scrollY: number): void {
     const maxScroll = Math.max(0, this.contentHeight - this.contentBounds.height);
     if (maxScroll <= 0) {
       return;
     }
-    this.contentScroll = Phaser.Math.Clamp(
-      this.contentScroll + deltaY * 0.35,
-      0,
-      maxScroll,
-    );
+    this.contentScroll = Phaser.Math.Clamp(scrollY, 0, maxScroll);
     this.contentContainer.setY(-this.contentScroll);
   }
 
