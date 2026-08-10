@@ -144,6 +144,8 @@ export class IsometricScene extends Phaser.Scene {
   private layoutLocked = false;
   private isMoving = false;
   private playerBaseY = 0;
+  /** Moored boat sprite at the Folklore Fields dock (hidden while sailing). */
+  private dockBoat?: Phaser.GameObjects.Image;
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
 
@@ -370,6 +372,7 @@ export class IsometricScene extends Phaser.Scene {
 
     this.children.removeAll(true);
     this.shrinePrompt = undefined;
+    this.dockBoat = undefined;
     this.sailingBoat = undefined;
 
     ensureWorldTextures(this, zoneId);
@@ -765,6 +768,8 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawPlacedBoat(zone: ZoneDefinition): void {
+    this.dockBoat?.destroy();
+    this.dockBoat = undefined;
     if (zone.id !== OVERWORLD_DOCK.zoneId || !isBoatPlaced()) {
       return;
     }
@@ -778,6 +783,7 @@ export class IsometricScene extends Phaser.Scene {
       .setOrigin(0.5, 1);
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
     boat.setDepth(depthForGridCell(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y, PROP_LAYER));
+    this.dockBoat = boat;
   }
 
   private tryDockInteract(): boolean {
@@ -810,6 +816,7 @@ export class IsometricScene extends Phaser.Scene {
           this.playerGridY,
         );
         this.syncPlayerToGrid();
+        this.drawPlacedBoat(getZone(this.currentZoneId));
       }
       this.showGatherToast(result.message, result.ok);
       updateStatusPanel(getZone(this.currentZoneId));
@@ -826,6 +833,8 @@ export class IsometricScene extends Phaser.Scene {
         this.playerGridX,
         this.playerGridY,
       );
+      this.dockBoat?.destroy();
+      this.dockBoat = undefined;
       this.syncPlayerToGrid();
     }
     this.showGatherToast(result.message, result.ok);
