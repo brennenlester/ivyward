@@ -57,6 +57,7 @@ export class ShrineScene extends Phaser.Scene {
   private dragScrollStartY = 0;
   private dragScrollOrigin = 0;
   private dragDidScroll = false;
+  private pressedContentButtons = new Set<Phaser.GameObjects.Text>();
   private static readonly DRAG_SCROLL_THRESHOLD = 8;
 
   constructor() {
@@ -211,9 +212,14 @@ export class ShrineScene extends Phaser.Scene {
     });
     this.input.on("pointerup", () => {
       this.dragScrollActive = false;
+      // Game Object pointerupoutside is not reliable; clear stale presses after button handlers.
+      this.time.delayedCall(0, () => {
+        this.pressedContentButtons.clear();
+      });
     });
     this.input.on("pointerupoutside", () => {
       this.dragScrollActive = false;
+      this.pressedContentButtons.clear();
     });
   }
 
@@ -237,31 +243,32 @@ export class ShrineScene extends Phaser.Scene {
     );
   }
 
-  /** Run content-button actions on pointerup only if press started on this button and did not scroll. */
+  /**
+   * Run content-button actions on pointerup only when:
+   * - press started on this button inside the visible viewport
+   * - release is still inside the viewport
+   * - the gesture did not scroll
+   */
   private onContentTap(
     btn: Phaser.GameObjects.Text,
     action: () => void,
   ): void {
-    let pressedHere = false;
     btn.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
       const { x, y } = this.pointerToDesign(pointer);
       // Geometry masks clip drawing but not hits; ignore presses outside the viewport.
       if (!this.isDesignPointInContentBounds(x, y, this.panelCenter.x)) {
         return;
       }
-      pressedHere = true;
+      this.pressedContentButtons.add(btn);
     });
     btn.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      const wasPressed = this.pressedContentButtons.has(btn);
+      this.pressedContentButtons.delete(btn);
       const { x, y } = this.pointerToDesign(pointer);
       const inBounds = this.isDesignPointInContentBounds(x, y, this.panelCenter.x);
-      const shouldAct = pressedHere && !this.dragDidScroll && inBounds;
-      pressedHere = false;
-      if (shouldAct) {
+      if (wasPressed && inBounds && !this.dragDidScroll) {
         action();
       }
-    });
-    btn.on("pointerupoutside", () => {
-      pressedHere = false;
     });
   }
 
