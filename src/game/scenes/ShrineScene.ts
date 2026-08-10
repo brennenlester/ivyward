@@ -56,6 +56,8 @@ export class ShrineScene extends Phaser.Scene {
   private dragScrollActive = false;
   private dragScrollStartY = 0;
   private dragScrollOrigin = 0;
+  private dragDidScroll = false;
+  private static readonly DRAG_SCROLL_THRESHOLD = 8;
 
   constructor() {
     super({ key: "ShrineScene" });
@@ -186,20 +188,25 @@ export class ShrineScene extends Phaser.Scene {
 
     // Touch / pointer drag — wheel alone cannot reach recipes below the mask.
     this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
-      if (!this.isPointerInContentBounds(pointer, cx)) {
+      const { x, y } = this.pointerToDesign(pointer);
+      if (!this.isDesignPointInContentBounds(x, y, cx)) {
         return;
       }
       this.dragScrollActive = true;
-      this.dragScrollStartY = pointer.y;
+      this.dragDidScroll = false;
+      this.dragScrollStartY = y;
       this.dragScrollOrigin = this.contentScroll;
     });
     this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
       if (!this.dragScrollActive || !pointer.isDown) {
         return;
       }
-      this.setContentScroll(
-        this.dragScrollOrigin + (this.dragScrollStartY - pointer.y),
-      );
+      const { y } = this.pointerToDesign(pointer);
+      const delta = this.dragScrollStartY - y;
+      if (Math.abs(delta) >= ShrineScene.DRAG_SCROLL_THRESHOLD) {
+        this.dragDidScroll = true;
+      }
+      this.setContentScroll(this.dragScrollOrigin + delta);
     });
     this.input.on("pointerup", () => {
       this.dragScrollActive = false;
@@ -209,18 +216,37 @@ export class ShrineScene extends Phaser.Scene {
     });
   }
 
-  private isPointerInContentBounds(
-    pointer: Phaser.Input.Pointer,
+  /** Map canvas/backing-buffer pointer coords into the 640×640 overlay design space. */
+  private pointerToDesign(pointer: Phaser.Input.Pointer): { x: number; y: number } {
+    return this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+  }
+
+  private isDesignPointInContentBounds(
+    x: number,
+    y: number,
     cx: number,
   ): boolean {
     const left = cx - PANEL_WIDTH / 2 + 12;
     const right = cx + PANEL_WIDTH / 2 - 12;
     return (
-      pointer.x >= left &&
-      pointer.x <= right &&
-      pointer.y >= this.contentBounds.top &&
-      pointer.y <= this.contentBounds.bottom
+      x >= left &&
+      x <= right &&
+      y >= this.contentBounds.top &&
+      y <= this.contentBounds.bottom
     );
+  }
+
+  /** Run content-button actions on pointerup unless the gesture scrolled. */
+  private onContentTap(
+    btn: Phaser.GameObjects.Text,
+    action: () => void,
+  ): void {
+    btn.on("pointerup", () => {
+      if (this.dragDidScroll) {
+        return;
+      }
+      action();
+    });
   }
 
   private scrollContentBy(deltaY: number): void {
@@ -363,7 +389,7 @@ export class ShrineScene extends Phaser.Scene {
 
     if (craftable) {
       btn.setInteractive({ useHandCursor: true });
-      btn.on("pointerdown", () => {
+      this.onContentTap(btn, () => {
         if (craftItem(recipe)) {
           recordQuestEvent({ type: "craft_item" });
           playCraftSfx(this);
@@ -417,7 +443,7 @@ export class ShrineScene extends Phaser.Scene {
           .setOrigin(0.5)
           .setInteractive({ useHandCursor: true });
 
-        btn.on("pointerdown", () => {
+        this.onContentTap(btn, () => {
           this.selectedItemId = itemId;
           this.renderTabContent();
         });
@@ -451,11 +477,11 @@ export class ShrineScene extends Phaser.Scene {
         fontSize: "13px",
       })
       .setOrigin(0, 0.5)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
-        this.selectedItemId = null;
-        this.renderTabContent();
-      });
+      .setInteractive({ useHandCursor: true });
+    this.onContentTap(back, () => {
+      this.selectedItemId = null;
+      this.renderTabContent();
+    });
     this.contentContainer.add(back);
 
     const eligible = getEligibleCreaturesForItem(itemId).filter(
@@ -495,7 +521,7 @@ export class ShrineScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
-      btn.on("pointerdown", () => {
+      this.onContentTap(btn, () => {
         const result = applyShrineFusion(entry.instanceId, itemId);
         this.setStatus(result.message);
         if (result.ok) {
@@ -560,7 +586,7 @@ export class ShrineScene extends Phaser.Scene {
           .setOrigin(0.5)
           .setInteractive({ useHandCursor: true });
 
-        btn.on("pointerdown", () => {
+        this.onContentTap(btn, () => {
           this.selectedItemId = itemId;
           this.renderTabContent();
         });
@@ -595,11 +621,11 @@ export class ShrineScene extends Phaser.Scene {
         fontSize: "13px",
       })
       .setOrigin(0, 0.5)
-      .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => {
-        this.selectedItemId = null;
-        this.renderTabContent();
-      });
+      .setInteractive({ useHandCursor: true });
+    this.onContentTap(back, () => {
+      this.selectedItemId = null;
+      this.renderTabContent();
+    });
     this.contentContainer.add(back);
 
     const eligible = getEligibleCreaturesForConsumable(itemId).filter(
@@ -640,7 +666,7 @@ export class ShrineScene extends Phaser.Scene {
         .setOrigin(0.5)
         .setInteractive({ useHandCursor: true });
 
-      btn.on("pointerdown", () => {
+      this.onContentTap(btn, () => {
         const result = applyConsumable(entry.instanceId, itemId);
         this.setStatus(result.message);
         if (result.ok) {
