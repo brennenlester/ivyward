@@ -23,6 +23,8 @@ import {
   isAchievementId,
   setUnlockedAchievements,
 } from "../progression/achievements";
+import { ALL_NPC_IDS } from "./npcs";
+import { getClaimedNpcGifts, setClaimedNpcGifts } from "./npcState";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -37,6 +39,8 @@ export type WorldSnapshot = {
   discoveredCreatures?: string[];
   /** Secret achievements already earned. Optional for older saves. */
   unlockedAchievements?: string[];
+  /** Villagers whose one-time gift is spent. Optional for older saves. */
+  claimedNpcGifts?: string[];
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -236,6 +240,15 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.claimedNpcGifts !== undefined) {
+    if (!Array.isArray(s.claimedNpcGifts)) return false;
+    for (const npcId of s.claimedNpcGifts) {
+      if (typeof npcId !== "string" || !ALL_NPC_IDS.includes(npcId)) {
+        return false;
+      }
+    }
+  }
+
   const pos = s.position as Record<string, unknown> | undefined;
   if (
     !pos ||
@@ -286,6 +299,7 @@ export function exportWorldSnapshot(
     discoveredZones: [...worldState.discoveredZones],
     discoveredCreatures: [...worldState.discoveredCreatures],
     unlockedAchievements: getUnlockedAchievements(),
+    claimedNpcGifts: getClaimedNpcGifts(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -313,6 +327,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   ]);
   setPartyFromSnapshot(snapshot.party, snapshot.nextInstanceId);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
+  setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   // Saves predating the achievement can already have a full codex; award after
   // the inventory is restored so the items are not overwritten.
   evaluateCodexAchievement(worldState.discoveredCreatures);

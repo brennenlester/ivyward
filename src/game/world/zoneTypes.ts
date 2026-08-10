@@ -4,7 +4,10 @@ export type ZoneId =
   | "village"
   | "overworld"
   | "mistwood"
-  | "emberfen";
+  | "emberfen"
+  | "warden-cottage"
+  | "weaver-cottage"
+  | "hearthkeep-cottage";
 
 export const TileType = {
   Wall: 0,
@@ -22,6 +25,16 @@ export type ZoneTransition = {
   targetY: number;
 };
 
+/** Doorway entered with E rather than by walking onto the tile. */
+export type ZoneDoor = {
+  x: number;
+  y: number;
+  targetZone: ZoneId;
+  targetX: number;
+  targetY: number;
+  label: string;
+};
+
 export type ZoneDefinition = {
   id: ZoneId;
   name: string;
@@ -35,4 +48,8 @@ export type ZoneDefinition = {
   darkTint: number;
   /** Optional interact point (e.g. Moon Shrine crafting altar). */
   shrineInteract?: { x: number; y: number };
+  /** Doors requiring an E press, so walking past never yanks you indoors. */
+  doors?: ZoneDoor[];
+  /** True for cottage interiors — used for framing and safety rules. */
+  interior?: boolean;
 };

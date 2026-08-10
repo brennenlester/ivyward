@@ -4,6 +4,14 @@ import type { ZoneId } from "../world/zoneTypes";
 
 type ZonePalette = { light: number; dark: number; accent: number; edge: number };
 
+/** Warm plank floor shared by every cottage interior. */
+const COTTAGE_PALETTE: ZonePalette = {
+  light: 0xd8ab7a,
+  dark: 0xba8b5c,
+  accent: 0xf2d6ac,
+  edge: 0x7f5433,
+};
+
 const ZONE_PALETTES: Record<ZoneId, ZonePalette> = {
   grove: { light: 0xb9df7b, dark: 0x87be64, accent: 0xe7f2a4, edge: 0x4e8a4b },
   shrine: { light: 0xd9d5ed, dark: 0xa9a8cf, accent: 0xf4e8ff, edge: 0x696a9d },
@@ -11,6 +19,9 @@ const ZONE_PALETTES: Record<ZoneId, ZonePalette> = {
   overworld: { light: 0x78c8e0, dark: 0x4fa8c8, accent: 0xb8e8f0, edge: 0x387898 },
   mistwood: { light: 0xb8a8d8, dark: 0x8878b0, accent: 0xe0d4f8, edge: 0x5a4a80 },
   emberfen: { light: 0xe0b070, dark: 0xb87848, accent: 0xffd090, edge: 0x8a5030 },
+  "warden-cottage": COTTAGE_PALETTE,
+  "weaver-cottage": COTTAGE_PALETTE,
+  "hearthkeep-cottage": COTTAGE_PALETTE,
 };
 
 const BOUNDARY_HEIGHT = 56;
@@ -473,6 +484,49 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
+  if (!scene.textures.exists("prop-loom")) {
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    g.fillStyle(OUTLINE, 1);
+    g.fillRoundedRect(6, 6, 34, 36, 3);
+    g.fillStyle(0xa87848, 1);
+    g.fillRoundedRect(7, 7, 32, 34, 2);
+    g.fillStyle(0x6a4838, 1);
+    g.fillRect(11, 10, 4, 28);
+    g.fillRect(31, 10, 4, 28);
+    g.fillStyle(0xf0e0c8, 1);
+    g.fillRect(15, 12, 16, 22);
+    g.lineStyle(1, 0xc0a880, 0.9);
+    for (let y = 14; y < 34; y += 4) {
+      g.lineBetween(15, y, 31, y);
+    }
+    g.fillStyle(0xd88898, 1);
+    g.fillRect(15, 30, 16, 4);
+    g.generateTexture("prop-loom", 46, 44);
+    g.destroy();
+  }
+
+  if (!scene.textures.exists("prop-shelf")) {
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    g.fillStyle(OUTLINE, 1);
+    g.fillRoundedRect(5, 6, 34, 34, 3);
+    g.fillStyle(0x8a6040, 1);
+    g.fillRoundedRect(6, 7, 32, 32, 2);
+    g.fillStyle(0x5a3c28, 1);
+    g.fillRect(8, 18, 28, 3);
+    g.fillRect(8, 29, 28, 3);
+    const spines = [0xd86858, 0xe8b060, 0x70a8d8, 0x8ac878];
+    for (let i = 0; i < 4; i += 1) {
+      g.fillStyle(spines[i], 1);
+      g.fillRect(10 + i * 6, 10, 4, 8);
+      g.fillStyle(spines[(i + 2) % 4], 1);
+      g.fillRect(10 + i * 6, 22, 4, 7);
+    }
+    g.fillStyle(0xf0e0c0, 1);
+    g.fillRect(24, 32, 10, 6);
+    g.generateTexture("prop-shelf", 44, 42);
+    g.destroy();
+  }
+
   if (!scene.textures.exists("floor-path")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     drawSquareTile(g, TILE_WIDTH, TILE_HEIGHT, 0xe0d0a8, 0xb09870);
@@ -483,6 +537,38 @@ function generatePropTextures(scene: Phaser.Scene): void {
   }
 }
 
+export const NPC_TEXTURE_KEY = "npc-villager";
+
+/**
+ * One neutral villager body. Per-NPC colour comes from a sprite tint, so the
+ * robe and hood are kept pale enough to take one.
+ */
+function generateNpcTexture(scene: Phaser.Scene): void {
+  if (scene.textures.exists(NPC_TEXTURE_KEY)) {
+    return;
+  }
+  const g = scene.make.graphics({ x: 0, y: 0 });
+  g.fillStyle(OUTLINE, 1);
+  g.fillRoundedRect(8, 20, 24, 32, 6);
+  g.fillEllipse(20, 15, 22, 22);
+  g.fillStyle(0xe8e8f0, 1);
+  g.fillRoundedRect(9, 21, 22, 30, 5);
+  g.fillStyle(0xf6dcc0, 1);
+  g.fillEllipse(20, 15, 18, 18);
+  g.fillStyle(0xe8e8f0, 1);
+  g.fillRoundedRect(8, 5, 24, 12, 6);
+  g.fillStyle(OUTLINE, 1);
+  g.fillCircle(16, 16, 1.8);
+  g.fillCircle(24, 16, 1.8);
+  g.fillStyle(0xd8a0a0, 0.6);
+  g.fillCircle(13, 20, 2.4);
+  g.fillCircle(27, 20, 2.4);
+  g.fillStyle(0xc8b090, 1);
+  g.fillRoundedRect(9, 34, 22, 4, 2);
+  g.generateTexture(NPC_TEXTURE_KEY, 40, 54);
+  g.destroy();
+}
+
 export function getBoundaryTextureKey(zoneId: ZoneId): string {
   return `boundary-${zoneId}`;
 }
@@ -490,6 +576,7 @@ export function getBoundaryTextureKey(zoneId: ZoneId): string {
 export function ensureWorldTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
   generateWallTextures(scene);
   generatePropTextures(scene);
+  generateNpcTexture(scene);
   generateFloorTextures(scene, zoneId);
 }
 
