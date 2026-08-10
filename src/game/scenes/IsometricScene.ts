@@ -81,7 +81,10 @@ import {
 import {
   isBoatPlaced,
   isNearOverworldDock,
+  isSailing,
   OVERWORLD_DOCK,
+  tryDisembark,
+  tryEmbark,
   tryPlaceBoat,
 } from "../world/dockBoat";
 import { getItemCount } from "../inventory/playerInventory";
@@ -141,6 +144,8 @@ export class IsometricScene extends Phaser.Scene {
   private layoutLocked = false;
   private isMoving = false;
   private playerBaseY = 0;
+  /** Boat sprite that follows the player while sailing. */
+  private sailingBoat?: Phaser.GameObjects.Image;
 
   constructor() {
     super({ key: "IsometricScene" });
@@ -303,6 +308,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryRandomEncounter(step: number): void {
+    if (isSailing()) {
+      return;
+    }
     if (isVisitorMode()) {
       return;
     }
@@ -331,6 +339,10 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryZoneTransition(zone: ZoneDefinition): void {
+    // Dock tile is also the village gate — do not leave while sailing.
+    if (isSailing()) {
+      return;
+    }
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
 
@@ -358,6 +370,7 @@ export class IsometricScene extends Phaser.Scene {
 
     this.children.removeAll(true);
     this.shrinePrompt = undefined;
+    this.sailingBoat = undefined;
 
     ensureWorldTextures(this, zoneId);
     ensurePlayerAnims(this);
@@ -736,11 +749,14 @@ export class IsometricScene extends Phaser.Scene {
     }
     if (isVisitorMode()) {
       return isBoatPlaced()
-        ? "Boat moored (host only)"
+        ? "Boat moored (embark is host only)"
         : "Dock (host can place a boat)";
     }
+    if (isSailing()) {
+      return "Press E — Disembark";
+    }
     if (isBoatPlaced()) {
-      return "Press E — Boat moored";
+      return "Press E — Board boat";
     }
     if (getItemCount("boat") > 0) {
       return "Press E — Place boat";
@@ -750,6 +766,10 @@ export class IsometricScene extends Phaser.Scene {
 
   private drawPlacedBoat(zone: ZoneDefinition): void {
     if (zone.id !== OVERWORLD_DOCK.zoneId || !isBoatPlaced()) {
+      return;
+    }
+    // While sailing the boat follows the player instead of sitting at the dock.
+    if (isSailing()) {
       return;
     }
     const screen = this.toScreen(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y);
@@ -766,10 +786,47 @@ export class IsometricScene extends Phaser.Scene {
     if (!isNearOverworldDock(this.currentZoneId, tileX, tileY)) {
       return false;
     }
-    const result = tryPlaceBoat(this.currentZoneId, tileX, tileY);
-    if (result.ok && result.consumed) {
-      // Reload first so removeAll does not wipe the confirmation toast.
-      this.loadZone(this.currentZoneId);
+
+    if (!isBoatPlaced()) {
+      const result = tryPlaceBoat(this.currentZoneId, tileX, tileY);
+      if (result.ok && result.consumed) {
+        // Reload first so removeAll does not wipe the confirmation toast.
+        this.loadZone(this.currentZoneId);
+      }
+      this.showGatherToast(result.message, result.ok);
+      updateStatusPanel(getZone(this.currentZoneId));
+      this.updateInteractPrompt();
+      return true;
+    }
+
+    if (isSailing()) {
+      const result = tryDisembark(this.currentZoneId, tileX, tileY);
+      if (result.ok && result.disembarked && result.playerX !== undefined && result.playerY !== undefined) {
+        this.playerGridX = result.playerX;
+        this.playerGridY = result.playerY;
+        updateHostPosition(
+          this.currentZoneId,
+          this.playerGridX,
+          this.playerGridY,
+        );
+        this.syncPlayerToGrid();
+      }
+      this.showGatherToast(result.message, result.ok);
+      updateStatusPanel(getZone(this.currentZoneId));
+      this.updateInteractPrompt();
+      return true;
+    }
+
+    const result = tryEmbark(this.currentZoneId, tileX, tileY);
+    if (result.ok && result.embarked && result.playerX !== undefined && result.playerY !== undefined) {
+      this.playerGridX = result.playerX;
+      this.playerGridY = result.playerY;
+      updateHostPosition(
+        this.currentZoneId,
+        this.playerGridX,
+        this.playerGridY,
+      );
+      this.syncPlayerToGrid();
     }
     this.showGatherToast(result.message, result.ok);
     updateStatusPanel(getZone(this.currentZoneId));
@@ -916,6 +973,26 @@ export class IsometricScene extends Phaser.Scene {
     }
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(PLAYER_DEPTH);
+    this.syncSailingBoat(screen.x, this.playerBaseY);
+  }
+
+  private syncSailingBoat(screenX: number, baseY: number): void {
+    if (!isSailing()) {
+      if (this.sailingBoat) {
+        this.sailingBoat.destroy();
+        this.sailingBoat = undefined;
+      }
+      return;
+    }
+    if (!this.sailingBoat) {
+      this.sailingBoat = this.add
+        .image(screenX, baseY, getBoatTextureKey())
+        .setOrigin(0.5, 1);
+      fitDisplay(this.sailingBoat, PROP_DISPLAY["prop-boat"]);
+    } else {
+      this.sailingBoat.setPosition(screenX, baseY);
+    }
+    this.sailingBoat.setDepth(PLAYER_DEPTH - 1);
   }
 
   private playPlayerAnimation(): void {

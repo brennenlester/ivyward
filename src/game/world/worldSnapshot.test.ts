@@ -177,6 +177,17 @@ describe("repairLegacyOverworldShorePosition", () => {
     expect(isValidWorldSnapshot(snapshot)).toBe(true);
   });
 
+  it("leaves mid-sail y=13 water stands alone", () => {
+    const sailing = validSnapshot({
+      overworldUnlocked: true,
+      sailing: true,
+      position: { zoneId: "overworld", x: 6, y: 13 },
+    });
+    repairLegacyOverworldShorePosition(sailing);
+    expect(sailing.position).toEqual({ zoneId: "overworld", x: 6, y: 13 });
+    expect(isValidWorldSnapshot(sailing)).toBe(true);
+  });
+
   it("leaves the pier and other zones alone", () => {
     const pier = validSnapshot({
       overworldUnlocked: true,
