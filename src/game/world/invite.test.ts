@@ -90,9 +90,9 @@ describe("invite encode/decode", () => {
     }
     expect(result.snapshot.sailing).toBe(false);
     expect(result.snapshot.position).toEqual({
-      zoneId: "overworld",
-      x: 7,
-      y: 13,
+      zoneId: "harbor",
+      x: 3,
+      y: 6,
     });
     expect(result.snapshot.placedBoat).toBe(true);
   });

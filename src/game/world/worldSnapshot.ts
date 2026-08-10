@@ -36,6 +36,9 @@ import {
   isSailing,
   setPlacedBoat,
   setSailing,
+  HARBOR_DOCK,
+  HARBOR_PIER,
+  HARBOR_EMBARK_WATER,
 } from "./dockBoat";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
@@ -55,9 +58,9 @@ export type WorldSnapshot = {
   claimedNpcGifts?: string[];
   /** NPC side-quest progress. Optional for older saves. */
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
-  /** Boat moored at the Folklore Fields dock. Optional for older saves. */
+  /** Boat moored at the Harbor dock. Optional for older saves. */
   placedBoat?: boolean;
-  /** Player is sailing the Folklore Fields shore. Optional for older saves. */
+  /** Player is sailing in Harbor. Optional for older saves. */
   sailing?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
@@ -115,8 +118,8 @@ function isSpawnWalkable(
   if (tile === TileType.Floor || tile === TileType.Dock) {
     return true;
   }
-  // Mid-sail saves restore onto Water in Folklore Fields.
-  if (sailing && zoneId === "overworld" && tile === TileType.Water) {
+  // Mid-sail saves restore onto Water in Harbor.
+  if (sailing && zoneId === "harbor" && tile === TileType.Water) {
     return true;
   }
   if (tile === TileType.OverworldGate) {
@@ -227,8 +230,47 @@ function isValidPartyMember(value: unknown): boolean {
 }
 
 /**
+ * Pre-#89 boat gameplay lived on Folklore Fields south dock.
+ * Move overworld boat/sail positions into Harbor so saves stay valid.
+ */
+export function migrateBoatStateToHarbor(value: unknown): void {
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  const s = value as Record<string, unknown>;
+  const pos = s.position as Record<string, unknown> | undefined;
+  if (!pos || pos.zoneId !== "overworld") {
+    return;
+  }
+  if (!isFiniteNumber(pos.x) || !isFiniteNumber(pos.y)) {
+    return;
+  }
+  const tileX = Math.round(pos.x);
+  const tileY = Math.round(pos.y);
+  const onLegacySouthBay = tileY === 13 || tileY === 14;
+  if (!onLegacySouthBay) {
+    return;
+  }
+
+  if (s.sailing === true) {
+    pos.zoneId = HARBOR_DOCK.zoneId;
+    pos.x = HARBOR_EMBARK_WATER.x;
+    pos.y = HARBOR_EMBARK_WATER.y;
+    return;
+  }
+
+  // Standing on/near the old dock/pier with a moored boat → Harbor pier.
+  if (s.placedBoat === true && Math.abs(tileX - 7) <= 1) {
+    pos.zoneId = HARBOR_DOCK.zoneId;
+    pos.x = HARBOR_PIER.x;
+    pos.y = HARBOR_PIER.y;
+  }
+}
+
+/**
  * Pre-#83 saves may stand on Folklore Fields y=13 floor tiles that are now water.
  * Relocate those positions to the village-gate land spawn instead of invalidating the save.
+ * Run after migrateBoatStateToHarbor so mid-sail overworld stands are already in Harbor.
  */
 export function repairLegacyOverworldShorePosition(value: unknown): void {
   if (typeof value !== "object" || value === null) {
@@ -242,10 +284,6 @@ export function repairLegacyOverworldShorePosition(value: unknown): void {
   if (!isFiniteNumber(pos.x) || !isFiniteNumber(pos.y)) {
     return;
   }
-  // Mid-sail on the y=13 water bay is legitimate — do not relocate.
-  if (s.sailing === true && Math.round(pos.y) === 13) {
-    return;
-  }
   const overworldUnlocked = s.overworldUnlocked === true;
   if (
     isSpawnWalkable(
@@ -253,7 +291,7 @@ export function repairLegacyOverworldShorePosition(value: unknown): void {
       pos.x,
       pos.y,
       overworldUnlocked,
-      s.sailing === true,
+      false,
     )
   ) {
     return;
@@ -423,14 +461,14 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setPlacedBoat(snapshot.placedBoat === true);
   setSailing(snapshot.sailing === true);
-  // Sailing only makes sense on Folklore Fields Water/Dock; otherwise clear it.
+  // Sailing only makes sense on Harbor Water/Dock; otherwise clear it.
   if (isSailing()) {
     const zone = ZONES[snapshot.position.zoneId];
     const tileX = Math.round(snapshot.position.x);
     const tileY = Math.round(snapshot.position.y);
     const tile = zone.tiles[tileY]?.[tileX];
     if (
-      snapshot.position.zoneId !== "overworld" ||
+      snapshot.position.zoneId !== "harbor" ||
       (tile !== TileType.Water && tile !== TileType.Dock)
     ) {
       setSailing(false);

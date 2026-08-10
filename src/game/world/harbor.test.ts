@@ -77,7 +77,7 @@ describe("harbor zone shell", () => {
       targetX: 5,
       targetY: 1,
     });
-    expect(overworld.tiles[14][7]).toBe(TileType.Dock);
+    expect(overworld.tiles[14][7]).toBe(TileType.Floor);
   });
 
   it("places a gate prop on the Folklore Fields north opening", () => {

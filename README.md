@@ -13,7 +13,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | Input | Action |
 | --- | --- |
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
-| **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, talk to a villager, or moor / board / disembark a boat at the Folklore Fields dock |
+| **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, talk to a villager, or moor / board / disembark a boat at the Moonwake Harbor dock |
 | **I** | Copy a friend invite link (host only) |
 | **Codex** (status panel) | Open the habitat codex — what lives where (fills in as you encounter creatures) |
 | **Reset game** (status panel) | Wipe local host save and start fresh |
@@ -62,7 +62,7 @@ Active village asks show in the status panel as `Village ask: …`. Delivery ask
 - Walk in zones to trigger encounters: **Befriend**, **Spar**, or **Flee**.
 - Creatures and moves have folklore **types**. Spars use accuracy, hunter matchups (~1.5×), and rare immunity traits on signature creatures.
 - Winning spars grants creature materials, Folklore Dust, and XP.
-- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). In Folklore Fields, the south shore is a two-row water bay with a dock and pier at the village gate — press **E** near the dock while holding a Boat to moor it (persists in your save; visitors cannot place). After mooring, press **E** again to board, sail the shore water, then **E** at the dock to disembark onto the pier. Mid-sail position and sailing state restore from save.
+- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). From Folklore Fields, take the north gate into **Moonwake Harbor**. Press **E** near the Harbor dock while holding a Boat to moor it (persists in your save; visitors cannot place). After mooring, press **E** again to board, sail the Harbor water, then **E** at the dock to disembark onto the pier. Mid-sail position and sailing state restore from save. Older saves that still had a Folklore Fields boat stand migrate into Harbor automatically.
 - Open **Codex** to see which creatures live where. Encountering a creature once lists it under **every** habitat that can spawn it. Habitats with no known dwellers stay blank until you meet something from that pool.
 
 ### Secrets
