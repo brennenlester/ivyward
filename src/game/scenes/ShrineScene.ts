@@ -237,16 +237,24 @@ export class ShrineScene extends Phaser.Scene {
     );
   }
 
-  /** Run content-button actions on pointerup unless the gesture scrolled. */
+  /** Run content-button actions on pointerup only if press started on this button and did not scroll. */
   private onContentTap(
     btn: Phaser.GameObjects.Text,
     action: () => void,
   ): void {
+    let pressedHere = false;
+    btn.on("pointerdown", () => {
+      pressedHere = true;
+    });
     btn.on("pointerup", () => {
-      if (this.dragDidScroll) {
-        return;
+      const shouldAct = pressedHere && !this.dragDidScroll;
+      pressedHere = false;
+      if (shouldAct) {
+        action();
       }
-      action();
+    });
+    btn.on("pointerupoutside", () => {
+      pressedHere = false;
     });
   }
 
