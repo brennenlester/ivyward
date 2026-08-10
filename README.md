@@ -62,7 +62,7 @@ Active village asks show in the status panel as `Village ask: …`. Delivery ask
 - Walk in zones to trigger encounters: **Befriend**, **Spar**, or **Flee**.
 - Creatures and moves have folklore **types**. Spars use accuracy, hunter matchups (~1.5×), and rare immunity traits on signature creatures.
 - Winning spars grants creature materials, Folklore Dust, and XP.
-- At Moon Shrine, craft relics and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot).
+- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). Dock placement lands in a later update.
 - Open **Codex** to see which creatures live where. Encountering a creature once lists it under **every** habitat that can spawn it. Habitats with no known dwellers stay blank until you meet something from that pool.
 
 ### Secrets

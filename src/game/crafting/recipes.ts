@@ -64,6 +64,17 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
       { materialId: "folklore-dust", count: 1 },
     ],
   },
+  {
+    id: "boat",
+    name: "Boat",
+    outputItemId: "boat",
+    // Mid-game hull: more wood than a cudgel, plus fiber lashings and a dust binding.
+    materials: [
+      { materialId: "wood", count: 6 },
+      { materialId: "wild-fiber", count: 3 },
+      { materialId: "folklore-dust", count: 1 },
+    ],
+  },
 ];
 
 export function canCraft(recipe: CraftRecipe): boolean {
