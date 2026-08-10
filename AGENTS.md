@@ -4,7 +4,7 @@ This repository follows the shared agent baseline supplied by the active harness
 
 ## Project links
 
-- **Linear project:** [Ivyward](https://linear.app/brennen-lester/project/poke-f73601c7fa30)
+- **Linear project:** [Ivyward](https://linear.app/brennen-lester/project/ivyward-f73601c7fa30)
 - **GitHub repo:** [brennenlester/ivyward](https://github.com/brennenlester/ivyward)
 
 ## Linear-first workflow
