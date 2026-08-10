@@ -13,6 +13,7 @@ import { getNpcById } from "./npcs";
 import {
   claimNpcGift,
   getClaimedNpcGifts,
+  getSideQuestStatuses,
   resetNpcStateForTest,
   setClaimedNpcGifts,
 } from "./npcState";
@@ -88,6 +89,26 @@ describe("isValidWorldSnapshot", () => {
         validSnapshot({ position: { zoneId: "warden-cottage", x: 3, y: 3 } }),
       ),
     ).toBe(true);
+  });
+
+  it("accepts known side-quest progress", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          npcSideQuests: { "bryn-ledger": "active", "sable-thread": "complete" },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects unknown side-quest ids", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          npcSideQuests: { "not-a-quest": "active" } as WorldSnapshot["npcSideQuests"],
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("rejects unknown zoneId", () => {
@@ -243,5 +264,19 @@ describe("applyWorldSnapshot codex achievement", () => {
     applyWorldSnapshot(validSnapshot());
 
     expect(getClaimedNpcGifts()).toEqual([]);
+  });
+
+  it("restores NPC side-quest progress", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        npcSideQuests: { "bryn-ledger": "active", "sable-thread": "complete" },
+      }),
+    );
+
+    expect(getSideQuestStatuses()).toEqual({
+      "bryn-ledger": "active",
+      "sable-thread": "complete",
+      "odd-company": "locked",
+    });
   });
 });

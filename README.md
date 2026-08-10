@@ -47,6 +47,16 @@ Each cottage is home to one villager you can talk to with **E**:
 
 A villager hands over their gift the first time you speak to them, once per save. After that they cycle through local talk — some of which is worth listening to. Visitors on an invite link can explore the cottages and talk to everyone, but never receive gifts.
 
+Talk again after the gift and each villager will offer a **side ask**:
+
+| Villager | Ask | Reward |
+| --- | --- | --- |
+| Warden Bryn | Bring word of five different creatures | Brook Tonic ×2 |
+| Weaver Sable | Deliver Wood ×5 and Wild Fiber ×3 | Brook Tonic ×2 |
+| Hearthkeep Odd | Travel with three companions | Moonwake Draught ×1 |
+
+Active village asks show in the status panel as `Village ask: …`. Delivery asks only take materials when you successfully turn them in. Visitors cannot accept or complete side asks.
+
 ### Encounters and crafting
 
 - Walk in zones to trigger encounters: **Befriend**, **Spar**, or **Flee**.

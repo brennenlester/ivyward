@@ -1,6 +1,7 @@
 import { getPartySummary } from "../creatures/party";
 import { getInventorySummary } from "../inventory/playerInventory";
 import { getGateStatusText, getQuestHint, getQuestSummary } from "../story/questProgress";
+import { getActiveSideQuestHint } from "../world/npcState";
 import { getHostLabel, isVisitorMode } from "../world/worldSession";
 import { resetHostGame } from "../world/worldSave";
 import type { ZoneDefinition } from "../world/zoneTypes";
@@ -36,7 +37,11 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
     questEl.textContent = getQuestSummary();
   }
   if (questHintEl) {
-    questHintEl.textContent = getQuestHint();
+    const villageAsk = getActiveSideQuestHint();
+    const storyHint = getQuestHint();
+    questHintEl.textContent = villageAsk
+      ? `${storyHint} · ${villageAsk}`
+      : storyHint;
   }
   if (gateEl) {
     gateEl.textContent = getGateStatusText();
