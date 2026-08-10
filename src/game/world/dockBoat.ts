@@ -1,5 +1,4 @@
-import { TileType, type ZoneId } from "./zoneTypes";
-import { ZONES } from "./zones";
+import { type ZoneId } from "./zoneTypes";
 import {
   consumeItem,
   getItemCount,
@@ -39,20 +38,6 @@ export function isNearOverworldDock(
   return (
     Math.abs(tileX - OVERWORLD_DOCK.x) + Math.abs(tileY - OVERWORLD_DOCK.y) <= 1
   );
-}
-
-export function findDockTile(
-  zoneId: ZoneId,
-): { x: number; y: number } | undefined {
-  const zone = ZONES[zoneId];
-  for (let y = 0; y < zone.height; y++) {
-    for (let x = 0; x < zone.width; x++) {
-      if (zone.tiles[y][x] === TileType.Dock) {
-        return { x, y };
-      }
-    }
-  }
-  return undefined;
 }
 
 export type PlaceBoatResult = {
