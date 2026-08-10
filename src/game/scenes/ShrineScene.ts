@@ -203,7 +203,8 @@ export class ShrineScene extends Phaser.Scene {
       }
       const { y } = this.pointerToDesign(pointer);
       const delta = this.dragScrollStartY - y;
-      if (Math.abs(delta) >= ShrineScene.DRAG_SCROLL_THRESHOLD) {
+      const maxScroll = Math.max(0, this.contentHeight - this.contentBounds.height);
+      if (maxScroll > 0 && Math.abs(delta) >= ShrineScene.DRAG_SCROLL_THRESHOLD) {
         this.dragDidScroll = true;
       }
       this.setContentScroll(this.dragScrollOrigin + delta);

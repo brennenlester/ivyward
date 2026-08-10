@@ -3,6 +3,7 @@ import {
   consumeMaterial,
   getMaterialCount,
 } from "../inventory/playerInventory";
+import { isVisitorMode } from "../world/worldSession";
 
 export type CraftRecipe = {
   id: string;
@@ -79,6 +80,9 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
 ];
 
 export function canCraft(recipe: CraftRecipe): boolean {
+  if (isVisitorMode()) {
+    return false;
+  }
   return recipe.materials.every(
     (m) => getMaterialCount(m.materialId) >= m.count,
   );

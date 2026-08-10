@@ -9,11 +9,13 @@ import {
   getMaterialCount,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
+import { setVisitorMode } from "../world/worldSession";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 
 beforeEach(() => {
   setInventoryFromSnapshot({}, {});
+  setVisitorMode(false);
 });
 
 describe("boat recipe", () => {
@@ -49,5 +51,17 @@ describe("boat recipe", () => {
     expect(getMaterialCount("wild-fiber")).toBe(1);
     expect(getMaterialCount("folklore-dust")).toBe(1);
     expect(getItemCount("boat")).toBe(1);
+  });
+
+  it("blocks visitors from crafting even with materials", () => {
+    setInventoryFromSnapshot(
+      { wood: 8, "wild-fiber": 4, "folklore-dust": 2 },
+      {},
+    );
+    setVisitorMode(true);
+    expect(canCraft(boatRecipe)).toBe(false);
+    expect(craftItem(boatRecipe)).toBe(false);
+    expect(getMaterialCount("wood")).toBe(8);
+    expect(getItemCount("boat")).toBe(0);
   });
 });
