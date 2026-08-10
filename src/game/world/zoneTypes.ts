@@ -13,6 +13,8 @@ export const TileType = {
   Wall: 0,
   Floor: 1,
   OverworldGate: 2,
+  Water: 3,
+  Dock: 4,
 } as const;
 
 export type TileType = (typeof TileType)[keyof typeof TileType];

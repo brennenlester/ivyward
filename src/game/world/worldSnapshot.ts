@@ -31,6 +31,7 @@ import {
   setSideQuestStatuses,
 } from "./npcState";
 import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQuests";
+import { isBoatPlaced, setPlacedBoat } from "./dockBoat";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -49,6 +50,8 @@ export type WorldSnapshot = {
   claimedNpcGifts?: string[];
   /** NPC side-quest progress. Optional for older saves. */
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
+  /** Boat moored at the Folklore Fields dock. Optional for older saves. */
+  placedBoat?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -101,7 +104,7 @@ function isSpawnWalkable(
     return false;
   }
   const tile = zone.tiles[tileY][tileX];
-  if (tile === TileType.Floor) {
+  if (tile === TileType.Floor || tile === TileType.Dock) {
     return true;
   }
   if (tile === TileType.OverworldGate) {
@@ -275,6 +278,10 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.placedBoat !== undefined && typeof s.placedBoat !== "boolean") {
+    return false;
+  }
+
   const pos = s.position as Record<string, unknown> | undefined;
   if (
     !pos ||
@@ -327,6 +334,7 @@ export function exportWorldSnapshot(
     unlockedAchievements: getUnlockedAchievements(),
     claimedNpcGifts: getClaimedNpcGifts(),
     npcSideQuests: getSideQuestStatuses(),
+    placedBoat: isBoatPlaced(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -356,6 +364,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
+  setPlacedBoat(snapshot.placedBoat === true);
   // Saves predating the achievement can already have a full codex; award after
   // the inventory is restored so the items are not overwritten.
   evaluateCodexAchievement(worldState.discoveredCreatures);

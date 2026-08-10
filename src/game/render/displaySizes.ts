@@ -16,6 +16,7 @@ export const PROP_DISPLAY: Record<string, { width: number; height: number }> = {
   "prop-gate-locked": { width: 48, height: 42 },
   "prop-loom": { width: 46, height: 44 },
   "prop-shelf": { width: 44, height: 42 },
+  "prop-boat": { width: 48, height: 40 },
 };
 
 /** Logical on-screen size for villager NPCs. */

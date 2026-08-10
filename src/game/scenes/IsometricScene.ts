@@ -16,8 +16,11 @@ import {
 import {
   NPC_TEXTURE_KEY,
   ensureWorldTextures,
+  getBoatTextureKey,
   getBoundaryTextureKey,
+  getDockTextureKey,
   getFloorTextureKey,
+  getWaterTextureKey,
 } from "../render/worldTextures";
 import {
   BOUNDARY_DISPLAY,
@@ -75,6 +78,13 @@ import {
   getGatherCooldownRemainingMs,
   tryHarvestNode,
 } from "../world/gatherState";
+import {
+  isBoatPlaced,
+  isNearOverworldDock,
+  OVERWORLD_DOCK,
+  tryPlaceBoat,
+} from "../world/dockBoat";
+import { getItemCount } from "../inventory/playerInventory";
 
 const FLOOR_LAYER = 0;
 const PROP_LAYER = 0.45;
@@ -215,7 +225,8 @@ export class IsometricScene extends Phaser.Scene {
       if (
         !this.tryShrineInteract() &&
         !this.tryDoorInteract() &&
-        !this.tryNpcInteract()
+        !this.tryNpcInteract() &&
+        !this.tryDockInteract()
       ) {
         this.tryGatherInteract();
       }
@@ -357,6 +368,7 @@ export class IsometricScene extends Phaser.Scene {
     this.drawZoneTiles(zone);
     this.drawProps(zone);
     this.drawNpcs(zone);
+    this.drawPlacedBoat(zone);
     recordQuestEvent({ type: "enter_zone", zoneId });
 
     this.player = this.add
@@ -512,7 +524,13 @@ export class IsometricScene extends Phaser.Scene {
         }
 
         const screen = this.toScreen(x, y);
-        const textureKey = getFloorTextureKey(zone.id, (x + y) % 2 === 0);
+        const light = (x + y) % 2 === 0;
+        let textureKey = getFloorTextureKey(zone.id, light);
+        if (tileType === TileType.Water) {
+          textureKey = getWaterTextureKey(light);
+        } else if (tileType === TileType.Dock) {
+          textureKey = getDockTextureKey(light);
+        }
 
         const tile = this.add
           .image(screen.x, screen.y, textureKey)
@@ -656,8 +674,10 @@ export class IsometricScene extends Phaser.Scene {
     const shrine = this.isOnShrineTile();
     const door = !shrine ? this.getNearbyDoor() : undefined;
     const npc = !shrine && !door ? this.getNearbyNpc() : undefined;
+    const dock =
+      !shrine && !door && !npc ? this.getNearbyDockPrompt() : undefined;
     const gather =
-      !shrine && !door && !npc && !isVisitorMode()
+      !shrine && !door && !npc && !dock && !isVisitorMode()
         ? this.getNearbyGatherProp()
         : undefined;
 
@@ -668,6 +688,8 @@ export class IsometricScene extends Phaser.Scene {
       label = `Press E — ${door.label}`;
     } else if (npc) {
       label = `Press E — Talk to ${npc.name}`;
+    } else if (dock) {
+      label = dock;
     } else if (gather) {
       label = this.formatGatherPrompt(gather);
     }
@@ -704,6 +726,55 @@ export class IsometricScene extends Phaser.Scene {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
     return findGatherPropNearPlayer(this.currentZoneId, tileX, tileY);
+  }
+
+  private getNearbyDockPrompt(): string | undefined {
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    if (!isNearOverworldDock(this.currentZoneId, tileX, tileY)) {
+      return undefined;
+    }
+    if (isVisitorMode()) {
+      return isBoatPlaced()
+        ? "Boat moored (host only)"
+        : "Dock (host can place a boat)";
+    }
+    if (isBoatPlaced()) {
+      return "Press E — Boat moored";
+    }
+    if (getItemCount("boat") > 0) {
+      return "Press E — Place boat";
+    }
+    return "Dock — craft a boat at Moon Shrine";
+  }
+
+  private drawPlacedBoat(zone: ZoneDefinition): void {
+    if (zone.id !== OVERWORLD_DOCK.zoneId || !isBoatPlaced()) {
+      return;
+    }
+    const screen = this.toScreen(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y);
+    const boat = this.add
+      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
+      .setOrigin(0.5, 1);
+    fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
+    boat.setDepth(depthForGridCell(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y, PROP_LAYER));
+  }
+
+  private tryDockInteract(): boolean {
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    if (!isNearOverworldDock(this.currentZoneId, tileX, tileY)) {
+      return false;
+    }
+    const result = tryPlaceBoat(this.currentZoneId, tileX, tileY);
+    if (result.ok && result.consumed) {
+      // Reload first so removeAll does not wipe the confirmation toast.
+      this.loadZone(this.currentZoneId);
+    }
+    this.showGatherToast(result.message, result.ok);
+    updateStatusPanel(getZone(this.currentZoneId));
+    this.updateInteractPrompt();
+    return true;
   }
 
   private formatGatherPrompt(
