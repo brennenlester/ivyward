@@ -14,7 +14,7 @@ function isWalkable(zoneId: ZoneId, x: number, y: number): boolean {
     return false;
   }
   const tile = zone.tiles[y][x];
-  return tile === TileType.Floor || tile === TileType.OverworldGate;
+  return tile === TileType.Floor || tile === TileType.OverworldGate || tile === TileType.Dock;
 }
 
 describe("cottage interiors", () => {
