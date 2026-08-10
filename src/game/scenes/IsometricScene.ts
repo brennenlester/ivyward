@@ -754,7 +754,7 @@ export class IsometricScene extends Phaser.Scene {
     }
     const screen = this.toScreen(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y);
     const boat = this.add
-      .image(screen.x, screen.y - 6, getBoatTextureKey())
+      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
       .setOrigin(0.5, 1);
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
     boat.setDepth(depthForGridCell(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y, PROP_LAYER));
