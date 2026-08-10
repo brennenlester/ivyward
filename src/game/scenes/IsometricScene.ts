@@ -767,11 +767,13 @@ export class IsometricScene extends Phaser.Scene {
       return false;
     }
     const result = tryPlaceBoat(this.currentZoneId, tileX, tileY);
-    this.showGatherToast(result.message, result.ok);
     if (result.ok && result.consumed) {
+      // Reload first so removeAll does not wipe the confirmation toast.
       this.loadZone(this.currentZoneId);
     }
+    this.showGatherToast(result.message, result.ok);
     updateStatusPanel(getZone(this.currentZoneId));
+    this.updateInteractPrompt();
     return true;
   }
 
