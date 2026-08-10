@@ -23,6 +23,7 @@ import { QUEST_ORDER } from "../story/quests";
 import {
   applyWorldSnapshot,
   isValidWorldSnapshot,
+  repairLegacyOverworldShorePosition,
   type WorldSnapshot,
 } from "./worldSnapshot";
 
@@ -153,6 +154,46 @@ describe("isValidWorldSnapshot", () => {
     ).toBe(false);
   });
 
+  it("rejects legacy overworld y=13 water until shore repair runs", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          overworldUnlocked: true,
+          position: { zoneId: "overworld", x: 6, y: 13 },
+        }),
+      ),
+    ).toBe(false);
+  });
+});
+
+describe("repairLegacyOverworldShorePosition", () => {
+  it("moves stranded overworld y=13 water stands to the gate land spawn", () => {
+    const snapshot = validSnapshot({
+      overworldUnlocked: true,
+      position: { zoneId: "overworld", x: 6, y: 13 },
+    });
+    repairLegacyOverworldShorePosition(snapshot);
+    expect(snapshot.position).toEqual({ zoneId: "overworld", x: 7, y: 12 });
+    expect(isValidWorldSnapshot(snapshot)).toBe(true);
+  });
+
+  it("leaves the pier and other zones alone", () => {
+    const pier = validSnapshot({
+      overworldUnlocked: true,
+      position: { zoneId: "overworld", x: 7, y: 13 },
+    });
+    repairLegacyOverworldShorePosition(pier);
+    expect(pier.position).toEqual({ zoneId: "overworld", x: 7, y: 13 });
+
+    const grove = validSnapshot({
+      position: { zoneId: "grove", x: 3, y: 7 },
+    });
+    repairLegacyOverworldShorePosition(grove);
+    expect(grove.position).toEqual({ zoneId: "grove", x: 3, y: 7 });
+  });
+});
+
+describe("isValidWorldSnapshot inventory and discovery", () => {
   it("rejects negative inventory counts", () => {
     expect(
       isValidWorldSnapshot(validSnapshot({ materials: { wood: -1 } })),

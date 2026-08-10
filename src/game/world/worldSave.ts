@@ -2,6 +2,7 @@ import {
   applyWorldSnapshot,
   exportWorldSnapshot,
   isValidWorldSnapshot,
+  repairLegacyOverworldShorePosition,
   type WorldSnapshot,
 } from "./worldSnapshot";
 import { isVisitorMode } from "./worldSession";
@@ -88,6 +89,7 @@ export function loadHostSave(): WorldSnapshot | null {
       return null;
     }
     const parsed = JSON.parse(raw) as unknown;
+    repairLegacyOverworldShorePosition(parsed);
     if (!isValidWorldSnapshot(parsed)) {
       clearHostSave();
       return null;

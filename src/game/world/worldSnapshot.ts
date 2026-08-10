@@ -214,6 +214,33 @@ function isValidPartyMember(value: unknown): boolean {
   return true;
 }
 
+/**
+ * Pre-#83 saves may stand on Folklore Fields y=13 floor tiles that are now water.
+ * Relocate those positions to the village-gate land spawn instead of invalidating the save.
+ */
+export function repairLegacyOverworldShorePosition(value: unknown): void {
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  const s = value as Record<string, unknown>;
+  const pos = s.position as Record<string, unknown> | undefined;
+  if (!pos || pos.zoneId !== "overworld") {
+    return;
+  }
+  if (!isFiniteNumber(pos.x) || !isFiniteNumber(pos.y)) {
+    return;
+  }
+  const overworldUnlocked = s.overworldUnlocked === true;
+  if (isSpawnWalkable("overworld", pos.x, pos.y, overworldUnlocked)) {
+    return;
+  }
+  if (Math.round(pos.y) !== 13) {
+    return;
+  }
+  pos.x = 7;
+  pos.y = 12;
+}
+
 export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   if (typeof value !== "object" || value === null) return false;
   const s = value as Record<string, unknown>;
