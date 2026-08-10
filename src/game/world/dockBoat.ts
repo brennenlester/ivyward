@@ -19,6 +19,17 @@ export const HARBOR_PIER = { x: 3, y: 6 };
 /** Water tile beside the Harbor dock used as the embark stand point. */
 export const HARBOR_EMBARK_WATER = { x: 2, y: 7 };
 
+/** Named sail destination — on-foot pad after side-scroll arrival. */
+export const EAST_LANDING = { x: 15, y: 5 };
+
+export const EAST_LANDING_NAME = "East Landing";
+
+/** Water tiles immediately south of the East Landing pads (sail approach). */
+export const EAST_LANDING_APPROACH = [
+  { x: 15, y: 6 },
+  { x: 16, y: 6 },
+] as const;
+
 let placedBoat = false;
 let sailing = false;
 
@@ -54,6 +65,18 @@ export function isNearHarborDock(
   return (
     Math.abs(tileX - HARBOR_DOCK.x) + Math.abs(tileY - HARBOR_DOCK.y) <= 1
   );
+}
+
+/** True when sailing on the water approach tiles under East Landing. */
+export function isOnEastLandingApproach(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): boolean {
+  if (zoneId !== HARBOR_DOCK.zoneId) {
+    return false;
+  }
+  return EAST_LANDING_APPROACH.some((t) => t.x === tileX && t.y === tileY);
 }
 
 export type PlaceBoatResult = {
@@ -160,7 +183,7 @@ export function tryEmbark(
   notifyWorldChanged();
   return {
     ok: true,
-    message: "You board the boat.",
+    message: `You sail toward ${EAST_LANDING_NAME}.`,
     embarked: true,
     playerX: HARBOR_EMBARK_WATER.x,
     playerY: HARBOR_EMBARK_WATER.y,
@@ -199,5 +222,43 @@ export function tryDisembark(
     disembarked: true,
     playerX: HARBOR_PIER.x,
     playerY: HARBOR_PIER.y,
+  };
+}
+
+/**
+ * End Harbor side-scroll sail at East Landing.
+ * Call when the player occupies an approach water tile while sailing.
+ */
+export function tryArriveEastLanding(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): SailActionResult {
+  if (isVisitorMode()) {
+    return {
+      ok: false,
+      message: "Only the host can finish the voyage.",
+    };
+  }
+  if (!sailing) {
+    return {
+      ok: false,
+      message: "You are not sailing.",
+    };
+  }
+  if (!isOnEastLandingApproach(zoneId, tileX, tileY)) {
+    return {
+      ok: false,
+      message: `Keep sailing to ${EAST_LANDING_NAME}.`,
+    };
+  }
+  sailing = false;
+  notifyWorldChanged();
+  return {
+    ok: true,
+    message: `You reach ${EAST_LANDING_NAME}.`,
+    disembarked: true,
+    playerX: EAST_LANDING.x,
+    playerY: EAST_LANDING.y,
   };
 }

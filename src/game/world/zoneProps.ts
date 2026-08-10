@@ -88,6 +88,8 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
     { x: 8, y: 3, kind: "pebble-pile" },
     { x: 12, y: 4, kind: "fern" },
     { x: 14, y: 3, kind: "standing-stone" },
+    // East Landing landmark pads
+    { x: 15, y: 4, kind: "standing-stone" },
     { x: 16, y: 4, kind: "pebble-pile" },
   ],
   mistwood: [
