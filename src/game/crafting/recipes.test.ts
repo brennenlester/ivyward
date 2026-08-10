@@ -23,14 +23,14 @@ describe("boat recipe", () => {
     expect(boatRecipe.outputItemId).toBe("boat");
     expect(boatRecipe.materials).toEqual([
       { materialId: "wood", count: 6 },
-      { materialId: "wild-fiber", count: 4 },
-      { materialId: "stone", count: 2 },
+      { materialId: "wild-fiber", count: 3 },
+      { materialId: "folklore-dust", count: 1 },
     ]);
   });
 
   it("cannot craft without enough materials", () => {
     setInventoryFromSnapshot(
-      { wood: 5, "wild-fiber": 4, stone: 2 },
+      { wood: 5, "wild-fiber": 3, "folklore-dust": 1 },
       {},
     );
     expect(canCraft(boatRecipe)).toBe(false);
@@ -40,14 +40,14 @@ describe("boat recipe", () => {
 
   it("consumes materials and adds a boat item", () => {
     setInventoryFromSnapshot(
-      { wood: 8, "wild-fiber": 5, stone: 3 },
+      { wood: 8, "wild-fiber": 4, "folklore-dust": 2 },
       {},
     );
     expect(canCraft(boatRecipe)).toBe(true);
     expect(craftItem(boatRecipe)).toBe(true);
     expect(getMaterialCount("wood")).toBe(2);
     expect(getMaterialCount("wild-fiber")).toBe(1);
-    expect(getMaterialCount("stone")).toBe(1);
+    expect(getMaterialCount("folklore-dust")).toBe(1);
     expect(getItemCount("boat")).toBe(1);
   });
 });

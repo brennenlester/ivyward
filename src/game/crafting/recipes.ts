@@ -65,6 +65,7 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     ],
   },
   {
+    // ponytail: craftable more than once; dock placement (#75) enforces one boat at a time
     id: "boat",
     name: "Boat",
     outputItemId: "boat",
