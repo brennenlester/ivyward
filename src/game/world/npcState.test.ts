@@ -200,6 +200,10 @@ describe("party-size side quest", () => {
     expect(lines.at(-1)).toContain("Moonwake Draught×1");
     expect(getItemCount("moonwake-draught")).toBe(1);
     expect(getSideQuestStatus("odd-company")).toBe("complete");
+    expect(openConversation(ODD)).toEqual([
+      SIDE_QUESTS["odd-company"].completeLine,
+    ]);
+    expect(getItemCount("moonwake-draught")).toBe(1);
   });
 });
 
@@ -210,6 +214,16 @@ describe("visitor side-quest lockout", () => {
     const lines = openConversation(BRYN);
     expect(lines).toEqual([BRYN.idleLines[0]]);
     expect(getSideQuestStatus("bryn-ledger")).toBe("locked");
+  });
+
+  it("leaves an already-active host quest untouched when a visitor talks", () => {
+    setClaimedNpcGifts([BRYN.id]);
+    setSideQuestStatuses({ "bryn-ledger": "active" });
+    setDiscoveredCreatures(["a", "b", "c", "d", "e"]);
+    setVisitorMode(true);
+    expect(openConversation(BRYN)).toEqual([BRYN.idleLines[0]]);
+    expect(getSideQuestStatus("bryn-ledger")).toBe("active");
+    expect(getItemCount("brook-tonic")).toBe(0);
   });
 });
 
