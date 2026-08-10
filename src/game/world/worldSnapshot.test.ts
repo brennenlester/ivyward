@@ -23,9 +23,11 @@ import { QUEST_ORDER } from "../story/quests";
 import {
   applyWorldSnapshot,
   isValidWorldSnapshot,
+  migrateBoatStateToHarbor,
   repairLegacyOverworldShorePosition,
   type WorldSnapshot,
 } from "./worldSnapshot";
+import { HARBOR_EMBARK_WATER } from "./dockBoat";
 
 function questProgress(
   overrides: Partial<Record<QuestId, QuestStatus>> = {},
@@ -177,14 +179,20 @@ describe("repairLegacyOverworldShorePosition", () => {
     expect(isValidWorldSnapshot(snapshot)).toBe(true);
   });
 
-  it("leaves mid-sail y=13 water stands alone", () => {
+  it("leaves mid-sail alone only after Harbor migration", () => {
     const sailing = validSnapshot({
       overworldUnlocked: true,
       sailing: true,
+      placedBoat: true,
       position: { zoneId: "overworld", x: 6, y: 13 },
     });
+    migrateBoatStateToHarbor(sailing);
     repairLegacyOverworldShorePosition(sailing);
-    expect(sailing.position).toEqual({ zoneId: "overworld", x: 6, y: 13 });
+    expect(sailing.position).toEqual({
+      zoneId: "harbor",
+      x: HARBOR_EMBARK_WATER.x,
+      y: HARBOR_EMBARK_WATER.y,
+    });
     expect(isValidWorldSnapshot(sailing)).toBe(true);
   });
 

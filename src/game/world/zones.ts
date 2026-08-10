@@ -157,8 +157,8 @@ for (const y of [13, 14]) {
     overworldTiles[y][x] = TileType.Water;
   }
 }
-overworldTiles[14][7] = TileType.Dock;
-overworldTiles[13][7] = TileType.Floor; // pier from land spawn (7,12) onto the dock
+overworldTiles[14][7] = TileType.Floor; // village gate (boat dock moved to Harbor)
+overworldTiles[13][7] = TileType.Floor; // approach from land spawn (7,12)
 
 const OVERWORLD: ZoneDefinition = {
   id: "overworld",
@@ -177,7 +177,7 @@ const OVERWORLD: ZoneDefinition = {
 
 /**
  * Harbor — dock-area shell north of Folklore Fields.
- * Horizontal water corridor is sized for later side-scroll (#90); boat gameplay relocates in #89.
+ * Horizontal water corridor is sized for later side-scroll (#90); boat gameplay lives here (#89).
  */
 const harborTiles = borderedFloor(18, 9, [{ x: 0, y: 4 }]);
 for (const y of [6, 7]) {

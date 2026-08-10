@@ -80,9 +80,9 @@ import {
 } from "../world/gatherState";
 import {
   isBoatPlaced,
-  isNearOverworldDock,
+  isNearHarborDock,
   isSailing,
-  OVERWORLD_DOCK,
+  HARBOR_DOCK,
   tryDisembark,
   tryEmbark,
   tryPlaceBoat,
@@ -145,7 +145,7 @@ export class IsometricScene extends Phaser.Scene {
   private layoutLocked = false;
   private isMoving = false;
   private playerBaseY = 0;
-  /** Moored boat sprite at the Folklore Fields dock (hidden while sailing). */
+  /** Moored boat sprite at the Harbor dock (hidden while sailing). */
   private dockBoat?: Phaser.GameObjects.Image;
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
@@ -342,7 +342,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryZoneTransition(zone: ZoneDefinition): void {
-    // Dock tile is also the village gate — do not leave while sailing.
+    // Do not leave Harbor via zone transitions while sailing.
     if (isSailing()) {
       return;
     }
@@ -749,7 +749,7 @@ export class IsometricScene extends Phaser.Scene {
   private getNearbyDockPrompt(): string | undefined {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    if (!isNearOverworldDock(this.currentZoneId, tileX, tileY)) {
+    if (!isNearHarborDock(this.currentZoneId, tileX, tileY)) {
       return undefined;
     }
     if (isVisitorMode()) {
@@ -772,26 +772,26 @@ export class IsometricScene extends Phaser.Scene {
   private drawPlacedBoat(zone: ZoneDefinition): void {
     this.dockBoat?.destroy();
     this.dockBoat = undefined;
-    if (zone.id !== OVERWORLD_DOCK.zoneId || !isBoatPlaced()) {
+    if (zone.id !== HARBOR_DOCK.zoneId || !isBoatPlaced()) {
       return;
     }
     // While sailing the boat follows the player instead of sitting at the dock.
     if (isSailing()) {
       return;
     }
-    const screen = this.toScreen(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y);
+    const screen = this.toScreen(HARBOR_DOCK.x, HARBOR_DOCK.y);
     const boat = this.add
       .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
       .setOrigin(0.5, 1);
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
-    boat.setDepth(depthForGridCell(OVERWORLD_DOCK.x, OVERWORLD_DOCK.y, PROP_LAYER));
+    boat.setDepth(depthForGridCell(HARBOR_DOCK.x, HARBOR_DOCK.y, PROP_LAYER));
     this.dockBoat = boat;
   }
 
   private tryDockInteract(): boolean {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    if (!isNearOverworldDock(this.currentZoneId, tileX, tileY)) {
+    if (!isNearHarborDock(this.currentZoneId, tileX, tileY)) {
       return false;
     }
 
