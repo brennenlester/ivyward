@@ -49,13 +49,18 @@ beforeEach(() => {
 });
 
 describe("overworld water and dock collision", () => {
-  it("makes the south row water except the dock gate", () => {
+  it("makes a two-row south shoreline water bay except the dock and pier", () => {
     const zone = getZone("overworld");
     expect(zone.tiles[14][7]).toBe(TileType.Dock);
+    expect(zone.tiles[13][7]).toBe(TileType.Floor);
     expect(zone.tiles[14][6]).toBe(TileType.Water);
     expect(zone.tiles[14][8]).toBe(TileType.Water);
+    expect(zone.tiles[13][6]).toBe(TileType.Water);
+    expect(zone.tiles[13][8]).toBe(TileType.Water);
     expect(isTileWalkable(zone, 7, 14)).toBe(true);
+    expect(isTileWalkable(zone, 7, 13)).toBe(true);
     expect(isTileWalkable(zone, 6, 14)).toBe(false);
+    expect(isTileWalkable(zone, 6, 13)).toBe(false);
     expect(isTileWalkable(zone, 7, 12)).toBe(true);
   });
 
@@ -64,7 +69,7 @@ describe("overworld water and dock collision", () => {
     const toOverworld = village.transitions.find((t) => t.targetZone === "overworld");
     expect(toOverworld).toMatchObject({ targetX: 7, targetY: 12 });
     expect(isTileWalkable(getZone("overworld"), 7, 12)).toBe(true);
-    // Spawn is one step north of the shoreline tile that is in dock interact range.
+    // Pier at (7,13) is in dock interact range and stays walkable on foot.
     expect(isNearOverworldDock("overworld", 7, 13)).toBe(true);
     expect(isTileWalkable(getZone("overworld"), 7, 13)).toBe(true);
   });
