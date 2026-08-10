@@ -1,6 +1,10 @@
 import { getHostLabel, isVisitorMode } from "./worldSession";
 import type { WorldSnapshot } from "./worldSnapshot";
-import { exportWorldSnapshot, isValidWorldSnapshot } from "./worldSnapshot";
+import {
+  exportWorldSnapshot,
+  isValidWorldSnapshot,
+  repairLegacyOverworldShorePosition,
+} from "./worldSnapshot";
 import type { ZoneId } from "./zoneTypes";
 
 function toBase64Url(value: string): string {
@@ -55,6 +59,7 @@ export function parseInviteParam(): InviteParseResult {
 
   try {
     const parsed = JSON.parse(fromBase64Url(encoded));
+    repairLegacyOverworldShorePosition(parsed);
     if (!isValidWorldSnapshot(parsed)) {
       return { status: "invalid" };
     }
