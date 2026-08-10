@@ -3,6 +3,7 @@ import {
   consumeMaterial,
   getMaterialCount,
 } from "../inventory/playerInventory";
+import { isVisitorMode } from "../world/worldSession";
 
 export type CraftRecipe = {
   id: string;
@@ -64,9 +65,24 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
       { materialId: "folklore-dust", count: 1 },
     ],
   },
+  {
+    // ponytail: craftable more than once; dock placement (#75) enforces one boat at a time
+    id: "boat",
+    name: "Boat",
+    outputItemId: "boat",
+    // Mid-game hull: more wood than a cudgel, plus fiber lashings and a dust binding.
+    materials: [
+      { materialId: "wood", count: 6 },
+      { materialId: "wild-fiber", count: 3 },
+      { materialId: "folklore-dust", count: 1 },
+    ],
+  },
 ];
 
 export function canCraft(recipe: CraftRecipe): boolean {
+  if (isVisitorMode()) {
+    return false;
+  }
   return recipe.materials.every(
     (m) => getMaterialCount(m.materialId) >= m.count,
   );

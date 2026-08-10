@@ -39,6 +39,7 @@ export const ITEM_NAMES: Record<string, string> = {
   "moss-salve": "Moss Salve",
   "brook-tonic": "Brook Tonic",
   "moonwake-draught": "Moonwake Draught",
+  boat: "Boat",
 };
 
 export function getMaterialForCreature(creatureId: string): string | undefined {
