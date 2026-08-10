@@ -70,7 +70,81 @@ const VILLAGE: ZoneDefinition = {
     { x: 0, y: 5, targetZone: "shrine", targetX: 8, targetY: 5 },
     { x: 5, y: 0, targetZone: "overworld", targetX: 7, targetY: 12 },
   ],
+  doors: [
+    {
+      x: 2,
+      y: 4,
+      targetZone: "warden-cottage",
+      targetX: 3,
+      targetY: 5,
+      label: "Warden's Cottage",
+    },
+    {
+      x: 7,
+      y: 3,
+      targetZone: "weaver-cottage",
+      targetX: 3,
+      targetY: 5,
+      label: "Weaver's Cottage",
+    },
+    {
+      x: 2,
+      y: 8,
+      targetZone: "hearthkeep-cottage",
+      targetX: 3,
+      targetY: 5,
+      label: "Hearthkeep Cottage",
+    },
+  ],
 };
+
+/**
+ * Cottage interiors: one room, one villager, no encounters. The doorway at the
+ * bottom edge steps back out to the tile the player entered from.
+ */
+function cottageInterior(
+  id: ZoneId,
+  name: string,
+  exit: { x: number; y: number },
+): ZoneDefinition {
+  return {
+    id,
+    name,
+    width: 7,
+    height: 7,
+    tiles: borderedFloor(7, 7, [{ x: 3, y: 6 }]),
+    lightTint: 0xf4e0c0,
+    darkTint: 0xc09468,
+    interior: true,
+    transitions: [
+      {
+        x: 3,
+        y: 6,
+        targetZone: "village",
+        targetX: exit.x,
+        targetY: exit.y,
+      },
+    ],
+  };
+}
+
+const WARDEN_COTTAGE = cottageInterior(
+  "warden-cottage",
+  "Warden's Cottage",
+  { x: 2, y: 4 },
+);
+
+const WEAVER_COTTAGE = cottageInterior(
+  "weaver-cottage",
+  "Weaver's Cottage",
+  { x: 7, y: 3 },
+);
+
+const HEARTHKEEP_COTTAGE = cottageInterior(
+  "hearthkeep-cottage",
+  "Hearthkeep Cottage",
+  { x: 2, y: 8 },
+);
 
 /** Folklore Fields — first unlocked overworld region (south back to village). */
 const OVERWORLD: ZoneDefinition = {
@@ -129,6 +203,9 @@ export const ZONES: Record<ZoneId, ZoneDefinition> = {
   overworld: OVERWORLD,
   mistwood: MISTWOOD,
   emberfen: EMBERFEN,
+  "warden-cottage": WARDEN_COTTAGE,
+  "weaver-cottage": WEAVER_COTTAGE,
+  "hearthkeep-cottage": HEARTHKEEP_COTTAGE,
 };
 
 export const STARTING_ZONE_ID: ZoneId = "grove";

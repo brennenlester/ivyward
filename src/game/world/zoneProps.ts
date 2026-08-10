@@ -8,7 +8,9 @@ export type PropKind =
   | "pebble-pile"
   | "hearth"
   | "cottage"
-  | "gate";
+  | "gate"
+  | "loom"
+  | "shelf";
 
 export type ZoneProp = {
   x: number;
@@ -36,11 +38,25 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
   ],
   village: [
     { x: 2, y: 3, kind: "cottage" },
+    { x: 7, y: 2, kind: "cottage" },
+    { x: 2, y: 7, kind: "cottage" },
     { x: 4, y: 4, kind: "hearth" },
     { x: 7, y: 6, kind: "hearth" },
     { x: 5, y: 0, kind: "gate" },
     { x: 6, y: 2, kind: "pebble-pile" },
     { x: 3, y: 6, kind: "fern" },
+  ],
+  "warden-cottage": [
+    { x: 5, y: 1, kind: "hearth" },
+    { x: 1, y: 1, kind: "shelf" },
+  ],
+  "weaver-cottage": [
+    { x: 5, y: 1, kind: "hearth" },
+    { x: 1, y: 2, kind: "loom" },
+  ],
+  "hearthkeep-cottage": [
+    { x: 3, y: 1, kind: "hearth" },
+    { x: 5, y: 3, kind: "shelf" },
   ],
   overworld: [
     // South approach (village gate)

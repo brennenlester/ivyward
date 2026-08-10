@@ -14,6 +14,7 @@ import {
   gridToScreen,
 } from "../isometric";
 import {
+  NPC_TEXTURE_KEY,
   ensureWorldTextures,
   getBoundaryTextureKey,
   getFloorTextureKey,
@@ -21,6 +22,7 @@ import {
 import {
   BOUNDARY_DISPLAY,
   FLOOR_DISPLAY,
+  NPC_DISPLAY,
   PROP_DISPLAY,
   fitDisplay,
 } from "../render/displaySizes";
@@ -67,6 +69,7 @@ import {
   getZoneProps,
   propTextureKey,
 } from "../world/zoneProps";
+import { findNpcNearPlayer, getZoneNpcs } from "../world/npcs";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
 import {
   getGatherCooldownRemainingMs,
@@ -89,7 +92,13 @@ const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
   overworld: 0x78b9d8,
   mistwood: 0x8a78b8,
   emberfen: 0xc88858,
+  "warden-cottage": 0x8a5f3c,
+  "weaver-cottage": 0x8a5f3c,
+  "hearthkeep-cottage": 0x8a5f3c,
 };
+
+/** Behind the cottage walls there is no sky, just dim timber. */
+const INTERIOR_BACKDROP_COLOR = 0x3a2a22;
 
 type Facing = "south" | "north" | "east" | "west";
 
@@ -112,6 +121,7 @@ export class IsometricScene extends Phaser.Scene {
   private travelSinceEncounter = 0;
   private inEncounter = false;
   private inShrine = false;
+  private inDialogue = false;
   private shrinePrompt?: Phaser.GameObjects.Text;
   private gatherToast?: Phaser.GameObjects.Text;
   private questToast?: Phaser.GameObjects.Text;
@@ -157,6 +167,7 @@ export class IsometricScene extends Phaser.Scene {
     this.events.on("resume", () => {
       this.inEncounter = false;
       this.inShrine = false;
+      this.inDialogue = false;
       this.travelSinceEncounter = 0;
       setTouchControlsEnabled(true);
       const zoneId = this.currentZoneId;
@@ -178,7 +189,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.inEncounter || this.inShrine) {
+    if (this.inEncounter || this.inShrine || this.inDialogue) {
       this.isMoving = false;
       this.playPlayerAnimation();
       return;
@@ -201,7 +212,11 @@ export class IsometricScene extends Phaser.Scene {
       consumeTouchInteract()
     ) {
       unlockAudioFromGesture(this);
-      if (!this.tryShrineInteract()) {
+      if (
+        !this.tryShrineInteract() &&
+        !this.tryDoorInteract() &&
+        !this.tryNpcInteract()
+      ) {
         this.tryGatherInteract();
       }
     }
@@ -341,6 +356,7 @@ export class IsometricScene extends Phaser.Scene {
     this.drawBackdrop(zone);
     this.drawZoneTiles(zone);
     this.drawProps(zone);
+    this.drawNpcs(zone);
     recordQuestEvent({ type: "enter_zone", zoneId });
 
     this.player = this.add
@@ -518,7 +534,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawBackdrop(zone: ZoneDefinition): void {
-    const palette: Record<ZoneId, { sky: number; hill: number; mist: number }> = {
+    const palette: Partial<
+      Record<ZoneId, { sky: number; hill: number; mist: number }>
+    > = {
       grove: { sky: 0x8ed0a6, hill: 0x4d9270, mist: 0xe4f4bd },
       shrine: { sky: 0x8881c8, hill: 0x4a4b8a, mist: 0xf0e4ff },
       village: { sky: 0xf4b875, hill: 0xc9775a, mist: 0xffe5ad },
@@ -529,6 +547,13 @@ export class IsometricScene extends Phaser.Scene {
     const colors = palette[zone.id];
     const bounds = this.getZoneWorldBounds(zone);
     const g = this.add.graphics().setDepth(-1000).setScrollFactor(0.16);
+
+    if (zone.interior || !colors) {
+      g.fillStyle(INTERIOR_BACKDROP_COLOR, 1);
+      g.fillRect(bounds.minX - 800, bounds.minY - 500, bounds.width + 1600, bounds.height + 1000);
+      return;
+    }
+
     g.fillStyle(colors.sky, 1);
     g.fillRect(bounds.minX - 800, bounds.minY - 500, bounds.width + 1600, bounds.height + 1000);
     g.fillStyle(colors.mist, 0.2);
@@ -590,6 +615,31 @@ export class IsometricScene extends Phaser.Scene {
     }
   }
 
+  private drawNpcs(zone: ZoneDefinition): void {
+    for (const npc of getZoneNpcs(zone.id)) {
+      const screen = this.toScreen(npc.x, npc.y);
+      const sprite = this.add
+        .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, NPC_TEXTURE_KEY)
+        .setOrigin(0.5, 1);
+      fitDisplay(sprite, NPC_DISPLAY);
+      sprite.setTint(npc.tint);
+      sprite.setDepth(depthForGridCell(npc.x, npc.y, PROP_LAYER));
+    }
+  }
+
+  private getNearbyDoor() {
+    const zone = getZone(this.currentZoneId);
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    return zone.doors?.find((door) => door.x === tileX && door.y === tileY);
+  }
+
+  private getNearbyNpc() {
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    return findNpcNearPlayer(this.currentZoneId, tileX, tileY);
+  }
+
   private isOnShrineTile(): boolean {
     const zone = getZone(this.currentZoneId);
     if (!zone.shrineInteract) {
@@ -604,21 +654,31 @@ export class IsometricScene extends Phaser.Scene {
 
   private updateInteractPrompt(): void {
     const shrine = this.isOnShrineTile();
+    const door = !shrine ? this.getNearbyDoor() : undefined;
+    const npc = !shrine && !door ? this.getNearbyNpc() : undefined;
     const gather =
-      !shrine && !isVisitorMode() ? this.getNearbyGatherProp() : undefined;
-    const show = shrine || gather !== undefined;
+      !shrine && !door && !npc && !isVisitorMode()
+        ? this.getNearbyGatherProp()
+        : undefined;
 
-    if (!show) {
+    let label: string | undefined;
+    if (shrine) {
+      label = "Press E — Moon Shrine";
+    } else if (door) {
+      label = `Press E — ${door.label}`;
+    } else if (npc) {
+      label = `Press E — Talk to ${npc.name}`;
+    } else if (gather) {
+      label = this.formatGatherPrompt(gather);
+    }
+
+    if (label === undefined) {
       if (this.shrinePrompt) {
         this.shrinePrompt.destroy();
         this.shrinePrompt = undefined;
       }
       return;
     }
-
-    const label = shrine
-      ? "Press E — Moon Shrine"
-      : this.formatGatherPrompt(gather!);
 
     if (this.shrinePrompt) {
       this.shrinePrompt.setText(label);
@@ -675,6 +735,34 @@ export class IsometricScene extends Phaser.Scene {
     }
     this.scene.pause();
     this.scene.launch("ShrineScene");
+    return true;
+  }
+
+  private tryDoorInteract(): boolean {
+    const door = this.getNearbyDoor();
+    if (!door) {
+      return false;
+    }
+    this.loadZone(door.targetZone);
+    this.playerGridX = door.targetX;
+    this.playerGridY = door.targetY;
+    this.syncPlayerToGrid();
+    return true;
+  }
+
+  private tryNpcInteract(): boolean {
+    const npc = this.getNearbyNpc();
+    if (!npc) {
+      return false;
+    }
+    this.inDialogue = true;
+    setTouchControlsEnabled(false);
+    if (this.shrinePrompt) {
+      this.shrinePrompt.destroy();
+      this.shrinePrompt = undefined;
+    }
+    this.scene.pause();
+    this.scene.launch("DialogueScene", { npcId: npc.id });
     return true;
   }
 

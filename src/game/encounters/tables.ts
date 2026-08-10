@@ -35,6 +35,10 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
     { id: "cinder-toad", weight: 40 },
     { id: "bog-lantern", weight: 12 },
   ],
+  // Cottage interiors are safe rooms: no wild creatures, no codex habitat.
+  "warden-cottage": [],
+  "weaver-cottage": [],
+  "hearthkeep-cottage": [],
 };
 
 export function rollWildCreature(zoneId: ZoneId): string | null {

@@ -9,6 +9,13 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "./worldSession";
+import { getNpcById } from "./npcs";
+import {
+  claimNpcGift,
+  getClaimedNpcGifts,
+  resetNpcStateForTest,
+  setClaimedNpcGifts,
+} from "./npcState";
 import type { CreatureInstance } from "../creatures/types";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
@@ -61,6 +68,26 @@ function validSnapshot(
 describe("isValidWorldSnapshot", () => {
   it("accepts a well-formed host snapshot", () => {
     expect(isValidWorldSnapshot(validSnapshot())).toBe(true);
+  });
+
+  it("accepts a known claimed NPC gift", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ claimedNpcGifts: ["warden-bryn"] })),
+    ).toBe(true);
+  });
+
+  it("rejects an unknown claimed NPC gift", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ claimedNpcGifts: ["not-a-villager"] })),
+    ).toBe(false);
+  });
+
+  it("accepts a save made inside a cottage", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ position: { zoneId: "warden-cottage", x: 3, y: 3 } }),
+      ),
+    ).toBe(true);
   });
 
   it("rejects unknown zoneId", () => {
@@ -159,6 +186,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     resetAchievementsForTest();
     setInventoryFromSnapshot({}, {});
     setVisitorMode(false);
+    resetNpcStateForTest();
   });
 
   it("awards a legacy full-codex save after the inventory is restored", () => {
@@ -201,5 +229,19 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     expect(getUnlockedAchievements()).toEqual([]);
     expect(getItemCount("brook-tonic")).toBe(0);
+  });
+
+  it("restores claimed NPC gifts so villagers do not pay out twice", () => {
+    applyWorldSnapshot(validSnapshot({ claimedNpcGifts: ["warden-bryn"] }));
+
+    expect(getClaimedNpcGifts()).toEqual(["warden-bryn"]);
+    expect(claimNpcGift(getNpcById("warden-bryn")!)).toBeNull();
+  });
+
+  it("treats a save without the field as nobody having been visited", () => {
+    setClaimedNpcGifts(["warden-bryn"]);
+    applyWorldSnapshot(validSnapshot());
+
+    expect(getClaimedNpcGifts()).toEqual([]);
   });
 });

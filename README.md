@@ -13,7 +13,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | Input | Action |
 | --- | --- |
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
-| **E** | Interact — open Moon Shrine when standing on the moon altar |
+| **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, or talk to a villager |
 | **I** | Copy a friend invite link (host only) |
 | **Codex** (status panel) | Open the habitat codex — what lives where (fills in as you encounter creatures) |
 | **Reset game** (status panel) | Wipe local host save and start fresh |
@@ -32,6 +32,20 @@ The HUD shows `Story N/4: …` and a short “Next” hint. Host progress saves 
 4. **Craft a relic at Moon Shrine** — stand on the moon altar, press **E**, craft any relic.
 
 Gate status reads `Overworld gate: LOCKED (Story 2/4)` until the spar quest is done, then `OPEN`.
+
+### Hearth Crossing villagers
+
+Three cottages in the village can be entered. Stand on a cottage door and press **E** to go in; walk back out through the doorway at the bottom of the room to leave. Cottage interiors are safe rooms — no wild creatures spawn there.
+
+Each cottage is home to one villager you can talk to with **E**:
+
+| Villager | Home | First-visit gift |
+| --- | --- | --- |
+| Warden Bryn | Warden's Cottage | Wild Fiber ×3 |
+| Weaver Sable | Weaver's Cottage | Moss Fiber ×3 |
+| Hearthkeep Odd | Hearthkeep Cottage | Brook Tonic ×1 |
+
+A villager hands over their gift the first time you speak to them, once per save. After that they cycle through local talk — some of which is worth listening to. Visitors on an invite link can explore the cottages and talk to everyone, but never receive gifts.
 
 ### Encounters and crafting
 

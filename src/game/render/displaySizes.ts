@@ -14,7 +14,12 @@ export const PROP_DISPLAY: Record<string, { width: number; height: number }> = {
   "prop-cottage": { width: 48, height: 44 },
   "prop-gate": { width: 48, height: 42 },
   "prop-gate-locked": { width: 48, height: 42 },
+  "prop-loom": { width: 46, height: 44 },
+  "prop-shelf": { width: 44, height: 42 },
 };
+
+/** Logical on-screen size for villager NPCs. */
+export const NPC_DISPLAY = { width: 40, height: 54 } as const;
 
 /** Logical on-screen sizes for floor / border tiles (Imagine textures are 4×). */
 export const FLOOR_DISPLAY = { width: 48, height: 48 } as const;

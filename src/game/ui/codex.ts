@@ -49,7 +49,10 @@ function renderCodexBody(): void {
     return;
   }
   const discovered = new Set(worldState.discoveredCreatures);
-  const zoneIds = Object.keys(ZONE_ENCOUNTERS) as ZoneId[];
+  // Safe rooms have no encounter table and are not habitats.
+  const zoneIds = (Object.keys(ZONE_ENCOUNTERS) as ZoneId[]).filter(
+    (zoneId) => ZONE_ENCOUNTERS[zoneId].length > 0,
+  );
 
   if (discovered.size === 0) {
     body.innerHTML =
