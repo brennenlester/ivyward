@@ -1,28 +1,40 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   claimNpcGift,
+  getActiveSideQuestHint,
   getClaimedNpcGifts,
+  getSideQuestStatus,
+  getSideQuestStatuses,
   hasClaimedNpcGift,
+  isSideQuestObjectiveMet,
   openConversation,
   resetNpcStateForTest,
   setClaimedNpcGifts,
+  setSideQuestStatuses,
+  tryConsumeDelivery,
 } from "./npcState";
 import { ALL_NPC_IDS, getNpcById, getZoneNpcs, NPCS } from "./npcs";
+import { SIDE_QUESTS } from "./sideQuests";
 import {
   getItemCount,
   getMaterialCount,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
+import { setPartyFromSnapshot } from "../creatures/party";
+import { setDiscoveredCreatures } from "./worldState";
 import { setVisitorMode } from "./worldSession";
 import { ZONES } from "./zones";
 import { TileType, type ZoneId } from "./zoneTypes";
 
 const BRYN = getNpcById("warden-bryn")!;
+const SABLE = getNpcById("weaver-sable")!;
 const ODD = getNpcById("hearthkeep-odd")!;
 
 beforeEach(() => {
   resetNpcStateForTest();
   setInventoryFromSnapshot({}, {});
+  setDiscoveredCreatures([]);
+  setPartyFromSnapshot([], 1);
   setVisitorMode(false);
 });
 
@@ -78,7 +90,7 @@ describe("claimNpcGift", () => {
   });
 });
 
-describe("openConversation", () => {
+describe("openConversation gifts then side quests", () => {
   it("opens with the intro and the gift on a first visit", () => {
     const lines = openConversation(BRYN);
     expect(lines.slice(0, BRYN.introLines.length)).toEqual(BRYN.introLines);
@@ -86,19 +98,35 @@ describe("openConversation", () => {
     expect(getMaterialCount("wild-fiber")).toBe(3);
   });
 
-  it("switches to idle chatter once the gift is spent", () => {
+  it("offers the side quest on the next visit after the gift", () => {
     openConversation(BRYN);
-    const second = openConversation(BRYN);
-    expect(second).toEqual([BRYN.idleLines[0]]);
-    expect(openConversation(BRYN)).toEqual([BRYN.idleLines[1]]);
+    const offer = openConversation(BRYN);
+    expect(offer).toEqual(SIDE_QUESTS["bryn-ledger"].offerLines);
+    expect(getSideQuestStatus("bryn-ledger")).toBe("active");
+    expect(getActiveSideQuestHint()).toBe("Village ask: Fill the ledger");
   });
 
-  it("cycles back to the first idle line", () => {
+  it("nudges progress while the objective is unmet", () => {
     setClaimedNpcGifts([BRYN.id]);
-    for (let i = 0; i < BRYN.idleLines.length; i += 1) {
-      openConversation(BRYN);
-    }
-    expect(openConversation(BRYN)).toEqual([BRYN.idleLines[0]]);
+    openConversation(BRYN); // offer
+    expect(openConversation(BRYN)).toEqual([
+      SIDE_QUESTS["bryn-ledger"].progressLine,
+    ]);
+  });
+
+  it("turns in and rewards once the objective is met", () => {
+    setClaimedNpcGifts([BRYN.id]);
+    openConversation(BRYN);
+    setDiscoveredCreatures(["a", "b", "c", "d", "e"]);
+    const lines = openConversation(BRYN);
+    expect(lines.at(0)).toContain("Five names");
+    expect(lines.at(-1)).toContain("Brook Tonic×2");
+    expect(getItemCount("brook-tonic")).toBe(2);
+    expect(getSideQuestStatus("bryn-ledger")).toBe("complete");
+    expect(openConversation(BRYN)).toEqual([
+      SIDE_QUESTS["bryn-ledger"].completeLine,
+    ]);
+    expect(getItemCount("brook-tonic")).toBe(2);
   });
 
   it("hints at codex gaps without naming the achievement", () => {
@@ -111,9 +139,110 @@ describe("openConversation", () => {
   });
 });
 
-describe("claim persistence", () => {
-  it("round-trips known ids and drops unknown ones", () => {
+describe("delivery side quest", () => {
+  const quest = SIDE_QUESTS["sable-thread"];
+
+  it("does not consume materials until every stack is ready", () => {
+    setInventoryFromSnapshot({ wood: 5, "wild-fiber": 2 }, {});
+    expect(isSideQuestObjectiveMet(quest)).toBe(false);
+    expect(tryConsumeDelivery(quest)).toBe(false);
+    expect(getMaterialCount("wood")).toBe(5);
+    expect(getMaterialCount("wild-fiber")).toBe(2);
+  });
+
+  it("consumes materials exactly once on turn-in", () => {
+    setClaimedNpcGifts([SABLE.id]);
+    openConversation(SABLE);
+    setInventoryFromSnapshot({ wood: 5, "wild-fiber": 3 }, {});
+    const lines = openConversation(SABLE);
+    expect(lines.at(-1)).toContain("Brook Tonic×2");
+    expect(getMaterialCount("wood")).toBe(0);
+    expect(getMaterialCount("wild-fiber")).toBe(0);
+    expect(getSideQuestStatus("sable-thread")).toBe("complete");
+    expect(openConversation(SABLE).at(-1)).not.toContain("Reward");
+  });
+});
+
+describe("party-size side quest", () => {
+  it("turns in when the party has three companions", () => {
+    setClaimedNpcGifts([ODD.id]);
+    openConversation(ODD);
+    setPartyFromSnapshot(
+      [
+        {
+          instanceId: "1",
+          definitionId: "mossling",
+          speciesId: "mossling",
+          currentHp: 10,
+          level: 1,
+          xp: 0,
+        },
+        {
+          instanceId: "2",
+          definitionId: "ember-wisp",
+          speciesId: "ember-wisp",
+          currentHp: 10,
+          level: 1,
+          xp: 0,
+        },
+        {
+          instanceId: "3",
+          definitionId: "brook-nymph",
+          speciesId: "brook-nymph",
+          currentHp: 10,
+          level: 1,
+          xp: 0,
+        },
+      ],
+      4,
+    );
+    const lines = openConversation(ODD);
+    expect(lines.at(-1)).toContain("Moonwake Draught×1");
+    expect(getItemCount("moonwake-draught")).toBe(1);
+    expect(getSideQuestStatus("odd-company")).toBe("complete");
+    expect(openConversation(ODD)).toEqual([
+      SIDE_QUESTS["odd-company"].completeLine,
+    ]);
+    expect(getItemCount("moonwake-draught")).toBe(1);
+  });
+});
+
+describe("visitor side-quest lockout", () => {
+  it("never offers, progresses, or turns in for visitors", () => {
+    setClaimedNpcGifts([BRYN.id]);
+    setVisitorMode(true);
+    const lines = openConversation(BRYN);
+    expect(lines).toEqual([BRYN.idleLines[0]]);
+    expect(getSideQuestStatus("bryn-ledger")).toBe("locked");
+  });
+
+  it("leaves an already-active host quest untouched when a visitor talks", () => {
+    setClaimedNpcGifts([BRYN.id]);
+    setSideQuestStatuses({ "bryn-ledger": "active" });
+    setDiscoveredCreatures(["a", "b", "c", "d", "e"]);
+    setVisitorMode(true);
+    expect(openConversation(BRYN)).toEqual([BRYN.idleLines[0]]);
+    expect(getSideQuestStatus("bryn-ledger")).toBe("active");
+    expect(getItemCount("brook-tonic")).toBe(0);
+  });
+});
+
+describe("claim and side-quest persistence", () => {
+  it("round-trips known gift ids and drops unknown ones", () => {
     setClaimedNpcGifts([BRYN.id, "not-a-villager"]);
     expect(getClaimedNpcGifts()).toEqual([BRYN.id]);
+  });
+
+  it("round-trips side-quest statuses and drops unknown ids", () => {
+    setSideQuestStatuses({
+      "bryn-ledger": "active",
+      "not-a-quest": "complete",
+      "sable-thread": "complete",
+    });
+    expect(getSideQuestStatuses()).toEqual({
+      "bryn-ledger": "active",
+      "sable-thread": "complete",
+      "odd-company": "locked",
+    });
   });
 });

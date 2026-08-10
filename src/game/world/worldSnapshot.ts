@@ -24,7 +24,13 @@ import {
   setUnlockedAchievements,
 } from "../progression/achievements";
 import { ALL_NPC_IDS } from "./npcs";
-import { getClaimedNpcGifts, setClaimedNpcGifts } from "./npcState";
+import {
+  getClaimedNpcGifts,
+  getSideQuestStatuses,
+  setClaimedNpcGifts,
+  setSideQuestStatuses,
+} from "./npcState";
+import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQuests";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -41,6 +47,8 @@ export type WorldSnapshot = {
   unlockedAchievements?: string[];
   /** Villagers whose one-time gift is spent. Optional for older saves. */
   claimedNpcGifts?: string[];
+  /** NPC side-quest progress. Optional for older saves. */
+  npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -249,6 +257,24 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.npcSideQuests !== undefined) {
+    if (typeof s.npcSideQuests !== "object" || s.npcSideQuests === null) {
+      return false;
+    }
+    for (const [id, status] of Object.entries(
+      s.npcSideQuests as Record<string, unknown>,
+    )) {
+      if (!isSideQuestId(id)) return false;
+      if (
+        status !== "locked" &&
+        status !== "active" &&
+        status !== "complete"
+      ) {
+        return false;
+      }
+    }
+  }
+
   const pos = s.position as Record<string, unknown> | undefined;
   if (
     !pos ||
@@ -300,6 +326,7 @@ export function exportWorldSnapshot(
     discoveredCreatures: [...worldState.discoveredCreatures],
     unlockedAchievements: getUnlockedAchievements(),
     claimedNpcGifts: getClaimedNpcGifts(),
+    npcSideQuests: getSideQuestStatuses(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -328,6 +355,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setPartyFromSnapshot(snapshot.party, snapshot.nextInstanceId);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
+  setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   // Saves predating the achievement can already have a full codex; award after
   // the inventory is restored so the items are not overwritten.
   evaluateCodexAchievement(worldState.discoveredCreatures);
