@@ -103,6 +103,7 @@ const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
   shrine: 0x6c629e,
   village: 0xf0b46e,
   overworld: 0x78b9d8,
+  harbor: 0x6aa8c8,
   mistwood: 0x8a78b8,
   emberfen: 0xc88858,
   "warden-cottage": 0x8a5f3c,
@@ -575,6 +576,7 @@ export class IsometricScene extends Phaser.Scene {
       shrine: { sky: 0x8881c8, hill: 0x4a4b8a, mist: 0xf0e4ff },
       village: { sky: 0xf4b875, hill: 0xc9775a, mist: 0xffe5ad },
       overworld: { sky: 0x80c5e8, hill: 0x4b8da8, mist: 0xd8f5ef },
+      harbor: { sky: 0x78b8d8, hill: 0x3a6888, mist: 0xd0eef8 },
       mistwood: { sky: 0xa898d0, hill: 0x5a4a80, mist: 0xe8e0f8 },
       emberfen: { sky: 0xe0a868, hill: 0x8a5030, mist: 0xffe0b0 },
     };

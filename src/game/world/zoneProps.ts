@@ -59,6 +59,10 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
     { x: 5, y: 3, kind: "shelf" },
   ],
   overworld: [
+    // North gate → Harbor
+    { x: 7, y: 0, kind: "gate" },
+    { x: 6, y: 1, kind: "fern" },
+    { x: 8, y: 1, kind: "fern" },
     // South approach (village gate)
     { x: 6, y: 12, kind: "fern" },
     { x: 8, y: 12, kind: "fern" },
@@ -77,6 +81,14 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
     { x: 12, y: 6, kind: "tree" },
     { x: 12, y: 8, kind: "fern" },
     { x: 11, y: 4, kind: "standing-stone" },
+  ],
+  harbor: [
+    { x: 2, y: 3, kind: "standing-stone" },
+    { x: 5, y: 4, kind: "fern" },
+    { x: 8, y: 3, kind: "pebble-pile" },
+    { x: 12, y: 4, kind: "fern" },
+    { x: 14, y: 3, kind: "standing-stone" },
+    { x: 16, y: 4, kind: "pebble-pile" },
   ],
   mistwood: [
     { x: 2, y: 5, kind: "tree" },

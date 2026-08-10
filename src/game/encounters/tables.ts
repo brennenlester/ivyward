@@ -25,6 +25,8 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
     { id: "lantern-fox", weight: 12 },
     { id: "stone-hound", weight: 10 },
   ],
+  // Harbor shell: no wild table yet (boat/side-scroll follow-ups).
+  harbor: [],
   mistwood: [
     { id: "thunder-finch", weight: 70 },
     { id: "lantern-fox", weight: 10 },
