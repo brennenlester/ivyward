@@ -243,11 +243,18 @@ export class ShrineScene extends Phaser.Scene {
     action: () => void,
   ): void {
     let pressedHere = false;
-    btn.on("pointerdown", () => {
+    btn.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const { x, y } = this.pointerToDesign(pointer);
+      // Geometry masks clip drawing but not hits; ignore presses outside the viewport.
+      if (!this.isDesignPointInContentBounds(x, y, this.panelCenter.x)) {
+        return;
+      }
       pressedHere = true;
     });
-    btn.on("pointerup", () => {
-      const shouldAct = pressedHere && !this.dragDidScroll;
+    btn.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+      const { x, y } = this.pointerToDesign(pointer);
+      const inBounds = this.isDesignPointInContentBounds(x, y, this.panelCenter.x);
+      const shouldAct = pressedHere && !this.dragDidScroll && inBounds;
       pressedHere = false;
       if (shouldAct) {
         action();
