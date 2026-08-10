@@ -16,7 +16,7 @@ export function isTileWalkable(
   }
 
   const tile = zone.tiles[tileY][tileX];
-  if (tile === TileType.Floor) {
+  if (tile === TileType.Floor || tile === TileType.Dock) {
     return true;
   }
   if (tile === TileType.OverworldGate) {

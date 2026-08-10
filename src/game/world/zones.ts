@@ -147,15 +147,21 @@ const HEARTHKEEP_COTTAGE = cottageInterior(
 );
 
 /** Folklore Fields — first unlocked overworld region (south back to village). */
+const overworldTiles = borderedFloor(15, 15, [
+  { x: 14, y: 7 },
+]);
+// South shoreline: water row with a walkable dock at the village gate.
+for (let x = 0; x < 15; x++) {
+  overworldTiles[14][x] = TileType.Water;
+}
+overworldTiles[14][7] = TileType.Dock;
+
 const OVERWORLD: ZoneDefinition = {
   id: "overworld",
   name: "Folklore Fields",
   width: 15,
   height: 15,
-  tiles: borderedFloor(15, 15, [
-    { x: 7, y: 14 },
-    { x: 14, y: 7 },
-  ]),
+  tiles: overworldTiles,
   lightTint: 0xc8dce8,
   darkTint: 0x6a8aa0,
   transitions: [

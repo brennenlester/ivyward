@@ -129,6 +129,66 @@ function generateFloorTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
   }
 }
 
+function generateWaterTextures(scene: Phaser.Scene): void {
+  for (const variant of ["light", "dark"] as const) {
+    const key = `tile-water-${variant}`;
+    if (scene.textures.exists(key)) {
+      continue;
+    }
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    const base = variant === "light" ? 0x4a9ec8 : 0x2f7eae;
+    drawSquareTile(g, TILE_WIDTH, TILE_HEIGHT, base, 0x1e5a78, 0.45);
+    g.fillStyle(0xb8e8ff, 0.35);
+    g.fillEllipse(14, 16, 18, 6);
+    g.fillEllipse(34, 28, 16, 5);
+    g.fillStyle(0xffffff, 0.25);
+    g.fillCircle(22, 22, 2);
+    g.fillCircle(10, 32, 1);
+    g.generateTexture(key, TILE_WIDTH, TILE_HEIGHT);
+    g.destroy();
+  }
+}
+
+function generateDockTextures(scene: Phaser.Scene): void {
+  for (const variant of ["light", "dark"] as const) {
+    const key = `tile-dock-${variant}`;
+    if (scene.textures.exists(key)) {
+      continue;
+    }
+    const g = scene.make.graphics({ x: 0, y: 0 });
+    const base = variant === "light" ? 0xc49a62 : 0xa67a48;
+    drawSquareTile(g, TILE_WIDTH, TILE_HEIGHT, base, 0x6a4828, 0.5);
+    g.fillStyle(0x7a5530, 0.55);
+    g.fillRect(4, 10, 40, 4);
+    g.fillRect(4, 20, 40, 4);
+    g.fillRect(4, 30, 40, 4);
+    g.fillStyle(0xe8c894, 0.35);
+    g.fillRect(6, 12, 36, 1);
+    g.generateTexture(key, TILE_WIDTH, TILE_HEIGHT);
+    g.destroy();
+  }
+}
+
+function generateBoatTexture(scene: Phaser.Scene): void {
+  const key = "prop-boat";
+  if (scene.textures.exists(key)) {
+    return;
+  }
+  const g = scene.make.graphics({ x: 0, y: 0 });
+  g.fillStyle(0x000000, 0.18);
+  g.fillEllipse(24, 40, 34, 10);
+  g.fillStyle(0x8b5a2b, 1);
+  g.fillTriangle(6, 28, 24, 10, 42, 28);
+  g.fillStyle(0xa8723c, 1);
+  g.fillRoundedRect(8, 24, 32, 14, 4);
+  g.fillStyle(0xd8b070, 1);
+  g.fillRect(22, 8, 3, 18);
+  g.fillStyle(0xf4f0e4, 0.9);
+  g.fillTriangle(25, 10, 25, 22, 38, 18);
+  g.generateTexture(key, 48, 48);
+  g.destroy();
+}
+
 function generateBoundaryTexture(
   scene: Phaser.Scene,
   key: string,
@@ -578,6 +638,9 @@ export function ensureWorldTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
   generatePropTextures(scene);
   generateNpcTexture(scene);
   generateFloorTextures(scene, zoneId);
+  generateWaterTextures(scene);
+  generateDockTextures(scene);
+  generateBoatTexture(scene);
 }
 
 export function getFloorTextureKey(
@@ -585,4 +648,16 @@ export function getFloorTextureKey(
   light: boolean,
 ): string {
   return `floor-${zoneId}-${light ? "light" : "dark"}`;
+}
+
+export function getWaterTextureKey(light: boolean): string {
+  return `tile-water-${light ? "light" : "dark"}`;
+}
+
+export function getDockTextureKey(light: boolean): string {
+  return `tile-dock-${light ? "light" : "dark"}`;
+}
+
+export function getBoatTextureKey(): string {
+  return "prop-boat";
 }

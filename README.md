@@ -13,7 +13,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | Input | Action |
 | --- | --- |
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
-| **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, or talk to a villager |
+| **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, talk to a villager, or moor a boat at the Folklore Fields dock |
 | **I** | Copy a friend invite link (host only) |
 | **Codex** (status panel) | Open the habitat codex — what lives where (fills in as you encounter creatures) |
 | **Reset game** (status panel) | Wipe local host save and start fresh |
@@ -62,7 +62,7 @@ Active village asks show in the status panel as `Village ask: …`. Delivery ask
 - Walk in zones to trigger encounters: **Befriend**, **Spar**, or **Flee**.
 - Creatures and moves have folklore **types**. Spars use accuracy, hunter matchups (~1.5×), and rare immunity traits on signature creatures.
 - Winning spars grants creature materials, Folklore Dust, and XP.
-- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). Dock placement lands in a later update.
+- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). In Folklore Fields, the south shoreline is water with a dock at the village gate — press **E** near the dock while holding a Boat to moor it (persists in your save; visitors cannot place).
 - Open **Codex** to see which creatures live where. Encountering a creature once lists it under **every** habitat that can spawn it. Habitats with no known dwellers stay blank until you meet something from that pool.
 
 ### Secrets
