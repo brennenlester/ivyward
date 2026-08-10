@@ -323,6 +323,30 @@ function generateWallTextures(scene: Phaser.Scene): void {
     g.fillCircle(40, BOUNDARY_HEIGHT - 24, 3);
   });
 
+  // Harbor — cool sea cliffs
+  generateBoundaryTexture(scene, "boundary-harbor", (g) => {
+    g.fillStyle(0x000000, 0.14);
+    g.fillEllipse(24, BOUNDARY_HEIGHT - 3, 38, 6);
+
+    g.fillStyle(OUTLINE, 1);
+    g.fillRoundedRect(2, BOUNDARY_HEIGHT - 16, 44, 14, 3);
+    g.fillStyle(0x4a7890, 1);
+    g.fillRoundedRect(3, BOUNDARY_HEIGHT - 15, 42, 12, 2);
+
+    g.fillStyle(0x6a98b0, 1);
+    g.fillTriangle(2, BOUNDARY_HEIGHT - 16, 18, BOUNDARY_HEIGHT - 38, 34, BOUNDARY_HEIGHT - 16);
+    g.fillStyle(0x8ab8d0, 1);
+    g.fillTriangle(14, BOUNDARY_HEIGHT - 16, 30, BOUNDARY_HEIGHT - 46, 46, BOUNDARY_HEIGHT - 16);
+
+    g.fillStyle(0xd0eef8, 0.9);
+    g.fillRoundedRect(22, BOUNDARY_HEIGHT - 30, 10, 8, 2);
+    g.fillRoundedRect(26, BOUNDARY_HEIGHT - 36, 8, 6, 2);
+
+    g.fillStyle(0xb8e0f0, 0.45);
+    g.fillEllipse(12, BOUNDARY_HEIGHT - 28, 16, 6);
+    g.fillEllipse(36, BOUNDARY_HEIGHT - 36, 14, 5);
+  });
+
   // Mistwood — violet mist cliffs
   generateBoundaryTexture(scene, "boundary-mistwood", (g) => {
     g.fillStyle(0x000000, 0.14);
