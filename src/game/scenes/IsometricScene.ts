@@ -350,7 +350,11 @@ export class IsometricScene extends Phaser.Scene {
       return;
     }
 
-    const creatureId = rollWildCreature(this.currentZoneId);
+    const biome =
+      this.currentZoneId === "archipelago"
+        ? biomeAtIslandTile(this.playerGridX, this.playerGridY)
+        : null;
+    const creatureId = rollWildCreature(this.currentZoneId, { biome });
     if (!creatureId) {
       return;
     }

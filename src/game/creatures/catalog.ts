@@ -203,6 +203,53 @@ export const CREATURES: CreatureDefinition[] = [
       { id: "drift", name: "Drift", power: 7, type: "will-o-wisp", accuracy: 90 },
     ],
   },
+  {
+    id: "isle-fernling",
+    name: "Isle Fernling",
+    folkloreType: "woodland",
+    maxHp: 27,
+    attack: 7,
+    defense: 5,
+    spriteKey: "creature-isle-fernling",
+    spriteColor: 0x3a9a58,
+    early: false,
+    moves: [
+      { id: "frond", name: "Frond", power: 6, type: "woodland", accuracy: 100 },
+      { id: "canopy", name: "Canopy", power: 9, type: "woodland", accuracy: 85 },
+    ],
+  },
+  {
+    id: "salt-scuttle",
+    name: "Salt Scuttle",
+    folkloreType: "earth",
+    maxHp: 30,
+    attack: 8,
+    defense: 7,
+    spriteKey: "creature-salt-scuttle",
+    spriteColor: 0xc8b090,
+    early: false,
+    moves: [
+      { id: "pinch", name: "Pinch", power: 7, type: "earth", accuracy: 95 },
+      { id: "scuttle", name: "Scuttle", power: 10, type: "earth", accuracy: 80 },
+      { id: "shell", name: "Shell", power: 5, type: "earth", accuracy: 100 },
+    ],
+  },
+  {
+    id: "shoal-wisp",
+    name: "Shoal Wisp",
+    folkloreType: "water",
+    maxHp: 24,
+    attack: 9,
+    defense: 4,
+    spriteKey: "creature-shoal-wisp",
+    spriteColor: 0x58b8c8,
+    early: false,
+    moves: [
+      { id: "spray", name: "Spray", power: 6, type: "water", accuracy: 100 },
+      { id: "undertow", name: "Undertow", power: 11, type: "water", accuracy: 75 },
+      { id: "drift", name: "Drift", power: 7, type: "water", accuracy: 90 },
+    ],
+  },
 ];
 
 const byId = new Map(CREATURES.map((c) => [c.id, c]));
