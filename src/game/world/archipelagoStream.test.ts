@@ -9,15 +9,21 @@ import {
   ARCHIPELAGO_MAX_WIDTH,
   ARCHIPELAGO_WATER_ROWS,
   HARBOR_EAST_SAIL_GATES,
+  ISLAND_ORIGIN_X,
   allowsSailZoneTransition,
   archipelagoVisualCullBefore,
   ensureArchipelagoChunksAround,
+  getArchipelagoProps,
+  isArchipelagoIslandPosition,
   isArchipelagoSailPosition,
+  islandTemplateAtIndex,
+  listIslandTemplates,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
 } from "./archipelagoStream";
 import { getZone, ZONES } from "./zones";
 import { TileType } from "./zoneTypes";
+import { getZoneProps } from "./zoneProps";
 import {
   applyWorldSnapshot,
   exportWorldSnapshot,
@@ -143,6 +149,46 @@ describe("archipelago chunk stream", () => {
     ).toBe(true);
   });
 
+  it("stamps multi-biome islands with docks and open water around them", () => {
+    ensureArchipelagoChunksAround(80);
+    const islands = listIslandTemplates(ARCHIPELAGO.width);
+    expect(islands.length).toBeGreaterThanOrEqual(3);
+    const biomes = new Set(islands.map((i) => i.biome));
+    expect(biomes.has("lush")).toBe(true);
+    expect(biomes.has("barren")).toBe(true);
+    expect(biomes.has("other")).toBe(true);
+
+    for (const island of islands) {
+      expect(ARCHIPELAGO.tiles[island.dock.y][island.dock.x]).toBe(
+        TileType.Dock,
+      );
+      expect(ARCHIPELAGO.tiles[island.pier.y][island.pier.x]).toBe(
+        TileType.Floor,
+      );
+      expect(ARCHIPELAGO.tiles[island.embarkWater.y][island.embarkWater.x]).toBe(
+        TileType.Water,
+      );
+      // Open water corridor beside the island (sail around).
+      expect(ARCHIPELAGO.tiles[7][island.x]).toBe(TileType.Water);
+      expect(ARCHIPELAGO.tiles[8][island.x]).toBe(TileType.Water);
+    }
+
+    const props = getArchipelagoProps();
+    expect(props.length).toBeGreaterThan(0);
+    expect(getZoneProps("archipelago")).toEqual(props);
+    const kinds = new Set(props.map((p) => p.kind));
+    expect(kinds.has("tree") || kinds.has("fern")).toBe(true);
+    expect(kinds.has("standing-stone") || kinds.has("pebble-pile")).toBe(true);
+  });
+
+  it("exposes the seed island inside the initial width", () => {
+    const first = islandTemplateAtIndex(0);
+    expect(first.x).toBe(ISLAND_ORIGIN_X);
+    expect(first.biome).toBe("lush");
+    expect(ARCHIPELAGO.tiles[first.dock.y][first.dock.x]).toBe(TileType.Dock);
+    expect(isArchipelagoIslandPosition(first.pier.x, first.pier.y)).toBe(true);
+  });
+
   it("reports a visual cull frontier behind the player without walling water", () => {
     ensureArchipelagoChunksAround(80);
     const cull = archipelagoVisualCullBefore(80);
@@ -213,5 +259,37 @@ describe("archipelago sailing snapshot", () => {
     expect(isSailing()).toBe(true);
     expect(ARCHIPELAGO.width).toBeGreaterThan(midX);
     expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][midX]).toBe(TileType.Water);
+  });
+
+  it("restores on-foot island stand after regenerating chunks", () => {
+    setInventoryFromSnapshot({}, {});
+    setPartyFromSnapshot([], 1);
+    setUnlockedAchievements([]);
+    restoreQuestProgress(questProgress());
+
+    const island = islandTemplateAtIndex(2);
+    prepareArchipelagoForPosition(island.x);
+    const snapshot: WorldSnapshot = {
+      ...exportWorldSnapshot({
+        zoneId: "archipelago",
+        x: island.pier.x,
+        y: island.pier.y,
+      }),
+      sailing: false,
+      placedBoat: true,
+      questProgress: questProgress(),
+      party: [],
+      nextInstanceId: 1,
+      materials: {},
+      items: {},
+      overworldUnlocked: true,
+    };
+    expect(isValidWorldSnapshot(snapshot)).toBe(true);
+
+    resetArchipelagoStream();
+    applyWorldSnapshot(snapshot);
+    expect(isSailing()).toBe(false);
+    expect(ARCHIPELAGO.tiles[island.pier.y][island.pier.x]).toBe(TileType.Floor);
+    expect(ARCHIPELAGO.tiles[island.dock.y][island.dock.x]).toBe(TileType.Dock);
   });
 });
