@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import {
   isBoatPlaced,
   isNearAnyDock,
+  isNearArchipelagoDock,
   isNearEastLandingDock,
   isNearHarborDock,
   isSailing,
@@ -37,6 +38,12 @@ import {
 import { restoreQuestProgress } from "../story/questProgress";
 import { setPartyFromSnapshot } from "../creatures/party";
 import { setUnlockedAchievements } from "../progression/achievements";
+import {
+  ARCHIPELAGO,
+  islandTemplateAtIndex,
+  prepareArchipelagoForPosition,
+  resetArchipelagoStream,
+} from "./archipelagoStream";
 
 function questProgress(): WorldSnapshot["questProgress"] {
   return {
@@ -49,6 +56,7 @@ function questProgress(): WorldSnapshot["questProgress"] {
 
 beforeEach(() => {
   resetPlacedBoatForTest();
+  resetArchipelagoStream();
   setInventoryFromSnapshot({}, {});
   setVisitorMode(false);
   setPartyFromSnapshot([], 1);
@@ -531,5 +539,103 @@ describe("migrateBoatStateToHarbor", () => {
     };
     migrateBoatStateToHarbor(inland);
     expect(inland.position).toEqual({ zoneId: "overworld", x: 7, y: 12 });
+  });
+});
+
+describe("archipelago island dock embark/disembark", () => {
+  it("disembarks onto an island pier and keeps sailing until E", () => {
+    const island = islandTemplateAtIndex(0);
+    prepareArchipelagoForPosition(island.x);
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(isNearArchipelagoDock("archipelago", island.embarkWater.x, island.embarkWater.y)).toBe(
+      true,
+    );
+    expect(isNearAnyDock("archipelago", island.embarkWater.x, island.embarkWater.y)).toBe(
+      true,
+    );
+    expect(isSailing()).toBe(true);
+
+    const result = tryDisembark(
+      "archipelago",
+      island.embarkWater.x,
+      island.embarkWater.y,
+    );
+    expect(result).toMatchObject({
+      ok: true,
+      disembarked: true,
+      playerX: island.pier.x,
+      playerY: island.pier.y,
+    });
+    expect(isSailing()).toBe(false);
+    expect(isTileWalkable(getZone("archipelago"), island.pier.x, island.pier.y)).toBe(
+      true,
+    );
+  });
+
+  it("reboards from any archipelago dock while the boat is globally placed", () => {
+    const lush = islandTemplateAtIndex(0);
+    const barren = islandTemplateAtIndex(1);
+    prepareArchipelagoForPosition(barren.x);
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(tryDisembark("archipelago", lush.embarkWater.x, lush.embarkWater.y).ok).toBe(
+      true,
+    );
+
+    // Hop: board at lush, sail to barren, disembark, reboard — no mooredDock gate.
+    expect(
+      tryEmbark("archipelago", lush.pier.x, lush.pier.y),
+    ).toMatchObject({
+      ok: true,
+      embarked: true,
+      playerX: lush.embarkWater.x,
+      playerY: lush.embarkWater.y,
+    });
+    expect(tryDisembark("archipelago", barren.embarkWater.x, barren.embarkWater.y).ok).toBe(
+      true,
+    );
+    const reboard = tryEmbark("archipelago", barren.pier.x, barren.pier.y);
+    expect(reboard).toMatchObject({
+      ok: true,
+      embarked: true,
+      playerX: barren.embarkWater.x,
+      playerY: barren.embarkWater.y,
+    });
+    expect(isSailing()).toBe(true);
+  });
+
+  it("allows sailing around island water without auto-ending the voyage", () => {
+    const island = islandTemplateAtIndex(0);
+    prepareArchipelagoForPosition(island.x);
+    setPlacedBoat(true);
+    setSailing(true);
+    // Mid-corridor beside the island — not near the dock.
+    expect(isNearArchipelagoDock("archipelago", island.x, 7)).toBe(false);
+    expect(isTileWalkable(getZone("archipelago"), island.x, 7)).toBe(true);
+    expect(isTileWalkable(getZone("archipelago"), island.x, 8)).toBe(true);
+    const mid = tryDisembark("archipelago", island.x, 7);
+    expect(mid.ok).toBe(false);
+    expect(isSailing()).toBe(true);
+  });
+
+  it("refuses placing a boat at an archipelago dock", () => {
+    const island = islandTemplateAtIndex(0);
+    prepareArchipelagoForPosition(island.x);
+    setInventoryFromSnapshot({}, { boat: 1 });
+    const result = tryPlaceBoat("archipelago", island.pier.x, island.pier.y);
+    expect(result.ok).toBe(false);
+    expect(isBoatPlaced()).toBe(false);
+    expect(getItemCount("boat")).toBe(1);
+  });
+
+  it("does not grow the stream when checking archipelago dock proximity", () => {
+    resetArchipelagoStream();
+    const widthBefore = ARCHIPELAGO.width;
+    expect(isNearArchipelagoDock("archipelago", 11, 6)).toBe(true);
+    expect(ARCHIPELAGO.width).toBe(widthBefore);
+    // Far-east dock not yet stamped — must not mutate width for a prompt scan.
+    expect(isNearArchipelagoDock("archipelago", 100, 6)).toBe(false);
+    expect(ARCHIPELAGO.width).toBe(widthBefore);
   });
 });

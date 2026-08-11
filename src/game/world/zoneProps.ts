@@ -1,4 +1,5 @@
 import type { ZoneId } from "./zoneTypes";
+import { getArchipelagoProps } from "./archipelagoStream";
 
 export type PropKind =
   | "tree"
@@ -127,6 +128,9 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
 };
 
 export function getZoneProps(zoneId: ZoneId): ZoneProp[] {
+  if (zoneId === "archipelago") {
+    return getArchipelagoProps();
+  }
   return ZONE_PROPS[zoneId] ?? [];
 }
 

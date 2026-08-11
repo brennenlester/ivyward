@@ -46,6 +46,7 @@ import {
 } from "./dockBoat";
 import {
   isArchipelagoSailPosition,
+  isArchipelagoIslandPosition,
   isSailableZone,
   prepareArchipelagoForPosition,
 } from "./archipelagoStream";
@@ -114,9 +115,12 @@ function isSpawnWalkable(
   overworldUnlocked: boolean,
   sailing = false,
 ): boolean {
-  // Validate archipelago mid-sail without mutating the live stream (generate on apply).
-  if (sailing && zoneId === "archipelago") {
-    return isArchipelagoSailPosition(x, y);
+  // Validate archipelago mid-sail / island stands without mutating the live stream.
+  if (zoneId === "archipelago") {
+    if (sailing) {
+      return isArchipelagoSailPosition(x, y);
+    }
+    return isArchipelagoIslandPosition(x, y);
   }
   const zone = ZONES[zoneId];
   const tileX = Math.round(x);
@@ -514,10 +518,10 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   }
   setSailing(snapshot.sailing === true);
   // Sailing only makes sense on Harbor/Archipelago Water/Dock; otherwise clear it.
+  if (snapshot.position.zoneId === "archipelago") {
+    prepareArchipelagoForPosition(snapshot.position.x);
+  }
   if (isSailing()) {
-    if (snapshot.position.zoneId === "archipelago") {
-      prepareArchipelagoForPosition(snapshot.position.x);
-    }
     const zone = ZONES[snapshot.position.zoneId];
     const tileX = Math.round(snapshot.position.x);
     const tileY = Math.round(snapshot.position.y);

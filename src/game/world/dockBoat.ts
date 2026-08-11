@@ -5,6 +5,11 @@ import {
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "./worldSession";
 import { notifyWorldChanged } from "./worldSaveSchedule";
+import {
+  ARCHIPELAGO,
+  findNearestIslandDock,
+  listIslandTemplates,
+} from "./archipelagoStream";
 
 /** Moonwake Harbor dock pad (boat moor / board). */
 export const HARBOR_DOCK = {
@@ -119,7 +124,16 @@ export function isNearEastLandingDock(
   return isOnEastLandingApproach(zoneId, tileX, tileY);
 }
 
-/** True near the west Harbor dock or East Landing dock interact range. */
+/** True on/near any stamped archipelago island dock. */
+export function isNearArchipelagoDock(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): boolean {
+  return findArchipelagoDockStand(zoneId, tileX, tileY) !== undefined;
+}
+
+/** True near Harbor west/east docks or an archipelago island dock. */
 export function isNearAnyDock(
   zoneId: ZoneId,
   tileX: number,
@@ -127,15 +141,52 @@ export function isNearAnyDock(
 ): boolean {
   return (
     isNearHarborDock(zoneId, tileX, tileY) ||
-    isNearEastLandingDock(zoneId, tileX, tileY)
+    isNearEastLandingDock(zoneId, tileX, tileY) ||
+    isNearArchipelagoDock(zoneId, tileX, tileY)
   );
 }
 
-type DockStand = {
+type HarborDockStand = {
+  kind: "harbor";
   id: HarborDockId;
   pier: { x: number; y: number };
   embarkWater: { x: number; y: number };
 };
+
+type ArchipelagoDockStand = {
+  kind: "archipelago";
+  pier: { x: number; y: number };
+  embarkWater: { x: number; y: number };
+  dock: { x: number; y: number };
+};
+
+type DockStand = HarborDockStand | ArchipelagoDockStand;
+
+function findArchipelagoDockStand(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): ArchipelagoDockStand | undefined {
+  if (zoneId !== "archipelago") {
+    return undefined;
+  }
+  // Pure scan of already-stamped islands only. Do not grow the stream here —
+  // scene `syncArchipelagoStream` owns growth + visual redraw; mutating width
+  // from the interact prompt would discard ChunkEnsureResult and skip drawing.
+  for (const island of listIslandTemplates(ARCHIPELAGO.width)) {
+    const dist =
+      Math.abs(island.dock.x - tileX) + Math.abs(island.dock.y - tileY);
+    if (dist <= 1) {
+      return {
+        kind: "archipelago",
+        pier: island.pier,
+        embarkWater: island.embarkWater,
+        dock: island.dock,
+      };
+    }
+  }
+  return undefined;
+}
 
 function resolveDockStand(
   zoneId: ZoneId,
@@ -145,6 +196,7 @@ function resolveDockStand(
   // Prefer west dock when both could match (they do not overlap today).
   if (isNearHarborDock(zoneId, tileX, tileY)) {
     return {
+      kind: "harbor",
       id: "west",
       pier: HARBOR_PIER,
       embarkWater: HARBOR_EMBARK_WATER,
@@ -152,14 +204,26 @@ function resolveDockStand(
   }
   if (isNearEastLandingDock(zoneId, tileX, tileY)) {
     return {
+      kind: "harbor",
       id: "east",
       pier: EAST_LANDING,
       embarkWater: EAST_LANDING_EMBARK_WATER,
     };
   }
-  return undefined;
+  return findArchipelagoDockStand(zoneId, tileX, tileY);
 }
 
+/** Dock pad used to draw the moored boat sprite in the archipelago. */
+export function getArchipelagoMooringPad(
+  tileX: number,
+  tileY: number,
+): { x: number; y: number } | undefined {
+  const near = findArchipelagoDockStand("archipelago", tileX, tileY);
+  if (near) {
+    return near.dock;
+  }
+  return findNearestIslandDock(tileX, tileY)?.dock;
+}
 export type PlaceBoatResult = {
   ok: boolean;
   message: string;
@@ -255,7 +319,9 @@ export function tryEmbark(
       message: "No boat is moored here.",
     };
   }
-  if (mooredDock !== dock.id) {
+  // Harbor docks keep west/east mooring. Archipelago docks allow reboard at any
+  // island dock while the boat remains globally placed (simplest coherent UX).
+  if (dock.kind === "harbor" && mooredDock !== dock.id) {
     return {
       ok: false,
       message: "Your boat is moored at another dock.",
@@ -305,7 +371,9 @@ export function tryDisembark(
     };
   }
   sailing = false;
-  mooredDock = dock.id;
+  if (dock.kind === "harbor") {
+    mooredDock = dock.id;
+  }
   notifyWorldChanged();
   return {
     ok: true,

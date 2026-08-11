@@ -81,8 +81,10 @@ import {
 import {
   isBoatPlaced,
   getMooredDock,
+  getArchipelagoMooringPad,
   isNearAnyDock,
   isNearHarborDock,
+  isNearArchipelagoDock,
   isSailing,
   EAST_LANDING_EMBARK_WATER,
   HARBOR_DOCK,
@@ -94,7 +96,10 @@ import {
   allowsSailZoneTransition,
   ARCHIPELAGO_MAX_WIDTH,
   archipelagoVisualCullBefore,
+  biomeAtIslandTile,
   ensureArchipelagoChunksAround,
+  getArchipelagoPropsInColumns,
+  ISLAND_BIOME_FLOOR_TINT,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
   type ChunkEnsureResult,
@@ -435,11 +440,13 @@ export class IsometricScene extends Phaser.Scene {
     if (cullBefore < prevCull) {
       this.drawZoneTileColumns(zone, cullBefore, prevCull);
       this.drawWallsInColumns(zone, cullBefore, prevCull);
+      this.drawArchipelagoPropsInColumns(cullBefore, prevCull);
     }
 
     if (result.grew) {
       this.drawZoneTileColumns(zone, result.previousWidth, result.width);
       this.drawWallsInColumns(zone, result.previousWidth, result.width);
+      this.drawArchipelagoPropsInColumns(result.previousWidth, result.width);
     }
   }
 
@@ -488,8 +495,16 @@ export class IsometricScene extends Phaser.Scene {
           }
         }
       }
+      // Props must match the cull window (full getZoneProps would reintroduce
+      // far-west sprites and later duplicate when sailing west restores columns).
+      this.drawArchipelagoPropsInColumns(0, 3);
+      this.drawArchipelagoPropsInColumns(
+        this.archipelagoCullBefore,
+        zone.width,
+      );
+    } else {
+      this.drawProps(zone);
     }
-    this.drawProps(zone);
     this.drawNpcs(zone);
     this.drawPlacedBoat(zone);
     recordQuestEvent({ type: "enter_zone", zoneId });
@@ -676,6 +691,13 @@ export class IsometricScene extends Phaser.Scene {
         tile.setData("streamX", x);
         tile.setData("streamY", y);
 
+        if (tileType === TileType.Floor && zone.id === "archipelago") {
+          const biome = biomeAtIslandTile(x, y);
+          if (biome) {
+            tile.setTint(ISLAND_BIOME_FLOOR_TINT[biome]);
+          }
+        }
+
         if (tileType === TileType.OverworldGate && !transitionSet.has(`${x},${y}`)) {
           tile.setTint(
             worldState.overworldUnlocked ? 0xaaffaa : 0xffaaaa,
@@ -771,20 +793,37 @@ export class IsometricScene extends Phaser.Scene {
     const gateOpen = worldState.overworldUnlocked;
 
     for (const prop of getZoneProps(zone.id)) {
-      const screen = this.toScreen(prop.x, prop.y);
-      const key = propTextureKey(
-        prop.kind,
-        prop.kind === "gate" ? gateOpen : true,
-      );
-      const propSprite = this.add
-        .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, key)
-        .setOrigin(0.5, 1);
-      const propSize = PROP_DISPLAY[key];
-      if (propSize) {
-        fitDisplay(propSprite, propSize);
-      }
-      propSprite.setDepth(depthForGridCell(prop.x, prop.y, PROP_LAYER));
+      this.spawnPropSprite(prop.x, prop.y, prop.kind, gateOpen, zone.id);
     }
+  }
+
+  private drawArchipelagoPropsInColumns(xStart: number, xEnd: number): void {
+    for (const prop of getArchipelagoPropsInColumns(xStart, xEnd)) {
+      this.spawnPropSprite(prop.x, prop.y, prop.kind, true, "archipelago");
+    }
+  }
+
+  private spawnPropSprite(
+    x: number,
+    y: number,
+    kind: Parameters<typeof propTextureKey>[0],
+    gateOpen: boolean,
+    zoneId: ZoneId,
+  ): void {
+    const screen = this.toScreen(x, y);
+    const key = propTextureKey(kind, kind === "gate" ? gateOpen : true);
+    const propSprite = this.add
+      .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, key)
+      .setOrigin(0.5, 1);
+    const propSize = PROP_DISPLAY[key];
+    if (propSize) {
+      fitDisplay(propSprite, propSize);
+    }
+    if (zoneId === "archipelago") {
+      propSprite.setData("streamX", x);
+      propSprite.setData("streamY", y);
+    }
+    propSprite.setDepth(depthForGridCell(x, y, PROP_LAYER));
   }
 
   private drawNpcs(zone: ZoneDefinition): void {
@@ -893,9 +932,16 @@ export class IsometricScene extends Phaser.Scene {
       return undefined;
     }
     const atWestDock = isNearHarborDock(this.currentZoneId, tileX, tileY);
+    const atArchipelagoDock = isNearArchipelagoDock(
+      this.currentZoneId,
+      tileX,
+      tileY,
+    );
     const moored = getMooredDock();
     const atMooredDock =
-      (moored === "west" && atWestDock) || (moored === "east" && !atWestDock);
+      atArchipelagoDock ||
+      (moored === "west" && atWestDock) ||
+      (moored === "east" && !atWestDock && !atArchipelagoDock);
     if (isVisitorMode()) {
       if (isBoatPlaced() && atMooredDock) {
         return "Boat moored (embark is host only)";
@@ -926,21 +972,36 @@ export class IsometricScene extends Phaser.Scene {
   private drawPlacedBoat(zone: ZoneDefinition): void {
     this.dockBoat?.destroy();
     this.dockBoat = undefined;
-    if (zone.id !== HARBOR_DOCK.zoneId || !isBoatPlaced()) {
+    if (!isBoatPlaced()) {
       return;
     }
     // While sailing the boat follows the player instead of sitting at the dock.
     if (isSailing()) {
       return;
     }
-    const pad =
-      getMooredDock() === "east" ? EAST_LANDING_EMBARK_WATER : HARBOR_DOCK;
+    let pad: { x: number; y: number } | undefined;
+    if (zone.id === HARBOR_DOCK.zoneId) {
+      pad =
+        getMooredDock() === "east" ? EAST_LANDING_EMBARK_WATER : HARBOR_DOCK;
+    } else if (zone.id === "archipelago") {
+      pad = getArchipelagoMooringPad(
+        Math.round(this.playerGridX),
+        Math.round(this.playerGridY),
+      );
+    }
+    if (!pad) {
+      return;
+    }
     const screen = this.toScreen(pad.x, pad.y);
     const boat = this.add
       .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
       .setOrigin(0.5, 1);
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
     boat.setDepth(depthForGridCell(pad.x, pad.y, PROP_LAYER));
+    if (zone.id === "archipelago") {
+      boat.setData("streamX", pad.x);
+      boat.setData("streamY", pad.y);
+    }
     this.dockBoat = boat;
   }
 
