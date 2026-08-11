@@ -46,3 +46,14 @@ export function depthForGridCell(
 ): number {
   return gridY * 1000 + gridX + layer;
 }
+
+/**
+ * Depth strictly above any tile/prop in a grid of the given size.
+ * Uses layer 1 as a ceiling above typical prop layers (< 1).
+ */
+export function playerDepthAboveGrid(
+  maxWidth: number,
+  maxHeight: number,
+): number {
+  return depthForGridCell(maxWidth - 1, maxHeight - 1, 1) + 1;
+}
