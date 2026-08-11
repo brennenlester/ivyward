@@ -393,12 +393,13 @@ export class IsometricScene extends Phaser.Scene {
       if (zone.id === "archipelago" && transition.targetZone !== "archipelago") {
         resetArchipelagoStream();
       }
+      // Spawn before loadZone so follow/stream prep target the entry cell, not the prior zone.
+      this.playerGridX = transition.targetX;
+      this.playerGridY = transition.targetY;
       if (transition.targetZone === "archipelago") {
         prepareArchipelagoForPosition(transition.targetX);
       }
       this.loadZone(transition.targetZone);
-      this.playerGridX = transition.targetX;
-      this.playerGridY = transition.targetY;
       this.syncPlayerToGrid();
       return;
     }
@@ -546,9 +547,13 @@ export class IsometricScene extends Phaser.Scene {
     this.syncPlayerToGrid();
     this.playPlayerAnimation();
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    // setBounds (in layout) often leaves scroll at bounds origin; with follow lerp
+    // 0.08 that reads as a dive from map top — snap onto the player immediately.
+    this.snapCameraToPlayer();
     this.cameras.main.fadeIn(180, 255, 255, 255);
     this.time.delayedCall(0, () => {
       this.layoutPlayfield(zone);
+      this.snapCameraToPlayer();
       this.updateInteractPrompt();
       updateHostPosition(
         this.currentZoneId,
@@ -557,6 +562,14 @@ export class IsometricScene extends Phaser.Scene {
       );
       persistHostSave();
     });
+  }
+
+  /** Center follow target without waiting for lerp from bounds origin. */
+  private snapCameraToPlayer(): void {
+    if (!this.player) {
+      return;
+    }
+    this.cameras.main.centerOn(this.player.x, this.player.y);
   }
 
   private getZoneWorldBounds(zone: ZoneDefinition): {
@@ -1135,9 +1148,9 @@ export class IsometricScene extends Phaser.Scene {
     if (!door) {
       return false;
     }
-    this.loadZone(door.targetZone);
     this.playerGridX = door.targetX;
     this.playerGridY = door.targetY;
+    this.loadZone(door.targetZone);
     this.syncPlayerToGrid();
     return true;
   }
