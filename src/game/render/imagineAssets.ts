@@ -6,9 +6,9 @@ export const IMAGINE_ATLAS_KEY = "imagine-atlas";
  * Queue the packed Imagine atlas (PNG + JSON). Missing individual frames still
  * fall through to procedural ensure* helpers after promoteAtlasFrames runs.
  *
- * Trainer frames: Style D walk1 → `player-*-0`/`*-1`.
- * Frame 2: S=lower-body flip keeping staff side; N=hflip(walk1); W=walk2; E=hflip(west).
- * Distance-synced stride + sine bob in IsometricScene (no free-running skate).
+ * Trainer frames (hybrid #134/#135): E/W idle+walk1–4 → `player-{east|west}-0..4`
+ * (east = hflip west). S/N idle+walk1–2 → `player-{south|north}-0..2` (south-2
+ * keeps staff side). Distance-synced multi-frame gait is wired in #136.
  * Mistwood/Emberfen floors+borders are recolored Style D tiles (no unique Imagine sheets yet).
  */
 export function preloadImagineAssets(scene: Phaser.Scene): void {
