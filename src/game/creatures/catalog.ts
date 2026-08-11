@@ -446,6 +446,23 @@ export const CREATURES: CreatureDefinition[] = [
       { id: "ring-tide", name: "Ring Tide", power: 10, type: "water", accuracy: 80 },
     ],
   },
+  {
+    id: "tide-sovereign",
+    name: "Tide Sovereign",
+    folkloreType: "water",
+    maxHp: 96,
+    attack: 16,
+    defense: 14,
+    spriteKey: "creature-tide-sovereign",
+    spriteColor: 0x075f68,
+    early: false,
+    excludeFromCodex: true,
+    moves: [
+      { id: "still-tide", name: "Still Tide", power: 10, type: "water", accuracy: 100 },
+      { id: "abyss-surge", name: "Abyss Surge", power: 15, type: "water", accuracy: 100 },
+      { id: "crown-crash", name: "Crown Crash", power: 20, type: "water", accuracy: 100 },
+    ],
+  },
 ];
 
 const byId = new Map(CREATURES.map((c) => [c.id, c]));

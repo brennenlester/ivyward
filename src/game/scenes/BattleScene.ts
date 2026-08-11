@@ -34,6 +34,12 @@ import {
   resolveWandererForBattle,
   type WandererPartner,
 } from "../battle/wandererWeapons";
+import {
+  appendGodSparKillCheatKey,
+  getTideSovereignAttack,
+  resolveTideSovereignOutcome,
+  TIDE_SOVEREIGN_ID,
+} from "../encounters/godSail";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { markCreatureDiscovered } from "../world/worldState";
 
@@ -56,9 +62,32 @@ export class BattleScene extends Phaser.Scene {
   private switchMenuOpen = false;
   private wandererFallbackOpen = false;
   private usingArmedWanderer = false;
+  private battleEnded = false;
+  private godSparKillCheatBuffer = "";
+  private tideSovereignTurnIndex = 0;
   private actionButtons: Phaser.GameObjects.Text[] = [];
   private switchMenuObjects: Phaser.GameObjects.GameObject[] = [];
   private wandererFallbackObjects: Phaser.GameObjects.GameObject[] = [];
+  // ponytail: temporary god-spar kill cheat
+  private onGodSparKillCheatKeyDown = (event: KeyboardEvent) => {
+    const result = appendGodSparKillCheatKey(
+      this.godSparKillCheatBuffer,
+      event.key,
+    );
+    this.godSparKillCheatBuffer = result.buffer;
+    if (
+      !result.triggered ||
+      this.wildCreatureId !== TIDE_SOVEREIGN_ID ||
+      this.battleEnded
+    ) {
+      return;
+    }
+
+    this.wild.currentHp = 0;
+    this.refreshHp();
+    this.flashCombatant("wild");
+    this.endBattle(true);
+  };
 
   constructor() {
     super({ key: "BattleScene" });
@@ -69,24 +98,30 @@ export class BattleScene extends Phaser.Scene {
     wandererPartner: WandererPartnerData;
   }): void {
     this.wildCreatureId = data.wildCreatureId;
-    markCreatureDiscovered(data.wildCreatureId);
     this.waitingForPlayer = true;
     this.partyInstanceIndex = -1;
     this.forcedSwitch = false;
     this.switchMenuOpen = false;
     this.wandererFallbackOpen = false;
     this.usingArmedWanderer = false;
+    this.battleEnded = false;
+    this.godSparKillCheatBuffer = "";
+    this.tideSovereignTurnIndex = 0;
     this.actionButtons = [];
     this.switchMenuObjects = [];
     this.wandererFallbackObjects = [];
 
     const wildDef = getCreatureDefinition(data.wildCreatureId);
+    if (!wildDef.excludeFromCodex) {
+      markCreatureDiscovered(data.wildCreatureId);
+    }
     this.wild = {
       name: wildDef.name,
       maxHp: wildDef.maxHp,
       currentHp: wildDef.maxHp,
       attack: wildDef.attack,
       defense: wildDef.defense,
+      defenseDisabled: data.wildCreatureId === TIDE_SOVEREIGN_ID,
       moves: wildDef.moves,
       folkloreType: wildDef.folkloreType,
     };
@@ -183,6 +218,10 @@ export class BattleScene extends Phaser.Scene {
     this.refreshHp();
     this.log(`A training spar with ${this.wild.name} begins.`);
     this.buildActionButtons();
+    this.input.keyboard?.on("keydown", this.onGodSparKillCheatKeyDown);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.keyboard?.off("keydown", this.onGodSparKillCheatKeyDown);
+    });
   }
 
   private drawArena(): void {
@@ -624,22 +663,34 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private wildTurn(): void {
-    const move = pickRandomMove(this.wild);
-    const outcome = resolveAttack(this.wild, move, this.player);
-    if (outcome.kind === "miss") {
-      this.log(`${this.wild.name} used ${move.name} — missed!`);
-    } else if (outcome.kind === "immune") {
-      this.log(
-        `${this.wild.name} used ${move.name} — it had no effect${formatMatchupHint(outcome.matchup)}`,
-      );
-      this.showDamageCounter("player", 0);
-    } else {
-      applyDamage(this.player, outcome.damage);
-      this.showDamageCounter("player", outcome.damage);
+    if (this.battleEnded) {
+      return;
+    }
+    if (this.wildCreatureId === TIDE_SOVEREIGN_ID) {
+      const attack = getTideSovereignAttack(this.tideSovereignTurnIndex);
+      this.tideSovereignTurnIndex += 1;
+      applyDamage(this.player, attack.damage);
+      this.showDamageCounter("player", attack.damage);
       this.flashCombatant("player");
-      this.log(
-        `${this.wild.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
-      );
+      this.log(`${this.wild.name} used ${attack.move.name}.`);
+    } else {
+      const move = pickRandomMove(this.wild);
+      const outcome = resolveAttack(this.wild, move, this.player);
+      if (outcome.kind === "miss") {
+        this.log(`${this.wild.name} used ${move.name} — missed!`);
+      } else if (outcome.kind === "immune") {
+        this.log(
+          `${this.wild.name} used ${move.name} — it had no effect${formatMatchupHint(outcome.matchup)}`,
+        );
+        this.showDamageCounter("player", 0);
+      } else {
+        applyDamage(this.player, outcome.damage);
+        this.showDamageCounter("player", outcome.damage);
+        this.flashCombatant("player");
+        this.log(
+          `${this.wild.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
+        );
+      }
     }
     this.refreshHp();
 
@@ -720,12 +771,21 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endBattle(playerWon: boolean): void {
+    if (this.battleEnded) {
+      return;
+    }
+    this.battleEnded = true;
     this.waitingForPlayer = false;
     this.hideSwitchMenu();
     this.hideWandererFallbackMenu();
     this.syncActivePartyHp();
 
-    if (playerWon) {
+    if (playerWon && this.wildCreatureId === TIDE_SOVEREIGN_ID) {
+      resolveTideSovereignOutcome("spar-win");
+      this.log(
+        "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
+      );
+    } else if (playerWon) {
       const reward = grantSparRewards(
         this.wildCreatureId,
         this.partyInstanceIndex,

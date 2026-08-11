@@ -37,7 +37,19 @@ import {
   resizeGameForDisplay,
 } from "../render/pixelRatio";
 import { ensurePlayerAnims, bindPlayerDisplaySize } from "../render/playerAnims";
-import { rollWildCreature, shouldAttemptWildEncounter } from "../encounters/tables";
+import {
+  ENCOUNTER_TRAVEL_THRESHOLD,
+  rollWildCreature,
+  shouldAttemptWildEncounter,
+} from "../encounters/tables";
+import {
+  appendGodSailCheatKey,
+  canForceGodSailEncounter,
+  lockPendingGodSailEncounter,
+  rollGodSailEncounter,
+  shouldAttemptGodSailEncounter,
+  type PendingGodSailEncounter,
+} from "../encounters/godSail";
 import {
   consumeQuestToast,
   recordQuestEvent,
@@ -115,7 +127,6 @@ const PROP_LAYER = 0.45;
 const HUD_GAP = 8;
 const SCREEN_MARGIN = 12;
 const MOVE_SPEED = 6;
-const ENCOUNTER_TRAVEL_THRESHOLD = 0.75;
 const ENCOUNTER_CHANCE = 0.10;
 const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
   grove: 0x83c5a0,
@@ -153,7 +164,10 @@ export class IsometricScene extends Phaser.Scene {
   private inviteKey!: Phaser.Input.Keyboard.Key;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private travelSinceEncounter = 0;
+  private godSailTravelSinceEncounter = 0;
   private inEncounter = false;
+  private pendingGodSailEncounter?: PendingGodSailEncounter;
+  private godSailCheatBuffer = "";
   private inShrine = false;
   private inDialogue = false;
   private shrinePrompt?: Phaser.GameObjects.Text;
@@ -173,6 +187,14 @@ export class IsometricScene extends Phaser.Scene {
   private archipelagoCullBefore = 3;
   /** Above all tiles/props for the current zone size (grows with archipelago). */
   private playerDepth = playerDepthAboveGrid(1, 1);
+  // ponytail: temporary god-encounter cheat
+  private onGodSailCheatKeyDown = (event: KeyboardEvent) => {
+    const result = appendGodSailCheatKey(this.godSailCheatBuffer, event.key);
+    this.godSailCheatBuffer = result.buffer;
+    if (result.triggered) {
+      this.tryForceGodSailEncounter();
+    }
+  };
 
   constructor() {
     super({ key: "IsometricScene" });
@@ -197,6 +219,7 @@ export class IsometricScene extends Phaser.Scene {
     this.unlockKey = this.input.keyboard!.addKey("U");
     this.inviteKey = this.input.keyboard!.addKey("I");
     this.interactKey = this.input.keyboard!.addKey("E");
+    this.input.keyboard!.on("keydown", this.onGodSailCheatKeyDown);
     initTouchControls();
     initMuteControl(this);
     ensureGroveMusic(this);
@@ -208,10 +231,15 @@ export class IsometricScene extends Phaser.Scene {
 
     this.events.on("resume", () => {
       this.inEncounter = false;
+      this.pendingGodSailEncounter = undefined;
       this.inShrine = false;
       this.inDialogue = false;
       this.travelSinceEncounter = 0;
+      this.godSailTravelSinceEncounter = 0;
       setTouchControlsEnabled(true);
+      if (this.input.keyboard) {
+        this.input.keyboard.enabled = true;
+      }
       const zoneId = this.currentZoneId;
       const x = this.playerGridX;
       const y = this.playerGridY;
@@ -227,6 +255,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    this.input.keyboard?.off("keydown", this.onGodSailCheatKeyDown);
     window.removeEventListener("resize", this.onWindowResize);
   }
 
@@ -338,7 +367,15 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryRandomEncounter(step: number): void {
-    if (!shouldAttemptWildEncounter(isSailing())) {
+    if (this.inEncounter || this.pendingGodSailEncounter) {
+      return;
+    }
+    const sailing = isSailing();
+    if (sailing) {
+      this.tryGodSailEncounter(step);
+      return;
+    }
+    if (!shouldAttemptWildEncounter(sailing)) {
       return;
     }
     if (isVisitorMode()) {
@@ -369,6 +406,96 @@ export class IsometricScene extends Phaser.Scene {
     this.time.delayedCall(145, () => {
       this.scene.pause();
       this.scene.launch("EncounterScene", { creatureId });
+    });
+  }
+
+  private tryGodSailEncounter(step: number): void {
+    if (this.inEncounter || this.pendingGodSailEncounter) {
+      return;
+    }
+    const islandIndex =
+      this.currentZoneId === "archipelago"
+        ? islandIndexAtTile(this.playerGridX, this.playerGridY)
+        : null;
+    if (
+      !shouldAttemptGodSailEncounter({
+        sailing: isSailing(),
+        zoneId: this.currentZoneId,
+        islandIndex,
+        visitor: isVisitorMode(),
+        claimed: worldState.godSailEncounterClaimed,
+      })
+    ) {
+      this.godSailTravelSinceEncounter = 0;
+      return;
+    }
+
+    this.godSailTravelSinceEncounter += step;
+    if (this.godSailTravelSinceEncounter < ENCOUNTER_TRAVEL_THRESHOLD) {
+      return;
+    }
+    this.godSailTravelSinceEncounter = 0;
+    if (rollGodSailEncounter()) {
+      this.scheduleGodSailEncounter(false);
+    }
+  }
+
+  private tryForceGodSailEncounter(): void {
+    if (
+      this.inEncounter ||
+      this.pendingGodSailEncounter ||
+      !canForceGodSailEncounter({
+        sailing: isSailing(),
+        zoneId: this.currentZoneId,
+        visitor: isVisitorMode(),
+      })
+    ) {
+      return;
+    }
+    this.scheduleGodSailEncounter(true);
+  }
+
+  private scheduleGodSailEncounter(forced: boolean): void {
+    const lock = lockPendingGodSailEncounter(
+      this.pendingGodSailEncounter,
+      this.playerGridX,
+      this.playerGridY,
+      forced,
+    );
+    if (this.inEncounter || !lock.acquired) {
+      return;
+    }
+    const pending = lock.pending;
+    this.pendingGodSailEncounter = pending;
+    this.inEncounter = true;
+    setTouchControlsEnabled(false);
+    if (this.input.keyboard) {
+      this.input.keyboard.enabled = false;
+    }
+    this.player.setTint(0x48d7d1);
+    const pulse = this.tweens.add({
+      targets: this.player,
+      alpha: 0.55,
+      duration: 450,
+      yoyo: true,
+      repeat: -1,
+    });
+    this.cameras.main.flash(450, 20, 110, 120, false);
+
+    this.time.delayedCall(pending.delayMs, () => {
+      if (this.pendingGodSailEncounter !== pending) {
+        return;
+      }
+      pulse.stop();
+      this.player.setAlpha(1).clearTint();
+      this.cameras.main.fadeOut(140, 20, 70, 80);
+      this.time.delayedCall(145, () => {
+        this.scene.pause();
+        this.scene.launch("EncounterScene", {
+          creatureId: pending.creatureId,
+          origin: pending.origin,
+        });
+      });
     });
   }
 

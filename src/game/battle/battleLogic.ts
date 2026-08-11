@@ -45,7 +45,8 @@ function baseDamage(
   ) {
     power = Math.round(power * attacker.damageBuff.multiplier);
   }
-  return Math.max(1, power + attacker.attack - defender.defense);
+  const defense = defender.defenseDisabled ? 0 : defender.defense;
+  return Math.max(1, power + attacker.attack - defense);
 }
 
 export function resolveAttack(
@@ -54,11 +55,13 @@ export function resolveAttack(
   defender: BattleCombatant,
   rng: () => number = Math.random,
 ): AttackOutcome {
-  const matchup = resolveMatchup(
-    move.type,
-    defender.folkloreType,
-    defender.immunityTo,
-  );
+  const matchup = defender.defenseDisabled
+    ? "neutral"
+    : resolveMatchup(
+        move.type,
+        defender.folkloreType,
+        defender.immunityTo,
+      );
 
   if (!rollAccuracy(move, rng)) {
     return { kind: "miss", matchup };

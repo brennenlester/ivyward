@@ -14,6 +14,7 @@ import { QUEST_ORDER } from "../story/quests";
 import {
   setDiscoveredCreatures,
   setDiscoveredZones,
+  setGodSailEncounterClaimed,
   setOverworldUnlocked,
   worldState,
 } from "./worldState";
@@ -77,6 +78,8 @@ export type WorldSnapshot = {
   mooredDock?: "west" | "east";
   /** Player is sailing on Harbor / Archipelago water. Optional for older saves. */
   sailing?: boolean;
+  /** Tide Sovereign has been obtained. Optional for older saves. */
+  godSailEncounterClaimed?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   nextInstanceId: number;
@@ -93,6 +96,11 @@ export type PendingWorldPosition = WorldSnapshot["position"];
 
 const VALID_ZONE_IDS = new Set<ZoneId>(Object.keys(ZONES) as ZoneId[]);
 const VALID_CREATURE_IDS = new Set(CREATURES.map((c) => c.id));
+const CODEX_CREATURE_IDS = new Set(
+  CREATURES.filter((creature) => !creature.excludeFromCodex).map(
+    (creature) => creature.id,
+  ),
+);
 const VALID_QUEST_STATUSES = new Set<QuestStatus>([
   "locked",
   "active",
@@ -462,6 +470,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   if (s.sailing !== undefined && typeof s.sailing !== "boolean") {
     return false;
   }
+  if (
+    s.godSailEncounterClaimed !== undefined &&
+    typeof s.godSailEncounterClaimed !== "boolean"
+  ) {
+    return false;
+  }
 
   const pos = s.position as Record<string, unknown> | undefined;
   if (
@@ -542,6 +556,7 @@ export function exportWorldSnapshot(
     placedBoat: isBoatPlaced(),
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
+    godSailEncounterClaimed: worldState.godSailEncounterClaimed,
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     nextInstanceId: getNextInstanceId(),
@@ -560,7 +575,9 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setOverworldUnlocked(questProgress["first-spar"] === "complete");
   setDiscoveredZones(snapshot.discoveredZones ?? [snapshot.position.zoneId]);
   // Older saves lack discoveredCreatures — treat party species as known.
-  const fromParty = snapshot.party.map((member) => member.definitionId);
+  const fromParty = snapshot.party
+    .map((member) => member.definitionId)
+    .filter((id) => CODEX_CREATURE_IDS.has(id));
   // Restore before discoveries so a completed codex does not re-award rewards.
   setUnlockedAchievements(snapshot.unlockedAchievements ?? []);
   setDiscoveredCreatures([
@@ -571,6 +588,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
+  setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setPlacedBoat(snapshot.placedBoat === true);
   if (snapshot.placedBoat === true) {
     setMooredDock(inferMooredDock(snapshot));

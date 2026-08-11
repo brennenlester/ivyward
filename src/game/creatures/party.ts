@@ -25,13 +25,16 @@ export function setPartyFromSnapshot(
   nextInstanceId = Math.max(1, nextId);
 }
 
-export function addToParty(definitionId: string): CreatureInstance {
+function addToPartyWithHp(
+  definitionId: string,
+  currentHp: number,
+): CreatureInstance {
   const def = getCreatureDefinition(definitionId);
   const instance: CreatureInstance = {
     instanceId: `c-${nextInstanceId++}`,
     definitionId,
     speciesId: definitionId,
-    currentHp: def.maxHp,
+    currentHp: Math.min(def.maxHp, Math.max(0, currentHp)),
     ...createNewCreatureProgress(),
     trait: rollSignatureTrait(definitionId, def.folkloreType),
   };
@@ -39,6 +42,17 @@ export function addToParty(definitionId: string): CreatureInstance {
   recordQuestEvent({ type: "befriend_creature" });
   notifyWorldChanged();
   return instance;
+}
+
+export function addToParty(definitionId: string): CreatureInstance {
+  return addToPartyWithHp(
+    definitionId,
+    getCreatureDefinition(definitionId).maxHp,
+  );
+}
+
+export function addToPartyFainted(definitionId: string): CreatureInstance {
+  return addToPartyWithHp(definitionId, 0);
 }
 
 export function hasCreature(definitionId: string): boolean {

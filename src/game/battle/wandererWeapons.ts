@@ -3,7 +3,11 @@ import { getItemName } from "../inventory/materials";
 import type { MoveDefinition } from "../creatures/types";
 
 /** Best weapon first. */
-export const WEAPON_ITEM_IDS = ["stone-knife", "wood-cudgel"] as const;
+export const WEAPON_ITEM_IDS = [
+  "tide-cleaver",
+  "stone-knife",
+  "wood-cudgel",
+] as const;
 
 export type WandererPartner = {
   name: string;
@@ -17,6 +21,16 @@ const WEAPON_STATS: Record<
   (typeof WEAPON_ITEM_IDS)[number],
   WandererPartner
 > = {
+  "tide-cleaver": {
+    name: "Wanderer (Tide Cleaver)",
+    maxHp: 36,
+    attack: 16,
+    defense: 6,
+    moves: [
+      { id: "cleave", name: "Cleave", power: 14, type: "earth", accuracy: 90 },
+      { id: "riptide", name: "Riptide", power: 10, type: "earth", accuracy: 100 },
+    ],
+  },
   "wood-cudgel": {
     name: "Wanderer (Wood Cudgel)",
     maxHp: 20,

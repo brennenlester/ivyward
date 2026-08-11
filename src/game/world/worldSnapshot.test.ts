@@ -30,6 +30,11 @@ import {
 } from "./worldSnapshot";
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
 import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
+import {
+  isGodSailEncounterClaimed,
+  setGodSailEncounterClaimed,
+  worldState,
+} from "./worldState";
 
 function questProgress(
   overrides: Partial<Record<QuestId, QuestStatus>> = {},
@@ -74,6 +79,18 @@ function validSnapshot(
 describe("isValidWorldSnapshot", () => {
   it("accepts a well-formed host snapshot", () => {
     expect(isValidWorldSnapshot(validSnapshot())).toBe(true);
+  });
+
+  it("soft-adds and validates the god sail claim flag", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ godSailEncounterClaimed: true })),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        godSailEncounterClaimed: "yes",
+      }),
+    ).toBe(false);
   });
 
   it("accepts a known claimed NPC gift", () => {
@@ -323,6 +340,32 @@ describe("applyWorldSnapshot codex achievement", () => {
     setInventoryFromSnapshot({}, {});
     setVisitorMode(false);
     resetNpcStateForTest();
+    setGodSailEncounterClaimed(false, false);
+  });
+
+  it("restores the god sail claim and defaults older saves to unclaimed", () => {
+    applyWorldSnapshot(validSnapshot({ godSailEncounterClaimed: true }));
+    expect(isGodSailEncounterClaimed()).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(isGodSailEncounterClaimed()).toBe(false);
+  });
+
+  it("does not infer codex discovery from a saved Tide Sovereign", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        discoveredCreatures: [],
+        party: [
+          partyMember({
+            definitionId: "tide-sovereign",
+            speciesId: "tide-sovereign",
+            currentHp: 0,
+          }),
+        ],
+      }),
+    );
+
+    expect(worldState.discoveredCreatures).not.toContain("tide-sovereign");
   });
 
   it("awards a legacy full-codex save after the inventory is restored", () => {

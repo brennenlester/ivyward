@@ -23,6 +23,8 @@ export type CreatureDefinition = {
   moves: MoveDefinition[];
   /** Early-region creature obtainable before overworld. */
   early: boolean;
+  /** Secret creature omitted from habitat discovery and the codex. */
+  excludeFromCodex?: boolean;
 };
 
 export type CreatureInstance = {
@@ -54,6 +56,8 @@ export type BattleCombatant = {
   currentHp: number;
   attack: number;
   defense: number;
+  /** Defender contributes no defense and receives neutral matchup damage. */
+  defenseDisabled?: boolean;
   moves: MoveDefinition[];
   folkloreType: FolkloreType;
   /** Rolled immunity trait target (move type that deals 0). */
