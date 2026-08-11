@@ -5,6 +5,7 @@ This repository follows the shared agent baseline supplied by the active harness
 ## Project links
 
 - **GitHub repo / issues (tracker of record):** [brennenlester/ivyward](https://github.com/brennenlester/ivyward)
+- **Play (canonical):** [https://ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app) — after merge, share only this URL (not `*-git-codex-*` or other branch preview URLs) unless the user asks for a pre-merge preview.
 - **Linear project (historical, read-only):** [Ivyward](https://linear.app/brennen-lester/project/ivyward-f73601c7fa30) — BRE-* history only; never create or mutate Linear work for this project
 
 ## GitHub-Issues-first workflow
