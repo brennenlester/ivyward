@@ -18,6 +18,12 @@ const ZONE_PALETTES: Record<ZoneId, ZonePalette> = {
   village: { light: 0xeec58a, dark: 0xd89a5e, accent: 0xffe2a2, edge: 0xa96a43 },
   overworld: { light: 0x78c8e0, dark: 0x4fa8c8, accent: 0xb8e8f0, edge: 0x387898 },
   harbor: { light: 0x88c0d8, dark: 0x5898b0, accent: 0xc8e8f4, edge: 0x3a7088 },
+  archipelago: {
+    light: 0x78b8d0,
+    dark: 0x4890a8,
+    accent: 0xb8e8f4,
+    edge: 0x2a6880,
+  },
   mistwood: { light: 0xb8a8d8, dark: 0x8878b0, accent: 0xe0d4f8, edge: 0x5a4a80 },
   emberfen: { light: 0xe0b070, dark: 0xb87848, accent: 0xffd090, edge: 0x8a5030 },
   "warden-cottage": COTTAGE_PALETTE,
@@ -345,6 +351,26 @@ function generateWallTextures(scene: Phaser.Scene): void {
     g.fillStyle(0xb8e0f0, 0.45);
     g.fillEllipse(12, BOUNDARY_HEIGHT - 28, 16, 6);
     g.fillEllipse(36, BOUNDARY_HEIGHT - 36, 14, 5);
+  });
+
+  // Archipelago — open-sea horizon banks (same family as Harbor)
+  generateBoundaryTexture(scene, "boundary-archipelago", (g) => {
+    g.fillStyle(0x000000, 0.12);
+    g.fillEllipse(24, BOUNDARY_HEIGHT - 3, 40, 6);
+
+    g.fillStyle(OUTLINE, 1);
+    g.fillRoundedRect(2, BOUNDARY_HEIGHT - 14, 44, 12, 3);
+    g.fillStyle(0x3a7088, 1);
+    g.fillRoundedRect(3, BOUNDARY_HEIGHT - 13, 42, 10, 2);
+
+    g.fillStyle(0x5a98b0, 1);
+    g.fillTriangle(2, BOUNDARY_HEIGHT - 14, 20, BOUNDARY_HEIGHT - 34, 36, BOUNDARY_HEIGHT - 14);
+    g.fillStyle(0x7ab8d0, 1);
+    g.fillTriangle(12, BOUNDARY_HEIGHT - 14, 28, BOUNDARY_HEIGHT - 42, 46, BOUNDARY_HEIGHT - 14);
+
+    g.fillStyle(0xc8eef8, 0.5);
+    g.fillEllipse(14, BOUNDARY_HEIGHT - 26, 18, 6);
+    g.fillEllipse(34, BOUNDARY_HEIGHT - 32, 16, 5);
   });
 
   // Mistwood — violet mist cliffs

@@ -20,7 +20,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 
 ### Confined region
 
-Start in **Whisper Grove**, then walk map exits through **Moon Shrine** to **Hearth Crossing**. North of the village are **Folklore Fields** (north gate into **Moonwake Harbor**, east into **Mistwood Reach** / **Emberfen Hollow**), locked until Story quest 2 is complete.
+Start in **Whisper Grove**, then walk map exits through **Moon Shrine** to **Hearth Crossing**. North of the village are **Folklore Fields** (north gate into **Moonwake Harbor**, east into **Mistwood Reach** / **Emberfen Hollow**), locked until Story quest 2 is complete. From Harbor, sail east past East Landing into the open **Archipelago** sea (chunk-streamed water foundation; islands come later).
 
 ### Story quests
 
@@ -62,7 +62,7 @@ Active village asks show in the status panel as `Village ask: …`. Delivery ask
 - Walk in zones to trigger encounters: **Befriend**, **Spar**, or **Flee**.
 - Creatures and moves have folklore **types**. Spars use accuracy, hunter matchups (~1.5×), and rare immunity traits on signature creatures.
 - Winning spars grants creature materials, Folklore Dust, and XP.
-- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). From Folklore Fields, take the north gate into **Moonwake Harbor**. Press **E** near the west Harbor dock while holding a Boat to moor it (persists in your save; visitors cannot place). After mooring, press **E** again to board and sail the Harbor water. **East Landing** is an optional dock stop — press **E** there to disembark or reboard; sailing past it keeps you in sail mode. You can also **E** at the west dock to disembark onto the pier. Mid-sail position and sailing state restore from save. Older saves that still had a Folklore Fields boat stand migrate into Harbor automatically.
+- At Moon Shrine, craft relics (including a Boat from wood, wild fiber, and folklore dust) and apply shrine effects to party creatures (attack buffs can add a typed dual move, including a 5th move slot). From Folklore Fields, take the north gate into **Moonwake Harbor**. Press **E** near the west Harbor dock while holding a Boat to moor it (persists in your save; visitors cannot place). After mooring, press **E** again to board and sail the Harbor water. **East Landing** is an optional dock stop — press **E** there to disembark or reboard; sailing past it keeps you in sail mode. Keep sailing east off the Harbor water edge to enter the open **Archipelago** sea (chunk-streamed ocean foundation; islands and docks come later). You can also **E** at the west dock to disembark onto the pier. Mid-sail position and sailing state restore from save (including mid-archipelago, which regenerates water chunks around you). Older saves that still had a Folklore Fields boat stand migrate into Harbor automatically.
 - Open **Codex** to see which creatures live where. Encountering a creature once lists it under **every** habitat that can spawn it. Habitats with no known dwellers stay blank until you meet something from that pool.
 
 ### Secrets

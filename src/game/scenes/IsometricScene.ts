@@ -90,6 +90,13 @@ import {
   tryEmbark,
   tryPlaceBoat,
 } from "../world/dockBoat";
+import {
+  allowsSailZoneTransition,
+  ensureArchipelagoChunksAround,
+  prepareArchipelagoForPosition,
+  resetArchipelagoStream,
+  type ChunkEnsureResult,
+} from "../world/archipelagoStream";
 import { getItemCount } from "../inventory/playerInventory";
 
 const FLOOR_LAYER = 0;
@@ -107,6 +114,7 @@ const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
   village: 0xf0b46e,
   overworld: 0x78b9d8,
   harbor: 0x6aa8c8,
+  archipelago: 0x5a98b8,
   mistwood: 0x8a78b8,
   emberfen: 0xc88858,
   "warden-cottage": 0x8a5f3c,
@@ -295,6 +303,9 @@ export class IsometricScene extends Phaser.Scene {
         this.playerGridX,
         this.playerGridY,
       );
+      if (this.currentZoneId === "archipelago") {
+        this.syncArchipelagoStream();
+      }
       this.tryZoneTransition(zone);
       this.tryRandomEncounter(step);
     }
@@ -345,31 +356,74 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryZoneTransition(zone: ZoneDefinition): void {
-    // Do not leave Harbor via zone transitions while sailing.
-    if (isSailing()) {
-      return;
-    }
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
+    const sailing = isSailing();
 
     for (const transition of zone.transitions) {
-      if (transition.x === tileX && transition.y === tileY) {
-        if (
-          transition.targetZone === "overworld" &&
-          !worldState.overworldUnlocked
-        ) {
-          return;
-        }
-        this.loadZone(transition.targetZone);
-        this.playerGridX = transition.targetX;
-        this.playerGridY = transition.targetY;
-        this.syncPlayerToGrid();
+      if (transition.x !== tileX || transition.y !== tileY) {
+        continue;
+      }
+      // While sailing, only Harbor ↔ Archipelago water gates may fire.
+      if (sailing && !allowsSailZoneTransition(zone.id, transition.targetZone)) {
         return;
       }
+      if (
+        transition.targetZone === "overworld" &&
+        !worldState.overworldUnlocked
+      ) {
+        return;
+      }
+      if (zone.id === "archipelago" && transition.targetZone !== "archipelago") {
+        resetArchipelagoStream();
+      }
+      if (transition.targetZone === "archipelago") {
+        prepareArchipelagoForPosition(transition.targetX);
+      }
+      this.loadZone(transition.targetZone);
+      this.playerGridX = transition.targetX;
+      this.playerGridY = transition.targetY;
+      this.syncPlayerToGrid();
+      return;
+    }
+  }
+
+  /** Extend / unload archipelago water columns and refresh floor sprites + camera. */
+  private syncArchipelagoStream(): void {
+    const result = ensureArchipelagoChunksAround(this.playerGridX);
+    if (!result.grew && result.unloadedColumns.length === 0) {
+      return;
+    }
+    this.applyArchipelagoStreamVisuals(result);
+    this.layoutPlayfield(getZone("archipelago"));
+  }
+
+  private applyArchipelagoStreamVisuals(result: ChunkEnsureResult): void {
+    if (result.unloadedColumns.length > 0) {
+      const unload = new Set(result.unloadedColumns);
+      for (const child of this.children.list.slice()) {
+        if (
+          "getData" in child &&
+          typeof (child as Phaser.GameObjects.Image).getData === "function"
+        ) {
+          const img = child as Phaser.GameObjects.Image;
+          const gx = img.getData("streamX");
+          if (typeof gx === "number" && unload.has(gx)) {
+            img.destroy();
+          }
+        }
+      }
+    }
+    if (result.grew) {
+      const zone = getZone("archipelago");
+      this.drawZoneTileColumns(zone, result.previousWidth, result.width);
     }
   }
 
   private loadZone(zoneId: ZoneId): void {
+    if (this.currentZoneId === "archipelago" && zoneId !== "archipelago") {
+      resetArchipelagoStream();
+    }
     this.currentZoneId = zoneId;
     const zone = getZone(zoneId);
     markZoneDiscovered(zoneId);
@@ -378,6 +432,10 @@ export class IsometricScene extends Phaser.Scene {
     this.shrinePrompt = undefined;
     this.dockBoat = undefined;
     this.sailingBoat = undefined;
+
+    if (zoneId === "archipelago") {
+      prepareArchipelagoForPosition(this.playerGridX);
+    }
 
     ensureWorldTextures(this, zoneId);
     ensurePlayerAnims(this);
@@ -479,10 +537,15 @@ export class IsometricScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     cam.setBounds(bounds.minX, bounds.minY, bounds.width, bounds.height);
-    const zoom = Math.min(
-      this.scale.width / bounds.width,
-      this.scale.height / bounds.height,
-    );
+    // Archipelago is intentionally very wide: fit height so startFollow can
+    // pan east/west instead of zooming the whole stream into a sliver.
+    const zoom =
+      zone.id === "archipelago"
+        ? this.scale.height / bounds.height
+        : Math.min(
+            this.scale.width / bounds.width,
+            this.scale.height / bounds.height,
+          );
     // Allow zoom to scale with HiDPI buffer so the world still fills the view.
     // No lower clamp: small boards must still fit the full zone after HiDPI resize.
     cam.setZoom(Phaser.Math.Clamp(zoom, 0.01, 2.8 * RENDER_DPR));
@@ -532,12 +595,21 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawZoneTiles(zone: ZoneDefinition): void {
+    this.drawZoneTileColumns(zone, 0, zone.width);
+    this.drawWalls(zone);
+  }
+
+  private drawZoneTileColumns(
+    zone: ZoneDefinition,
+    xStart: number,
+    xEnd: number,
+  ): void {
     const transitionSet = new Set(
       zone.transitions.map((t) => `${t.x},${t.y}`),
     );
 
     for (let y = 0; y < zone.height; y++) {
-      for (let x = 0; x < zone.width; x++) {
+      for (let x = xStart; x < xEnd; x++) {
         const tileType = zone.tiles[y][x];
         if (tileType === TileType.Wall) {
           continue;
@@ -556,6 +628,8 @@ export class IsometricScene extends Phaser.Scene {
           .image(screen.x, screen.y, textureKey)
           .setOrigin(0.5, 0.5);
         fitDisplay(tile, FLOOR_DISPLAY);
+        tile.setData("streamX", x);
+        tile.setData("streamY", y);
 
         if (tileType === TileType.OverworldGate && !transitionSet.has(`${x},${y}`)) {
           tile.setTint(
@@ -567,8 +641,6 @@ export class IsometricScene extends Phaser.Scene {
         tile.setDepth(depthForGridCell(x, y, FLOOR_LAYER));
       }
     }
-
-    this.drawWalls(zone);
   }
 
   private drawBackdrop(zone: ZoneDefinition): void {
@@ -580,6 +652,7 @@ export class IsometricScene extends Phaser.Scene {
       village: { sky: 0xf4b875, hill: 0xc9775a, mist: 0xffe5ad },
       overworld: { sky: 0x80c5e8, hill: 0x4b8da8, mist: 0xd8f5ef },
       harbor: { sky: 0x78b8d8, hill: 0x3a6888, mist: 0xd0eef8 },
+      archipelago: { sky: 0x68a8c8, hill: 0x2a5878, mist: 0xc0e8f8 },
       mistwood: { sky: 0xa898d0, hill: 0x5a4a80, mist: 0xe8e0f8 },
       emberfen: { sky: 0xe0a868, hill: 0x8a5030, mist: 0xffe0b0 },
     };
