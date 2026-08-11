@@ -101,8 +101,8 @@ describe("invite encode/decode", () => {
     setPlacedBoat(true);
     setSailing(false);
     setOverworldUnlocked(true);
-    // Host standing on the seed lush island pier.
-    const url = buildInviteUrl("archipelago", 11, 5);
+    // Host standing on the seed lush island pier (9×9 north island).
+    const url = buildInviteUrl("archipelago", 11, 10);
     const parsedUrl = new URL(url);
     window.history.replaceState({}, "", `${parsedUrl.pathname}${parsedUrl.search}`);
     const result = parseInviteParam();

@@ -1,8 +1,8 @@
 import { TileType, type ZoneDefinition, type ZoneId } from "./zoneTypes";
 import type { PropKind, ZoneProp } from "./zoneProps";
 
-/** Fixed ocean height (north bank → south bank). */
-export const ARCHIPELAGO_HEIGHT = 14;
+/** Tall open-ocean height so height-fit camera fills the play view with water. */
+export const ARCHIPELAGO_HEIGHT = 28;
 /** Seed width before the player sails farther east. */
 export const ARCHIPELAGO_INITIAL_WIDTH = 24;
 /** Columns appended per ensure growth step. */
@@ -14,11 +14,11 @@ export const ARCHIPELAGO_LOOKBEHIND = 32;
 /** Hard cap so a single session cannot grow forever (known eastbound session limit). */
 export const ARCHIPELAGO_MAX_WIDTH = 200;
 
-/** Water corridor rows (sail path). */
-export const ARCHIPELAGO_WATER_ROWS = [6, 7, 8, 9] as const;
+/** Mid-ocean west return band (Harbor gates map to ARCHIPELAGO_ENTRY). */
+export const ARCHIPELAGO_WEST_RETURN_ROWS = [12, 13, 14, 15] as const;
 
-/** West entry spawn when sailing in from Harbor. */
-export const ARCHIPELAGO_ENTRY = { x: 1, y: 7 } as const;
+/** West entry spawn when sailing in from Harbor (mid open ocean). */
+export const ARCHIPELAGO_ENTRY = { x: 1, y: 14 } as const;
 
 /** Harbor east water tiles that gate into the archipelago (sail only). */
 export const HARBOR_EAST_SAIL_GATES = [
@@ -26,12 +26,24 @@ export const HARBOR_EAST_SAIL_GATES = [
   { x: 17, y: 7 },
 ] as const;
 
-/** Columns between island west edges. */
-export const ISLAND_SPACING = 16;
+/** Columns between island west edges (9×9 footprint + open water gap). */
+export const ISLAND_SPACING = 22;
 /** First island west edge (leave west entry clear). */
 export const ISLAND_ORIGIN_X = 10;
-/** Island footprint width in columns. */
-export const ISLAND_WIDTH = 4;
+/** Island Floor footprint width/height in tiles. */
+export const ISLAND_WIDTH = 9;
+
+/** North island Floor rows (inclusive); dock sits on water at y=11. */
+const NORTH_FLOOR_Y0 = 2;
+const NORTH_FLOOR_Y1 = 10;
+const NORTH_DOCK_Y = 11;
+const NORTH_EMBARK_Y = 12;
+
+/** South island Floor rows (inclusive); dock sits on water at y=16. */
+const SOUTH_FLOOR_Y0 = 17;
+const SOUTH_FLOOR_Y1 = 25;
+const SOUTH_DOCK_Y = 16;
+const SOUTH_EMBARK_Y = 15;
 
 export type IslandBiome = "lush" | "barren" | "other";
 export type IslandSide = "north" | "south";
@@ -73,6 +85,19 @@ const OTHER_PROPS: PropKind[] = [
   "pebble-pile",
 ];
 
+/** Sparse prop offsets within the 9×9 Floor (local dx/dy from NW corner). */
+const ISLAND_PROP_CELLS: ReadonlyArray<{ dx: number; dy: number }> = [
+  { dx: 1, dy: 1 },
+  { dx: 4, dy: 2 },
+  { dx: 7, dy: 1 },
+  { dx: 2, dy: 4 },
+  { dx: 5, dy: 5 },
+  { dx: 8, dy: 4 },
+  { dx: 1, dy: 7 },
+  { dx: 4, dy: 7 },
+  { dx: 7, dy: 6 },
+];
+
 /** Floor tint hints per biome (applied when drawing archipelago Floor). */
 export const ISLAND_BIOME_FLOOR_TINT: Record<IslandBiome, number> = {
   lush: 0xa8d878,
@@ -83,24 +108,19 @@ export const ISLAND_BIOME_FLOOR_TINT: Record<IslandBiome, number> = {
 let archipelagoProps: ZoneProp[] = [];
 
 function buildOceanTiles(width: number, height: number): TileType[][] {
-  const tiles: TileType[][] = Array.from({ length: height }, () =>
-    Array.from({ length: width }, () => TileType.Wall),
+  return Array.from({ length: height }, () =>
+    Array.from({ length: width }, () => TileType.Water),
   );
-  for (const y of ARCHIPELAGO_WATER_ROWS) {
-    for (let x = 0; x < width; x++) {
-      tiles[y][x] = TileType.Water;
-    }
-  }
-  return tiles;
 }
 
 function westHarborTransitions(): ZoneDefinition["transitions"] {
-  return ARCHIPELAGO_WATER_ROWS.map((y) => ({
+  return ARCHIPELAGO_WEST_RETURN_ROWS.map((y) => ({
     x: 0,
     y,
     targetZone: "harbor" as const,
     targetX: 16,
-    targetY: y === 6 || y === 7 ? y : 7,
+    // Harbor east water lives on y=6..7; map the mid-ocean band there.
+    targetY: y <= ARCHIPELAGO_ENTRY.y ? 6 : 7,
   }));
 }
 
@@ -122,8 +142,6 @@ export const ARCHIPELAGO: ZoneDefinition = {
   darkTint: 0x4a7898,
   transitions: westHarborTransitions(),
 };
-
-const WATER_ROW_SET = new Set<number>(ARCHIPELAGO_WATER_ROWS);
 
 /** Deterministic island index for a west-edge column, or -1 if none. */
 export function islandIndexAtOrigin(originX: number): number {
@@ -148,9 +166,9 @@ export function islandTemplateAtIndex(index: number): IslandTemplate {
       biome,
       side,
       x,
-      dock: { x: dockX, y: 6 },
-      pier: { x: dockX, y: 5 },
-      embarkWater: { x: dockX, y: 7 },
+      dock: { x: dockX, y: NORTH_DOCK_Y },
+      pier: { x: dockX, y: NORTH_FLOOR_Y1 },
+      embarkWater: { x: dockX, y: NORTH_EMBARK_Y },
     };
   }
   return {
@@ -158,9 +176,9 @@ export function islandTemplateAtIndex(index: number): IslandTemplate {
     biome,
     side,
     x,
-    dock: { x: dockX, y: 9 },
-    pier: { x: dockX, y: 10 },
-    embarkWater: { x: dockX, y: 8 },
+    dock: { x: dockX, y: SOUTH_DOCK_Y },
+    pier: { x: dockX, y: SOUTH_FLOOR_Y0 },
+    embarkWater: { x: dockX, y: SOUTH_EMBARK_Y },
   };
 }
 
@@ -181,6 +199,12 @@ function propKindsForBiome(biome: IslandBiome): PropKind[] {
   if (biome === "lush") return LUSH_PROPS;
   if (biome === "barren") return BARREN_PROPS;
   return OTHER_PROPS;
+}
+
+function floorYRange(side: IslandSide): { y0: number; y1: number } {
+  return side === "north"
+    ? { y0: NORTH_FLOOR_Y0, y1: NORTH_FLOOR_Y1 }
+    : { y0: SOUTH_FLOOR_Y0, y1: SOUTH_FLOOR_Y1 };
 }
 
 /** Pure: Floor/Dock occupancy for a cell under the island templates. */
@@ -205,11 +229,8 @@ export function islandCellAt(
   if (tileX === island.dock.x && tileY === island.dock.y) {
     return "dock";
   }
-  if (island.side === "north") {
-    if (tileY >= 3 && tileY <= 5) {
-      return "floor";
-    }
-  } else if (tileY >= 10 && tileY <= 12) {
+  const { y0, y1 } = floorYRange(island.side);
+  if (tileY >= y0 && tileY <= y1) {
     return "floor";
   }
   return null;
@@ -236,28 +257,30 @@ export function biomeAtIslandTile(
 }
 
 function stampIsland(island: IslandTemplate): void {
-  const { x, side, dock, biome } = island;
-  if (side === "north") {
-    for (let dx = 0; dx < ISLAND_WIDTH; dx++) {
-      for (let y = 3; y <= 5; y++) {
-        ARCHIPELAGO.tiles[y][x + dx] = TileType.Floor;
-      }
-    }
-  } else {
-    for (let dx = 0; dx < ISLAND_WIDTH; dx++) {
-      for (let y = 10; y <= 12; y++) {
-        ARCHIPELAGO.tiles[y][x + dx] = TileType.Floor;
-      }
+  const { x, side, dock, biome, pier } = island;
+  const { y0, y1 } = floorYRange(side);
+  for (let dx = 0; dx < ISLAND_WIDTH; dx++) {
+    for (let y = y0; y <= y1; y++) {
+      ARCHIPELAGO.tiles[y][x + dx] = TileType.Floor;
     }
   }
   ARCHIPELAGO.tiles[dock.y][dock.x] = TileType.Dock;
 
   const kinds = propKindsForBiome(biome);
-  const propY = side === "north" ? 4 : 11;
-  for (let i = 0; i < ISLAND_WIDTH; i++) {
+  for (let i = 0; i < ISLAND_PROP_CELLS.length; i++) {
+    const cell = ISLAND_PROP_CELLS[i]!;
+    const px = x + cell.dx;
+    const py = y0 + cell.dy;
+    // Keep the embark pier clear of props.
+    if (px === pier.x && py === pier.y) {
+      continue;
+    }
+    if (cell.dx < 0 || cell.dx >= ISLAND_WIDTH || py < y0 || py > y1) {
+      continue;
+    }
     archipelagoProps.push({
-      x: x + i,
-      y: propY,
+      x: px,
+      y: py,
       kind: kinds[i % kinds.length]!,
     });
   }
@@ -279,9 +302,8 @@ function appendWaterColumns(count: number): void {
   }
   for (let y = 0; y < ARCHIPELAGO.height; y++) {
     const row = ARCHIPELAGO.tiles[y];
-    const fill = WATER_ROW_SET.has(y) ? TileType.Water : TileType.Wall;
     for (let i = 0; i < add; i++) {
-      row.push(fill);
+      row.push(TileType.Water);
     }
   }
   ARCHIPELAGO.width += add;
@@ -334,11 +356,12 @@ export function isArchipelagoSailPosition(x: number, y: number): boolean {
   if (
     tileX < 0 ||
     tileX >= ARCHIPELAGO_MAX_WIDTH ||
-    !WATER_ROW_SET.has(tileY)
+    tileY < 0 ||
+    tileY >= ARCHIPELAGO_HEIGHT
   ) {
     return false;
   }
-  // Island docks sit on former water rows but are still sailable.
+  // Island Floor blocks sail; docks remain sailable.
   const cell = islandCellAt(tileX, tileY);
   return cell === null || cell === "dock";
 }
