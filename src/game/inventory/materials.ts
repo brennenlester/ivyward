@@ -11,6 +11,9 @@ export const CREATURE_MATERIALS: Record<string, string> = {
   "peat-sprite": "peat-tuft",
   "cinder-toad": "cinder-scale",
   "bog-lantern": "bog-wick",
+  "isle-fernling": "isle-frond",
+  "salt-scuttle": "salt-shard",
+  "shoal-wisp": "shoal-mist",
 };
 
 export const MATERIAL_NAMES: Record<string, string> = {
@@ -29,6 +32,9 @@ export const MATERIAL_NAMES: Record<string, string> = {
   "peat-tuft": "Peat Tuft",
   "cinder-scale": "Cinder Scale",
   "bog-wick": "Bog Wick",
+  "isle-frond": "Isle Frond",
+  "salt-shard": "Salt Shard",
+  "shoal-mist": "Shoal Mist",
   "folklore-dust": "Folklore Dust",
 };
 

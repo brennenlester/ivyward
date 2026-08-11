@@ -296,6 +296,63 @@ function drawBogLantern(g: Phaser.GameObjects.Graphics, color: number): void {
   drawEyes(g, 20, 22, 16, 2);
 }
 
+function drawIsleFernling(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 34, 18, 12, shade(color, -25));
+  blob(g, 24, 24, 16, 16, color);
+  for (const [x, tipY] of [
+    [16, 6],
+    [24, 2],
+    [32, 6],
+  ] as const) {
+    g.fillStyle(OUTLINE, 1);
+    g.fillTriangle(x, tipY, x - 6, 22, x + 6, 22);
+    g.fillStyle(shade(color, 35), 1);
+    g.fillTriangle(x, tipY + 2, x - 4, 20, x + 4, 20);
+  }
+  g.fillStyle(0xa8e868, 0.85);
+  g.fillCircle(20, 14, 3);
+  g.fillCircle(28, 12, 2);
+  drawEyes(g, 20, 28, 22);
+}
+
+function drawSaltScuttle(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(12, 40, 8, 5);
+  g.fillEllipse(36, 40, 8, 5);
+  g.fillStyle(shade(color, -30), 1);
+  g.fillEllipse(12, 39, 6, 3);
+  g.fillEllipse(36, 39, 6, 3);
+  blob(g, 24, 30, 28, 16, color);
+  blob(g, 24, 20, 20, 14, shade(color, 20));
+  g.fillStyle(OUTLINE, 1);
+  g.fillRoundedRect(8, 18, 6, 14, 2);
+  g.fillRoundedRect(34, 18, 6, 14, 2);
+  g.fillStyle(shade(color, -15), 1);
+  g.fillRoundedRect(9, 19, 4, 12, 1);
+  g.fillRoundedRect(35, 19, 4, 12, 1);
+  g.fillStyle(0xf0e8d0, 0.7);
+  g.fillCircle(18, 26, 2);
+  g.fillCircle(30, 28, 2);
+  drawEyes(g, 20, 28, 18);
+}
+
+function drawShoalWisp(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(shade(color, 40), 0.3);
+  g.fillEllipse(24, 42, 26, 8);
+  blob(g, 24, 26, 22, 22, color);
+  g.fillStyle(shade(color, 50), 0.9);
+  g.fillCircle(24, 22, 9);
+  g.fillStyle(0xe8ffff, 0.95);
+  g.fillCircle(24, 18, 5);
+  g.fillStyle(OUTLINE, 1);
+  g.fillTriangle(14, 36, 10, 48, 20, 42);
+  g.fillTriangle(34, 36, 38, 48, 28, 42);
+  g.fillStyle(shade(color, 20), 0.85);
+  g.fillTriangle(15, 37, 12, 46, 19, 41);
+  g.fillTriangle(33, 37, 36, 46, 29, 41);
+  drawEyes(g, 20, 28, 20, 3);
+}
+
 const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
   mossling: drawMossling,
   "ember-wisp": drawEmberWisp,
@@ -310,6 +367,9 @@ const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
   "peat-sprite": drawPeatSprite,
   "cinder-toad": drawCinderToad,
   "bog-lantern": drawBogLantern,
+  "isle-fernling": drawIsleFernling,
+  "salt-scuttle": drawSaltScuttle,
+  "shoal-wisp": drawShoalWisp,
 };
 
 export function ensureCreatureTextures(scene: Phaser.Scene): void {

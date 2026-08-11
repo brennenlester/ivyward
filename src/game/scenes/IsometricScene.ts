@@ -35,7 +35,7 @@ import {
   resizeGameForDisplay,
 } from "../render/pixelRatio";
 import { ensurePlayerAnims, bindPlayerDisplaySize } from "../render/playerAnims";
-import { rollWildCreature } from "../encounters/tables";
+import { rollWildCreature, shouldAttemptWildEncounter } from "../encounters/tables";
 import {
   consumeQuestToast,
   recordQuestEvent,
@@ -334,7 +334,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryRandomEncounter(step: number): void {
-    if (isSailing()) {
+    if (!shouldAttemptWildEncounter(isSailing())) {
       return;
     }
     if (isVisitorMode()) {
@@ -350,7 +350,11 @@ export class IsometricScene extends Phaser.Scene {
       return;
     }
 
-    const creatureId = rollWildCreature(this.currentZoneId);
+    const biome =
+      this.currentZoneId === "archipelago"
+        ? biomeAtIslandTile(this.playerGridX, this.playerGridY)
+        : null;
+    const creatureId = rollWildCreature(this.currentZoneId, { biome });
     if (!creatureId) {
       return;
     }
