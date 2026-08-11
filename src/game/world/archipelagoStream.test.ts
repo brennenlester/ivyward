@@ -207,6 +207,30 @@ describe("archipelago chunk stream", () => {
     expect(isArchipelagoIslandPosition(first.pier.x, first.pier.y)).toBe(true);
   });
 
+  it("stamps post-seed islands when they complete across chunk boundaries", () => {
+    // ISLAND_WIDTH (9) > ARCHIPELAGO_CHUNK (8): origin can precede the grown
+    // range; the island must still stamp once its eastern edge is covered.
+    const second = islandTemplateAtIndex(1);
+    expect(second.x).toBeGreaterThan(ARCHIPELAGO_INITIAL_WIDTH);
+    expect(ARCHIPELAGO.tiles[second.dock.y]?.[second.dock.x]).not.toBe(
+      TileType.Dock,
+    );
+
+    let width = ARCHIPELAGO.width;
+    while (width < second.x + ISLAND_WIDTH) {
+      const nearEdge = width - ARCHIPELAGO_LOOKAHEAD;
+      const result = ensureArchipelagoChunksAround(nearEdge);
+      expect(result.grew).toBe(true);
+      width = result.width;
+    }
+
+    expect(ARCHIPELAGO.tiles[second.dock.y][second.dock.x]).toBe(TileType.Dock);
+    expect(ARCHIPELAGO.tiles[second.pier.y][second.pier.x]).toBe(TileType.Floor);
+    expect(ARCHIPELAGO.tiles[second.embarkWater.y][second.embarkWater.x]).toBe(
+      TileType.Water,
+    );
+  });
+
   it("reports a visual cull frontier behind the player without walling water", () => {
     ensureArchipelagoChunksAround(80);
     const cull = archipelagoVisualCullBefore(80);

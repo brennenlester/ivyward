@@ -286,10 +286,15 @@ function stampIsland(island: IslandTemplate): void {
   }
 }
 
-/** Stamp every island whose footprint lies in `[xStart, xEnd)`. */
+/**
+ * Stamp islands whose full footprint newly fits in `[0, xEnd)`.
+ * Origins may precede `xStart` when ISLAND_WIDTH > chunk size — stamp once
+ * the eastern edge crosses into the grown columns (avoid re-stamping).
+ */
 function stampIslandsInColumnRange(xStart: number, xEnd: number): void {
   for (const island of listIslandTemplates(ARCHIPELAGO_MAX_WIDTH)) {
-    if (island.x >= xStart && island.x + ISLAND_WIDTH <= xEnd) {
+    const islandEnd = island.x + ISLAND_WIDTH;
+    if (islandEnd <= xEnd && islandEnd > xStart) {
       stampIsland(island);
     }
   }
