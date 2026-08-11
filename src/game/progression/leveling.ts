@@ -2,16 +2,15 @@ import type { CreatureInstance } from "../creatures/types";
 
 export const XP_PER_SPAR_WIN = 10;
 
-/** Cumulative XP required to reach each level. */
-export const LEVEL_XP_THRESHOLDS: Record<number, number> = {
-  1: 0,
-  2: 10,
-  3: 20,
-  4: 30,
-  5: 40,
-};
+export const MAX_LEVEL = 50;
 
-export const MAX_LEVEL = 5;
+/** Cumulative XP required to reach each level: (level - 1) * 10. */
+export const LEVEL_XP_THRESHOLDS: Record<number, number> = Object.fromEntries(
+  Array.from({ length: MAX_LEVEL }, (_, i) => {
+    const level = i + 1;
+    return [level, (level - 1) * XP_PER_SPAR_WIN];
+  }),
+);
 
 export function getLevelForXp(xp: number): number {
   let level = 1;
