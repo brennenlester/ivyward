@@ -115,6 +115,7 @@ import {
   biomeAtIslandTile,
   ensureArchipelagoChunksAround,
   getArchipelagoPropsInWindow,
+  isInArchipelagoVisualWindow,
   islandIndexAtTile,
   ISLAND_BIOME_FLOOR_TINT,
   prepareArchipelagoForPosition,
@@ -567,8 +568,7 @@ export class IsometricScene extends Phaser.Scene {
     }
   }
 
-  /** Drop every archipelago stream sprite (floor/wall/prop/boat pad tags). */
-  private destroyAllArchipelagoStreamSprites(): void {
+  private destroyArchipelagoSpritesOutside(win: ArchipelagoVisualWindow): void {
     for (const child of this.children.list.slice()) {
       if (
         !("getData" in child) ||
@@ -577,7 +577,12 @@ export class IsometricScene extends Phaser.Scene {
         continue;
       }
       const img = child as Phaser.GameObjects.Image;
-      if (typeof img.getData("streamX") === "number") {
+      const gx = img.getData("streamX");
+      const gy = img.getData("streamY");
+      if (typeof gx !== "number" || typeof gy !== "number") {
+        continue;
+      }
+      if (!isInArchipelagoVisualWindow(gx, gy, win)) {
         img.destroy();
       }
     }
@@ -595,16 +600,82 @@ export class IsometricScene extends Phaser.Scene {
     this.drawArchipelagoPropsInWindow(win);
   }
 
+  private drawArchipelagoLiveRect(
+    zone: ZoneDefinition,
+    xStart: number,
+    xEnd: number,
+    yStart: number,
+    yEnd: number,
+  ): void {
+    if (xStart >= xEnd || yStart >= yEnd) {
+      return;
+    }
+    this.drawZoneTileColumns(zone, xStart, xEnd, yStart, yEnd);
+    this.drawWallsInColumns(zone, xStart, xEnd, yStart, yEnd);
+    for (const prop of getArchipelagoPropsInWindow({
+      xMin: xStart,
+      xMax: xEnd,
+      yMin: yStart,
+      yMax: yEnd,
+    })) {
+      // Gate props are owned by the full-height gate draw on load; skip here.
+      if (prop.x < ARCHIPELAGO_GATE_COLUMNS) {
+        continue;
+      }
+      this.spawnPropSprite(prop.x, prop.y, prop.kind, true, "archipelago");
+    }
+  }
+
   private applyArchipelagoStreamVisuals(
     result: ChunkEnsureResult,
-    _prev: ArchipelagoVisualWindow,
+    prev: ArchipelagoVisualWindow,
     next: ArchipelagoVisualWindow,
   ): void {
     const zone = getZone("archipelago");
-    // Rebuild the live window only (collision tiles stay full 100×100).
-    this.destroyAllArchipelagoStreamSprites();
-    this.drawArchipelagoVisualWindow(zone, next);
-    // Docked boat uses stream tags and is destroyed above — redraw if needed.
+    // Drop sprites that left the window (tiles stay full 100×100).
+    this.destroyArchipelagoSpritesOutside(next);
+
+    // Incremental enter strips — avoid redrawing the prev∩next overlap.
+    if (next.xMin < prev.xMin) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        next.xMin,
+        prev.xMin,
+        next.yMin,
+        next.yMax,
+      );
+    }
+    if (next.xMax > prev.xMax) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        prev.xMax,
+        next.xMax,
+        next.yMin,
+        next.yMax,
+      );
+    }
+    const xOverlapStart = Math.max(next.xMin, prev.xMin);
+    const xOverlapEnd = Math.min(next.xMax, prev.xMax);
+    if (next.yMin < prev.yMin) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        xOverlapStart,
+        xOverlapEnd,
+        next.yMin,
+        prev.yMin,
+      );
+    }
+    if (next.yMax > prev.yMax) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        xOverlapStart,
+        xOverlapEnd,
+        prev.yMax,
+        next.yMax,
+      );
+    }
+
+    // Docked boat may have been culled if its pad left the window.
     this.drawPlacedBoat(zone);
 
     if (result.grew) {

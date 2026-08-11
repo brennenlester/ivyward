@@ -20,8 +20,8 @@ export const ARCHIPELAGO_LOOKAHEAD = 12;
 export const ARCHIPELAGO_LOOKBEHIND = 32;
 /** Live visual columns east of the player (camera margin). */
 export const ARCHIPELAGO_VISUAL_AHEAD = 20;
-/** Live visual rows north/south of the player (camera margin). */
-export const ARCHIPELAGO_VISUAL_MARGIN_Y = 18;
+/** Live visual rows north/south of the player (> half of ARCHIPELAGO_CAMERA_FIT_HEIGHT). */
+export const ARCHIPELAGO_VISUAL_MARGIN_Y = 22;
 /** West Harbor gate columns that stay drawn (x in [0, GATE)). */
 export const ARCHIPELAGO_GATE_COLUMNS = 3;
 
