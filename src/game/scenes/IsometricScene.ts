@@ -413,10 +413,15 @@ export class IsometricScene extends Phaser.Scene {
           }
         }
       }
+      const zone = getZone("archipelago");
+      for (const x of result.unloadedColumns) {
+        this.drawWallsInColumns(zone, x, x + 1);
+      }
     }
     if (result.grew) {
       const zone = getZone("archipelago");
       this.drawZoneTileColumns(zone, result.previousWidth, result.width);
+      this.drawWallsInColumns(zone, result.previousWidth, result.width);
     }
   }
 
@@ -679,8 +684,16 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawWalls(zone: ZoneDefinition): void {
+    this.drawWallsInColumns(zone, 0, zone.width);
+  }
+
+  private drawWallsInColumns(
+    zone: ZoneDefinition,
+    xStart: number,
+    xEnd: number,
+  ): void {
     for (let y = 0; y < zone.height; y++) {
-      for (let x = 0; x < zone.width; x++) {
+      for (let x = xStart; x < xEnd; x++) {
         if (zone.tiles[y][x] !== TileType.Wall) {
           continue;
         }
@@ -702,6 +715,8 @@ export class IsometricScene extends Phaser.Scene {
           .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, boundaryKey)
           .setOrigin(0.5, 1);
         fitDisplay(block, BOUNDARY_DISPLAY);
+        block.setData("streamX", x);
+        block.setData("streamY", y);
         block.setDepth(depthForGridCell(x, y, PROP_LAYER));
       }
     }
