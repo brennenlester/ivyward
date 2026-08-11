@@ -7,6 +7,11 @@ export const ARCHIPELAGO_HEIGHT = 100;
 export const ARCHIPELAGO_INITIAL_WIDTH = 100;
 /** Hard cap — map is fixed 100×100; ensureChunks fills once or no-ops. */
 export const ARCHIPELAGO_MAX_WIDTH = 100;
+/**
+ * Vertical tile count the camera fits (local playable viewport).
+ * Map is larger; startFollow pans across full bounds at this scale.
+ */
+export const ARCHIPELAGO_CAMERA_FIT_HEIGHT = 28;
 /** @deprecated Kept for callers; growth no longer streams by chunk. */
 export const ARCHIPELAGO_CHUNK = 8;
 /** @deprecated Kept for callers; map is fully generated at reset. */
