@@ -6,6 +6,7 @@ import {
   getHabitatsForCreature,
   getKnownCreaturesForZone,
   rollWildCreature,
+  shouldAttemptWildEncounter,
   ZONE_ENCOUNTERS,
 } from "./tables";
 import type { ZoneId } from "../world/zoneTypes";
@@ -51,6 +52,11 @@ describe("archipelago exclusive encounters", () => {
     vi.restoreAllMocks();
   });
 
+  it("suppresses wild rolls while sailing and allows them on foot", () => {
+    expect(shouldAttemptWildEncounter(true)).toBe(false);
+    expect(shouldAttemptWildEncounter(false)).toBe(true);
+  });
+
   it("lists exclusive ids only in the archipelago zone table", () => {
     const exclusive = new Set(getArchipelagoExclusiveIds());
     expect(exclusive.size).toBeGreaterThanOrEqual(3);
@@ -84,10 +90,9 @@ describe("archipelago exclusive encounters", () => {
     );
   });
 
-  it("falls back to the archipelago union table without a biome", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0);
-    const id = rollWildCreature("archipelago");
-    expect(getArchipelagoExclusiveIds()).toContain(id);
+  it("returns null for archipelago without a biome (no open-water exclusives)", () => {
+    expect(rollWildCreature("archipelago")).toBeNull();
+    expect(rollWildCreature("archipelago", { biome: null })).toBeNull();
   });
 
   it("keeps biome tables disjoint and covered by the union habitat", () => {

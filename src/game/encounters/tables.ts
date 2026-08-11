@@ -82,15 +82,25 @@ function rollFromTable(table: EncounterEntry[]): string | null {
 }
 
 export type RollWildOptions = {
-  /** Island biome when rolling in the archipelago zone. */
+  /** Island biome when rolling in the archipelago zone. Required for a hit. */
   biome?: IslandBiome | null;
 };
+
+/** Wild rolls only while on foot — sailing never attempts encounters. */
+export function shouldAttemptWildEncounter(sailing: boolean): boolean {
+  return !sailing;
+}
 
 export function rollWildCreature(
   zoneId: ZoneId,
   options?: RollWildOptions,
 ): string | null {
-  if (zoneId === "archipelago" && options?.biome) {
+  if (zoneId === "archipelago") {
+    // Biome is knowable from the island tile streamer; no biome ⇒ no roll
+    // (open water / mid-sail must not hit the habitat union).
+    if (!options?.biome) {
+      return null;
+    }
     return rollFromTable(ARCHIPELAGO_BIOME_ENCOUNTERS[options.biome]);
   }
   return rollFromTable(ZONE_ENCOUNTERS[zoneId]);
