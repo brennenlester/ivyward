@@ -680,6 +680,36 @@ export class IsometricScene extends Phaser.Scene {
 
     if (result.grew) {
       this.playerDepth = playerDepthAboveGrid(result.width, zone.height);
+      // Delayed island stamps may rewrite overlap columns — refresh live window cells.
+      const from = result.redrawFrom;
+      if (from < result.previousWidth) {
+        const xStart = Math.max(next.xMin, from);
+        const xEnd = Math.min(next.xMax, result.previousWidth);
+        if (xStart < xEnd) {
+          for (const child of this.children.list.slice()) {
+            if (
+              !("getData" in child) ||
+              typeof (child as Phaser.GameObjects.Image).getData !== "function"
+            ) {
+              continue;
+            }
+            const img = child as Phaser.GameObjects.Image;
+            const gx = img.getData("streamX");
+            const gy = img.getData("streamY");
+            if (
+              typeof gx === "number" &&
+              typeof gy === "number" &&
+              gx >= xStart &&
+              gx < xEnd &&
+              gy >= next.yMin &&
+              gy < next.yMax
+            ) {
+              img.destroy();
+            }
+          }
+          this.drawArchipelagoLiveRect(zone, xStart, xEnd, next.yMin, next.yMax);
+        }
+      }
     }
   }
 
