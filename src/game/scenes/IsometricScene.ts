@@ -80,11 +80,10 @@ import {
 } from "../world/gatherState";
 import {
   isBoatPlaced,
-  EAST_LANDING_NAME,
+  isNearAnyDock,
   isNearHarborDock,
   isSailing,
   HARBOR_DOCK,
-  tryArriveEastLanding,
   tryDisembark,
   tryEmbark,
   tryPlaceBoat,
@@ -294,38 +293,10 @@ export class IsometricScene extends Phaser.Scene {
         this.playerGridX,
         this.playerGridY,
       );
-      this.tryEastLandingArrival();
       this.tryZoneTransition(zone);
       this.tryRandomEncounter(step);
     }
     this.syncPlayerToGrid();
-  }
-
-  /** Auto-end Harbor sail when the boat reaches East Landing approach water. */
-  private tryEastLandingArrival(): void {
-    if (!isSailing()) {
-      return;
-    }
-    const tileX = Math.round(this.playerGridX);
-    const tileY = Math.round(this.playerGridY);
-    const result = tryArriveEastLanding(this.currentZoneId, tileX, tileY);
-    if (!result.ok || !result.disembarked) {
-      return;
-    }
-    if (result.playerX !== undefined && result.playerY !== undefined) {
-      this.playerGridX = result.playerX;
-      this.playerGridY = result.playerY;
-      updateHostPosition(
-        this.currentZoneId,
-        this.playerGridX,
-        this.playerGridY,
-      );
-      this.syncPlayerToGrid();
-      this.drawPlacedBoat(getZone(this.currentZoneId));
-    }
-    this.showGatherToast(result.message, true);
-    updateStatusPanel(getZone(this.currentZoneId));
-    this.updateInteractPrompt();
   }
 
   private updateFacing(dx: number, dy: number): void {
@@ -725,9 +696,7 @@ export class IsometricScene extends Phaser.Scene {
     const dock =
       !shrine && !door && !npc ? this.getNearbyDockPrompt() : undefined;
     const sailingHint =
-      !shrine && !door && !npc && !dock && isSailing()
-        ? `Sailing to ${EAST_LANDING_NAME}`
-        : undefined;
+      !shrine && !door && !npc && !dock && isSailing() ? "Sailing" : undefined;
     const gather =
       !shrine && !door && !npc && !dock && !sailingHint && !isVisitorMode()
         ? this.getNearbyGatherProp()
@@ -785,19 +754,25 @@ export class IsometricScene extends Phaser.Scene {
   private getNearbyDockPrompt(): string | undefined {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    if (!isNearHarborDock(this.currentZoneId, tileX, tileY)) {
+    if (!isNearAnyDock(this.currentZoneId, tileX, tileY)) {
       return undefined;
     }
+    const atWestDock = isNearHarborDock(this.currentZoneId, tileX, tileY);
     if (isVisitorMode()) {
-      return isBoatPlaced()
-        ? "Boat moored (embark is host only)"
-        : "Dock (host can place a boat)";
+      if (isBoatPlaced()) {
+        return "Boat moored (embark is host only)";
+      }
+      return atWestDock ? "Dock (host can place a boat)" : undefined;
     }
     if (isSailing()) {
       return "Press E — Disembark";
     }
     if (isBoatPlaced()) {
       return "Press E — Board boat";
+    }
+    // Place boat only at the west Harbor dock.
+    if (!atWestDock) {
+      return undefined;
     }
     if (getItemCount("boat") > 0) {
       return "Press E — Place boat";
@@ -827,11 +802,15 @@ export class IsometricScene extends Phaser.Scene {
   private tryDockInteract(): boolean {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    if (!isNearHarborDock(this.currentZoneId, tileX, tileY)) {
+    if (!isNearAnyDock(this.currentZoneId, tileX, tileY)) {
       return false;
     }
 
     if (!isBoatPlaced()) {
+      // Place boat only at the west Harbor dock.
+      if (!isNearHarborDock(this.currentZoneId, tileX, tileY)) {
+        return false;
+      }
       const result = tryPlaceBoat(this.currentZoneId, tileX, tileY);
       if (result.ok && result.consumed) {
         // Reload first so removeAll does not wipe the confirmation toast.
