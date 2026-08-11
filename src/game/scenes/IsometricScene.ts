@@ -84,7 +84,7 @@ import {
   isNearAnyDock,
   isNearHarborDock,
   isSailing,
-  EAST_LANDING,
+  EAST_LANDING_EMBARK_WATER,
   HARBOR_DOCK,
   tryDisembark,
   tryEmbark,
@@ -800,7 +800,8 @@ export class IsometricScene extends Phaser.Scene {
     if (isSailing()) {
       return;
     }
-    const pad = getMooredDock() === "east" ? EAST_LANDING : HARBOR_DOCK;
+    const pad =
+      getMooredDock() === "east" ? EAST_LANDING_EMBARK_WATER : HARBOR_DOCK;
     const screen = this.toScreen(pad.x, pad.y);
     const boat = this.add
       .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
