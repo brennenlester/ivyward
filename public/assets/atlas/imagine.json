@@ -520,9 +520,49 @@
         "h": 256
       }
     },
-    "player-north-0": {
+    "player-east-3": {
       "frame": {
         "x": 194,
+        "y": 1654,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 256
+      }
+    },
+    "player-east-4": {
+      "frame": {
+        "x": 388,
+        "y": 1654,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 256
+      }
+    },
+    "player-north-0": {
+      "frame": {
+        "x": 582,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -542,7 +582,7 @@
     },
     "player-north-1": {
       "frame": {
-        "x": 388,
+        "x": 776,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -562,7 +602,7 @@
     },
     "player-north-2": {
       "frame": {
-        "x": 582,
+        "x": 970,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -582,7 +622,7 @@
     },
     "player-south-0": {
       "frame": {
-        "x": 776,
+        "x": 1164,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -602,7 +642,7 @@
     },
     "player-south-1": {
       "frame": {
-        "x": 970,
+        "x": 1358,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -622,7 +662,7 @@
     },
     "player-south-2": {
       "frame": {
-        "x": 1164,
+        "x": 1552,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -642,7 +682,7 @@
     },
     "player-west-0": {
       "frame": {
-        "x": 1358,
+        "x": 1746,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -662,7 +702,7 @@
     },
     "player-west-1": {
       "frame": {
-        "x": 1552,
+        "x": 1940,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -682,7 +722,47 @@
     },
     "player-west-2": {
       "frame": {
-        "x": 1746,
+        "x": 2134,
+        "y": 1654,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 256
+      }
+    },
+    "player-west-3": {
+      "frame": {
+        "x": 2328,
+        "y": 1654,
+        "w": 192,
+        "h": 256
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 256
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 256
+      }
+    },
+    "player-west-4": {
+      "frame": {
+        "x": 2522,
         "y": 1654,
         "w": 192,
         "h": 256
@@ -702,7 +782,7 @@
     },
     "boundary-emberfen": {
       "frame": {
-        "x": 1940,
+        "x": 2716,
         "y": 1654,
         "w": 192,
         "h": 224
@@ -722,7 +802,7 @@
     },
     "boundary-grove": {
       "frame": {
-        "x": 2134,
+        "x": 2910,
         "y": 1654,
         "w": 192,
         "h": 224
@@ -742,7 +822,7 @@
     },
     "boundary-mistwood": {
       "frame": {
-        "x": 2328,
+        "x": 3104,
         "y": 1654,
         "w": 192,
         "h": 224
@@ -762,7 +842,7 @@
     },
     "boundary-overworld": {
       "frame": {
-        "x": 2522,
+        "x": 3298,
         "y": 1654,
         "w": 192,
         "h": 224
@@ -782,7 +862,7 @@
     },
     "boundary-shrine": {
       "frame": {
-        "x": 2716,
+        "x": 3492,
         "y": 1654,
         "w": 192,
         "h": 224
@@ -802,7 +882,7 @@
     },
     "boundary-village": {
       "frame": {
-        "x": 2910,
+        "x": 3686,
         "y": 1654,
         "w": 192,
         "h": 224
@@ -822,7 +902,7 @@
     },
     "creature-atoll-wisp": {
       "frame": {
-        "x": 3104,
+        "x": 3880,
         "y": 1654,
         "w": 192,
         "h": 208
@@ -842,8 +922,8 @@
     },
     "creature-barnacle-toad": {
       "frame": {
-        "x": 3298,
-        "y": 1654,
+        "x": 0,
+        "y": 1912,
         "w": 192,
         "h": 208
       },
@@ -862,8 +942,8 @@
     },
     "creature-bog-lantern": {
       "frame": {
-        "x": 3492,
-        "y": 1654,
+        "x": 194,
+        "y": 1912,
         "w": 192,
         "h": 208
       },
@@ -882,8 +962,8 @@
     },
     "creature-brackish-newt": {
       "frame": {
-        "x": 3686,
-        "y": 1654,
+        "x": 388,
+        "y": 1912,
         "w": 192,
         "h": 208
       },
@@ -902,8 +982,8 @@
     },
     "creature-bramblewarden-idle": {
       "frame": {
-        "x": 3880,
-        "y": 1654,
+        "x": 582,
+        "y": 1912,
         "w": 192,
         "h": 208
       },
@@ -922,7 +1002,7 @@
     },
     "creature-bramblewarden": {
       "frame": {
-        "x": 0,
+        "x": 776,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -942,7 +1022,7 @@
     },
     "creature-brook-nymph-idle": {
       "frame": {
-        "x": 194,
+        "x": 970,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -962,7 +1042,7 @@
     },
     "creature-brook-nymph": {
       "frame": {
-        "x": 388,
+        "x": 1164,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -982,7 +1062,7 @@
     },
     "creature-cinder-toad": {
       "frame": {
-        "x": 582,
+        "x": 1358,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1002,7 +1082,7 @@
     },
     "creature-coral-skitter": {
       "frame": {
-        "x": 776,
+        "x": 1552,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1022,7 +1102,7 @@
     },
     "creature-drift-kelpie": {
       "frame": {
-        "x": 970,
+        "x": 1746,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1042,7 +1122,7 @@
     },
     "creature-dune-hermit": {
       "frame": {
-        "x": 1164,
+        "x": 1940,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1062,7 +1142,7 @@
     },
     "creature-ember-wisp-idle": {
       "frame": {
-        "x": 1358,
+        "x": 2134,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1082,7 +1162,7 @@
     },
     "creature-ember-wisp": {
       "frame": {
-        "x": 1552,
+        "x": 2328,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1102,7 +1182,7 @@
     },
     "creature-gulf-lantern": {
       "frame": {
-        "x": 1746,
+        "x": 2522,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1122,7 +1202,7 @@
     },
     "creature-hearthflame-idle": {
       "frame": {
-        "x": 1940,
+        "x": 2716,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1142,7 +1222,7 @@
     },
     "creature-hearthflame": {
       "frame": {
-        "x": 2134,
+        "x": 2910,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1162,7 +1242,7 @@
     },
     "creature-isle-fernling": {
       "frame": {
-        "x": 2328,
+        "x": 3104,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1182,7 +1262,7 @@
     },
     "creature-lagoon-hare": {
       "frame": {
-        "x": 2522,
+        "x": 3298,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1202,7 +1282,7 @@
     },
     "creature-lantern-fox-idle": {
       "frame": {
-        "x": 2716,
+        "x": 3492,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1222,7 +1302,7 @@
     },
     "creature-lantern-fox": {
       "frame": {
-        "x": 2910,
+        "x": 3686,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1242,7 +1322,7 @@
     },
     "creature-mist-anemone": {
       "frame": {
-        "x": 3104,
+        "x": 3880,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1262,8 +1342,8 @@
     },
     "creature-mist-serpent-idle": {
       "frame": {
-        "x": 3298,
-        "y": 1912,
+        "x": 0,
+        "y": 2122,
         "w": 192,
         "h": 208
       },
@@ -1282,8 +1362,8 @@
     },
     "creature-mist-serpent": {
       "frame": {
-        "x": 3492,
-        "y": 1912,
+        "x": 194,
+        "y": 2122,
         "w": 192,
         "h": 208
       },
@@ -1302,8 +1382,8 @@
     },
     "creature-mossling-idle": {
       "frame": {
-        "x": 3686,
-        "y": 1912,
+        "x": 388,
+        "y": 2122,
         "w": 192,
         "h": 208
       },
@@ -1322,8 +1402,8 @@
     },
     "creature-mossling": {
       "frame": {
-        "x": 3880,
-        "y": 1912,
+        "x": 582,
+        "y": 2122,
         "w": 192,
         "h": 208
       },
@@ -1342,7 +1422,7 @@
     },
     "creature-pearl-moth": {
       "frame": {
-        "x": 0,
+        "x": 776,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1362,7 +1442,7 @@
     },
     "creature-peat-sprite": {
       "frame": {
-        "x": 194,
+        "x": 970,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1382,7 +1462,7 @@
     },
     "creature-reef-spinner": {
       "frame": {
-        "x": 388,
+        "x": 1164,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1402,7 +1482,7 @@
     },
     "creature-rootwalker-idle": {
       "frame": {
-        "x": 582,
+        "x": 1358,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1422,7 +1502,7 @@
     },
     "creature-rootwalker": {
       "frame": {
-        "x": 776,
+        "x": 1552,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1442,7 +1522,7 @@
     },
     "creature-salt-scuttle": {
       "frame": {
-        "x": 970,
+        "x": 1746,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1462,7 +1542,7 @@
     },
     "creature-shoal-wisp": {
       "frame": {
-        "x": 1164,
+        "x": 1940,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1482,7 +1562,7 @@
     },
     "creature-spray-finch": {
       "frame": {
-        "x": 1358,
+        "x": 2134,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1502,7 +1582,7 @@
     },
     "creature-stone-hound-idle": {
       "frame": {
-        "x": 1552,
+        "x": 2328,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1522,7 +1602,7 @@
     },
     "creature-stone-hound": {
       "frame": {
-        "x": 1746,
+        "x": 2522,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1542,7 +1622,7 @@
     },
     "creature-thunder-finch-idle": {
       "frame": {
-        "x": 1940,
+        "x": 2716,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1562,7 +1642,7 @@
     },
     "creature-thunder-finch": {
       "frame": {
-        "x": 2134,
+        "x": 2910,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1582,7 +1662,7 @@
     },
     "creature-tide-urchin": {
       "frame": {
-        "x": 2328,
+        "x": 3104,
         "y": 2122,
         "w": 192,
         "h": 208
@@ -1602,7 +1682,7 @@
     },
     "prop-tree": {
       "frame": {
-        "x": 2522,
+        "x": 3298,
         "y": 2122,
         "w": 192,
         "h": 200
@@ -1622,7 +1702,7 @@
     },
     "floor-emberfen-dark": {
       "frame": {
-        "x": 2716,
+        "x": 3492,
         "y": 2122,
         "w": 192,
         "h": 192
@@ -1642,7 +1722,7 @@
     },
     "floor-emberfen-light": {
       "frame": {
-        "x": 2910,
+        "x": 3686,
         "y": 2122,
         "w": 192,
         "h": 192
@@ -1662,7 +1742,7 @@
     },
     "floor-grove-dark": {
       "frame": {
-        "x": 3104,
+        "x": 3880,
         "y": 2122,
         "w": 192,
         "h": 192
@@ -1682,86 +1762,6 @@
     },
     "floor-grove-light": {
       "frame": {
-        "x": 3298,
-        "y": 2122,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-mistwood-dark": {
-      "frame": {
-        "x": 3492,
-        "y": 2122,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-mistwood-light": {
-      "frame": {
-        "x": 3686,
-        "y": 2122,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-overworld-dark": {
-      "frame": {
-        "x": 3880,
-        "y": 2122,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-overworld-light": {
-      "frame": {
         "x": 0,
         "y": 2332,
         "w": 192,
@@ -1780,7 +1780,7 @@
         "h": 192
       }
     },
-    "floor-path": {
+    "floor-mistwood-dark": {
       "frame": {
         "x": 194,
         "y": 2332,
@@ -1800,7 +1800,7 @@
         "h": 192
       }
     },
-    "floor-shrine-dark": {
+    "floor-mistwood-light": {
       "frame": {
         "x": 388,
         "y": 2332,
@@ -1820,7 +1820,7 @@
         "h": 192
       }
     },
-    "floor-shrine-light": {
+    "floor-overworld-dark": {
       "frame": {
         "x": 582,
         "y": 2332,
@@ -1840,7 +1840,7 @@
         "h": 192
       }
     },
-    "floor-village-dark": {
+    "floor-overworld-light": {
       "frame": {
         "x": 776,
         "y": 2332,
@@ -1860,7 +1860,7 @@
         "h": 192
       }
     },
-    "floor-village-light": {
+    "floor-path": {
       "frame": {
         "x": 970,
         "y": 2332,
@@ -1880,9 +1880,89 @@
         "h": 192
       }
     },
-    "prop-cottage": {
+    "floor-shrine-dark": {
       "frame": {
         "x": 1164,
+        "y": 2332,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "floor-shrine-light": {
+      "frame": {
+        "x": 1358,
+        "y": 2332,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "floor-village-dark": {
+      "frame": {
+        "x": 1552,
+        "y": 2332,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "floor-village-light": {
+      "frame": {
+        "x": 1746,
+        "y": 2332,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "prop-cottage": {
+      "frame": {
+        "x": 1940,
         "y": 2332,
         "w": 192,
         "h": 176
@@ -1902,7 +1982,7 @@
     },
     "prop-gate-locked": {
       "frame": {
-        "x": 1358,
+        "x": 2134,
         "y": 2332,
         "w": 192,
         "h": 168
@@ -1922,7 +2002,7 @@
     },
     "prop-gate": {
       "frame": {
-        "x": 1552,
+        "x": 2328,
         "y": 2332,
         "w": 192,
         "h": 168
@@ -1942,7 +2022,7 @@
     },
     "prop-hearth": {
       "frame": {
-        "x": 1746,
+        "x": 2522,
         "y": 2332,
         "w": 192,
         "h": 160
@@ -1962,7 +2042,7 @@
     },
     "prop-shrine-altar": {
       "frame": {
-        "x": 1940,
+        "x": 2716,
         "y": 2332,
         "w": 192,
         "h": 160
@@ -1982,7 +2062,7 @@
     },
     "prop-standing-stone": {
       "frame": {
-        "x": 2134,
+        "x": 2910,
         "y": 2332,
         "w": 168,
         "h": 152
@@ -2002,7 +2082,7 @@
     },
     "prop-pebble-pile": {
       "frame": {
-        "x": 2304,
+        "x": 3080,
         "y": 2332,
         "w": 176,
         "h": 128
@@ -2022,7 +2102,7 @@
     },
     "prop-fern": {
       "frame": {
-        "x": 2482,
+        "x": 3258,
         "y": 2332,
         "w": 160,
         "h": 128

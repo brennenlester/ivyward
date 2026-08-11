@@ -6,13 +6,24 @@ import {
 } from "./playerWalk";
 
 describe("walkStrideFrame", () => {
-  it("alternates contact poses across a cycle", () => {
-    expect(walkStrideFrame(0)).toBe(1);
-    expect(walkStrideFrame(0.25)).toBe(1);
-    expect(walkStrideFrame(0.5)).toBe(2);
-    expect(walkStrideFrame(0.75)).toBe(2);
-    expect(walkStrideFrame(1)).toBe(1);
-    expect(walkStrideFrame(1.6)).toBe(2);
+  it("maps a 2-pose cycle across the gait phase", () => {
+    expect(walkStrideFrame(0, 2)).toBe(1);
+    expect(walkStrideFrame(0.25, 2)).toBe(1);
+    expect(walkStrideFrame(0.5, 2)).toBe(2);
+    expect(walkStrideFrame(0.75, 2)).toBe(2);
+    expect(walkStrideFrame(1, 2)).toBe(1);
+    expect(walkStrideFrame(1.6, 2)).toBe(2);
+  });
+
+  it("maps a 4-pose E/W cycle across the gait phase", () => {
+    expect(walkStrideFrame(0, 4)).toBe(1);
+    expect(walkStrideFrame(0.24, 4)).toBe(1);
+    expect(walkStrideFrame(0.25, 4)).toBe(2);
+    expect(walkStrideFrame(0.49, 4)).toBe(2);
+    expect(walkStrideFrame(0.5, 4)).toBe(3);
+    expect(walkStrideFrame(0.74, 4)).toBe(3);
+    expect(walkStrideFrame(0.75, 4)).toBe(4);
+    expect(walkStrideFrame(0.99, 4)).toBe(4);
   });
 });
 

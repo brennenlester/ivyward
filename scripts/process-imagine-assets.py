@@ -247,51 +247,41 @@ def opposite_stride_keep_staff(src: Image.Image, split_ratio: float = 0.56, blen
 
 
 def main():
-    for facing in ["south", "north", "east", "west"]:
-        # Style D walk1 is canonical idle + stride frame 1 (outfit-matched).
-        process(
-            f"player-{facing}-walk1.png",
-            f"player/player-{facing}-0.png",
-            48 * SCALE,
-            64 * SCALE,
-        )
-        process(
-            f"player-{facing}-walk1.png",
-            f"player/player-{facing}-1.png",
-            48 * SCALE,
-            64 * SCALE,
-        )
-
-    # Stride frame 2 — prefer readable limb change without different-trainer flash.
+    # Hybrid trainer sheets (#134/#135): E/W idle+4 walk; S/N idle+2 contacts.
     player = DST / "player"
+    tw, th = 48 * SCALE, 64 * SCALE
 
-    # South: lower-body opposite stride; staff stays on walk1 side (no hand teleport).
-    south1 = Image.open(player / "player-south-1.png").convert("RGBA")
-    opposite_stride_keep_staff(south1).save(player / "player-south-2.png", optimize=True)
-    print("ok player/player-south-2.png (lower-flip keep staff)")
+    # West is authoritative for side views.
+    process("player-west-idle.png", "player/player-west-0.png", tw, th, dark_studio_bg=True)
+    for i in range(1, 5):
+        process(
+            f"player-west-walk{i}.png",
+            f"player/player-west-{i}.png",
+            tw,
+            th,
+            dark_studio_bg=True,
+        )
 
-    # North: hflip walk1 (no held staff; backpack mostly symmetric).
-    Image.open(player / "player-north-1.png").convert("RGBA").transpose(
-        Image.Transpose.FLIP_LEFT_RIGHT
-    ).save(player / "player-north-2.png", optimize=True)
-    print("ok player/player-north-2.png (hflip walk1)")
-
-    # West: Imagine walk2 (outfit-matched side stride).
-    process(
-        "player-west-walk2.png",
-        "player/player-west-2.png",
-        48 * SCALE,
-        64 * SCALE,
-    )
-
-    # East: mirror west walk cycle so right-facing has real limb motion.
-    for frame in (0, 1, 2):
+    # East = hflip west (outfit-locked multi-frame).
+    for frame in range(0, 5):
         src = Image.open(player / f"player-west-{frame}.png").convert("RGBA")
         src.transpose(Image.Transpose.FLIP_LEFT_RIGHT).save(
             player / f"player-east-{frame}.png",
             optimize=True,
         )
         print(f"ok player/player-east-{frame}.png (hflip west-{frame})")
+
+    # South: idle + walk1; walk2 keeps staff on viewer-left.
+    process("player-south-idle.png", "player/player-south-0.png", tw, th, dark_studio_bg=True)
+    process("player-south-walk1.png", "player/player-south-1.png", tw, th, dark_studio_bg=True)
+    south1 = Image.open(player / "player-south-1.png").convert("RGBA")
+    opposite_stride_keep_staff(south1).save(player / "player-south-2.png", optimize=True)
+    print("ok player/player-south-2.png (lower-flip keep staff)")
+
+    # North: idle + two contact walks from Imagine (no prop teleport).
+    process("player-north-idle.png", "player/player-north-0.png", tw, th, dark_studio_bg=True)
+    process("player-north-walk1.png", "player/player-north-1.png", tw, th, dark_studio_bg=True)
+    process("player-north-walk2.png", "player/player-north-2.png", tw, th, dark_studio_bg=True)
 
     for c in [
         "mossling", "ember-wisp", "brook-nymph", "stone-hound", "mist-serpent",
