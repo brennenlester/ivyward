@@ -231,6 +231,21 @@ describe("archipelago chunk stream", () => {
     );
   });
 
+  it("reports redrawFrom at the island origin when a stamp crosses chunks", () => {
+    const second = islandTemplateAtIndex(1);
+    let last: ReturnType<typeof ensureArchipelagoChunksAround> | undefined;
+    let width = ARCHIPELAGO.width;
+    while (width < second.x + ISLAND_WIDTH) {
+      const nearEdge = width - ARCHIPELAGO_LOOKAHEAD;
+      last = ensureArchipelagoChunksAround(nearEdge);
+      expect(last.grew).toBe(true);
+      width = last.width;
+    }
+    expect(last).toBeDefined();
+    expect(last!.redrawFrom).toBe(second.x);
+    expect(last!.redrawFrom).toBeLessThan(last!.previousWidth);
+  });
+
   it("reports a visual cull frontier behind the player without walling water", () => {
     ensureArchipelagoChunksAround(80);
     const cull = archipelagoVisualCullBefore(80);

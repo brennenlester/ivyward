@@ -45,9 +45,12 @@ import {
   type HarborDockId,
 } from "./dockBoat";
 import {
+  ARCHIPELAGO_ENTRY,
+  ARCHIPELAGO_MAX_WIDTH,
   isArchipelagoSailPosition,
   isArchipelagoIslandPosition,
   isSailableZone,
+  listIslandTemplates,
   prepareArchipelagoForPosition,
 } from "./archipelagoStream";
 import { TileType, type ZoneId } from "./zoneTypes";
@@ -320,6 +323,64 @@ export function repairLegacyOverworldShorePosition(value: unknown): void {
   }
   pos.x = 7;
   pos.y = 12;
+}
+
+/**
+ * #102 open-ocean / 9×9 islands changed footprints, spacing, and sail rows.
+ * Relocate invalid archipelago stands so loadHostSave does not wipe progress.
+ * Run after other position migrations and before isValidWorldSnapshot.
+ */
+export function repairLegacyArchipelagoLayoutPosition(value: unknown): void {
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  const s = value as Record<string, unknown>;
+  const pos = s.position as Record<string, unknown> | undefined;
+  if (!pos || pos.zoneId !== "archipelago") {
+    return;
+  }
+  if (!isFiniteNumber(pos.x) || !isFiniteNumber(pos.y)) {
+    return;
+  }
+  const sailing = s.sailing === true;
+  const overworldUnlocked = s.overworldUnlocked === true;
+  if (isSpawnWalkable("archipelago", pos.x, pos.y, overworldUnlocked, sailing)) {
+    return;
+  }
+
+  const tileX = Math.round(pos.x);
+  if (sailing) {
+    // Prefer keeping east progress on the mid-ocean sail band.
+    if (isArchipelagoSailPosition(tileX, ARCHIPELAGO_ENTRY.y)) {
+      pos.y = ARCHIPELAGO_ENTRY.y;
+      return;
+    }
+    pos.x = ARCHIPELAGO_ENTRY.x;
+    pos.y = ARCHIPELAGO_ENTRY.y;
+    return;
+  }
+
+  // On foot: snap to the nearest current island pier (or Harbor pier fallback).
+  const islands = listIslandTemplates(ARCHIPELAGO_MAX_WIDTH);
+  if (islands.length === 0) {
+    pos.zoneId = "harbor";
+    pos.x = HARBOR_PIER.x;
+    pos.y = HARBOR_PIER.y;
+    return;
+  }
+  let best = islands[0]!.pier;
+  let bestDist = Infinity;
+  const tileY = Math.round(pos.y);
+  for (const island of islands) {
+    const dist =
+      Math.abs(island.pier.x - tileX) + Math.abs(island.pier.y - tileY);
+    if (dist < bestDist) {
+      bestDist = dist;
+      best = island.pier;
+    }
+  }
+  pos.x = best.x;
+  pos.y = best.y;
 }
 
 export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {

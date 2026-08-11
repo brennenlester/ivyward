@@ -24,10 +24,12 @@ import {
   applyWorldSnapshot,
   isValidWorldSnapshot,
   migrateBoatStateToHarbor,
+  repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
   type WorldSnapshot,
 } from "./worldSnapshot";
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
+import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
 
 function questProgress(
   overrides: Partial<Record<QuestId, QuestStatus>> = {},
@@ -209,6 +211,59 @@ describe("repairLegacyOverworldShorePosition", () => {
     });
     repairLegacyOverworldShorePosition(grove);
     expect(grove.position).toEqual({ zoneId: "grove", x: 3, y: 7 });
+  });
+});
+
+describe("repairLegacyArchipelagoLayoutPosition", () => {
+  it("keeps east progress but moves sailing onto mid-ocean when land blocks old y", () => {
+    // Pre-#102 corridor y=6 under the seed island is now Floor.
+    const sailing = validSnapshot({
+      overworldUnlocked: true,
+      sailing: true,
+      placedBoat: true,
+      position: { zoneId: "archipelago", x: 12, y: 6 },
+    });
+    expect(isValidWorldSnapshot(sailing)).toBe(false);
+    repairLegacyArchipelagoLayoutPosition(sailing);
+    expect(sailing.position).toEqual({
+      zoneId: "archipelago",
+      x: 12,
+      y: ARCHIPELAGO_ENTRY.y,
+    });
+    expect(isValidWorldSnapshot(sailing)).toBe(true);
+  });
+
+  it("snaps invalid on-foot island stands to the nearest current pier", () => {
+    // Pre-#102 south island pier (spacing 16) is no longer Floor.
+    const onFoot = validSnapshot({
+      overworldUnlocked: true,
+      sailing: false,
+      placedBoat: true,
+      position: { zoneId: "archipelago", x: 27, y: 10 },
+    });
+    expect(isValidWorldSnapshot(onFoot)).toBe(false);
+    repairLegacyArchipelagoLayoutPosition(onFoot);
+    const expected = islandTemplateAtIndex(1).pier;
+    expect(onFoot.position).toEqual({
+      zoneId: "archipelago",
+      x: expected.x,
+      y: expected.y,
+    });
+    expect(isValidWorldSnapshot(onFoot)).toBe(true);
+  });
+
+  it("leaves valid current archipelago stands alone", () => {
+    const pier = islandTemplateAtIndex(0).pier;
+    const onFoot = validSnapshot({
+      overworldUnlocked: true,
+      position: { zoneId: "archipelago", x: pier.x, y: pier.y },
+    });
+    repairLegacyArchipelagoLayoutPosition(onFoot);
+    expect(onFoot.position).toEqual({
+      zoneId: "archipelago",
+      x: pier.x,
+      y: pier.y,
+    });
   });
 });
 

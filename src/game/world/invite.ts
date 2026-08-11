@@ -5,6 +5,7 @@ import {
   exportWorldSnapshot,
   isValidWorldSnapshot,
   migrateBoatStateToHarbor,
+  repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
 } from "./worldSnapshot";
 import type { ZoneId } from "./zoneTypes";
@@ -78,6 +79,7 @@ export function parseInviteParam(): InviteParseResult {
     const parsed = JSON.parse(fromBase64Url(encoded));
     migrateBoatStateToHarbor(parsed);
     repairLegacyOverworldShorePosition(parsed);
+    repairLegacyArchipelagoLayoutPosition(parsed);
     if (!isValidWorldSnapshot(parsed)) {
       return { status: "invalid" };
     }

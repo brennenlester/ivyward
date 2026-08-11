@@ -67,6 +67,11 @@ export type ChunkEnsureResult = {
   width: number;
   grew: boolean;
   unloadedColumns: number[];
+  /**
+   * Westmost column that needs sprite refresh after growth.
+   * May be < previousWidth when an island completes across a chunk boundary.
+   */
+  redrawFrom: number;
 };
 
 const BIOMES: IslandBiome[] = ["lush", "barren", "other"];
@@ -290,14 +295,22 @@ function stampIsland(island: IslandTemplate): void {
  * Stamp islands whose full footprint newly fits in `[0, xEnd)`.
  * Origins may precede `xStart` when ISLAND_WIDTH > chunk size — stamp once
  * the eastern edge crosses into the grown columns (avoid re-stamping).
+ * Returns the westmost origin stamped, or null if none.
  */
-function stampIslandsInColumnRange(xStart: number, xEnd: number): void {
+function stampIslandsInColumnRange(
+  xStart: number,
+  xEnd: number,
+): number | null {
+  let redrawFrom: number | null = null;
   for (const island of listIslandTemplates(ARCHIPELAGO_MAX_WIDTH)) {
     const islandEnd = island.x + ISLAND_WIDTH;
     if (islandEnd <= xEnd && islandEnd > xStart) {
       stampIsland(island);
+      redrawFrom =
+        redrawFrom === null ? island.x : Math.min(redrawFrom, island.x);
     }
   }
+  return redrawFrom;
 }
 
 function appendWaterColumns(count: number): void {
@@ -325,6 +338,7 @@ function appendWaterColumns(count: number): void {
 export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResult {
   const previousWidth = ARCHIPELAGO.width;
   const px = Math.floor(playerX);
+  let redrawFrom = previousWidth;
 
   while (
     px + ARCHIPELAGO_LOOKAHEAD >= ARCHIPELAGO.width - 1 &&
@@ -334,7 +348,13 @@ export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResul
   }
 
   if (ARCHIPELAGO.width > previousWidth) {
-    stampIslandsInColumnRange(previousWidth, ARCHIPELAGO.width);
+    const stampedFrom = stampIslandsInColumnRange(
+      previousWidth,
+      ARCHIPELAGO.width,
+    );
+    if (stampedFrom !== null) {
+      redrawFrom = Math.min(redrawFrom, stampedFrom);
+    }
   }
 
   return {
@@ -342,6 +362,7 @@ export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResul
     width: ARCHIPELAGO.width,
     grew: ARCHIPELAGO.width > previousWidth,
     unloadedColumns: [],
+    redrawFrom,
   };
 }
 
