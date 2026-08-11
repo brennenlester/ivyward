@@ -495,8 +495,16 @@ export class IsometricScene extends Phaser.Scene {
           }
         }
       }
+      // Props must match the cull window (full getZoneProps would reintroduce
+      // far-west sprites and later duplicate when sailing west restores columns).
+      this.drawArchipelagoPropsInColumns(0, 3);
+      this.drawArchipelagoPropsInColumns(
+        this.archipelagoCullBefore,
+        zone.width,
+      );
+    } else {
+      this.drawProps(zone);
     }
-    this.drawProps(zone);
     this.drawNpcs(zone);
     this.drawPlacedBoat(zone);
     recordQuestEvent({ type: "enter_zone", zoneId });

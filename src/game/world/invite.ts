@@ -9,9 +9,10 @@ import {
 } from "./worldSnapshot";
 import type { ZoneId } from "./zoneTypes";
 
-/** Visitors cannot sail; mid-sail invites must land on the Harbor pier on foot. */
+/** Visitors cannot sail or leave islands alone; land them on the Harbor pier. */
 export function normalizeInviteSailingSnapshot(snapshot: WorldSnapshot): void {
-  if (snapshot.sailing !== true) {
+  const onArchipelago = snapshot.position.zoneId === "archipelago";
+  if (snapshot.sailing !== true && !onArchipelago) {
     return;
   }
   snapshot.sailing = false;

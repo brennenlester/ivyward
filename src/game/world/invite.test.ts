@@ -96,4 +96,25 @@ describe("invite encode/decode", () => {
     });
     expect(result.snapshot.placedBoat).toBe(true);
   });
+
+  it("normalizes on-foot archipelago island invites onto the Harbor pier", () => {
+    setPlacedBoat(true);
+    setSailing(false);
+    setOverworldUnlocked(true);
+    // Host standing on the seed lush island pier.
+    const url = buildInviteUrl("archipelago", 11, 5);
+    const parsedUrl = new URL(url);
+    window.history.replaceState({}, "", `${parsedUrl.pathname}${parsedUrl.search}`);
+    const result = parseInviteParam();
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") {
+      return;
+    }
+    expect(result.snapshot.sailing).toBe(false);
+    expect(result.snapshot.position).toEqual({
+      zoneId: "harbor",
+      x: 3,
+      y: 6,
+    });
+  });
 });
