@@ -6,6 +6,10 @@ export const playerInventory = {
   items: {} as Record<string, number>,
 };
 
+const ITEM_HOLD_CAPS: Record<string, number> = {
+  "brook-crystal": 20,
+};
+
 export function getMaterialCount(materialId: string): number {
   return playerInventory.materials[materialId] ?? 0;
 }
@@ -29,16 +33,25 @@ export function consumeMaterial(materialId: string, amount: number): boolean {
   return true;
 }
 
-export function addItem(itemId: string, amount = 1): void {
-  playerInventory.items[itemId] = getItemCount(itemId) + amount;
-  notifyWorldChanged();
+export function canAddItem(itemId: string, amount = 1): boolean {
+  const cap = ITEM_HOLD_CAPS[itemId];
+  return amount > 0 && (cap === undefined || getItemCount(itemId) + amount <= cap);
 }
 
-export function consumeItem(itemId: string): boolean {
-  if (getItemCount(itemId) < 1) {
+export function addItem(itemId: string, amount = 1): boolean {
+  if (!canAddItem(itemId, amount)) {
     return false;
   }
-  playerInventory.items[itemId] -= 1;
+  playerInventory.items[itemId] = getItemCount(itemId) + amount;
+  notifyWorldChanged();
+  return true;
+}
+
+export function consumeItem(itemId: string, amount = 1): boolean {
+  if (amount < 1 || getItemCount(itemId) < amount) {
+    return false;
+  }
+  playerInventory.items[itemId] -= amount;
   notifyWorldChanged();
   return true;
 }

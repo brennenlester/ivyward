@@ -30,6 +30,16 @@ export function grantSparXp(creature: CreatureInstance, amount = XP_PER_SPAR_WIN
   return creature.level - prevLevel;
 }
 
+export function grantFlatLevel(creature: CreatureInstance): number {
+  const newLevel = Math.min(MAX_LEVEL, creature.level + 1);
+  if (newLevel === creature.level) {
+    return 0;
+  }
+  creature.level = newLevel;
+  creature.xp = LEVEL_XP_THRESHOLDS[newLevel];
+  return 1;
+}
+
 export function createNewCreatureProgress(): Pick<CreatureInstance, "level" | "xp"> {
   return { level: 1, xp: 0 };
 }

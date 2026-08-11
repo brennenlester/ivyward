@@ -1,5 +1,6 @@
 import {
   addItem,
+  canAddItem,
   consumeMaterial,
   getMaterialCount,
 } from "../inventory/playerInventory";
@@ -56,6 +57,12 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     ],
   },
   {
+    id: "brook-crystal",
+    name: "Brook Crystal",
+    outputItemId: "brook-crystal",
+    materials: [{ materialId: "brook-pearl", count: 1 }],
+  },
+  {
     id: "moonwake-draught",
     name: "Moonwake Draught",
     outputItemId: "moonwake-draught",
@@ -83,8 +90,11 @@ export function canCraft(recipe: CraftRecipe): boolean {
   if (isVisitorMode()) {
     return false;
   }
-  return recipe.materials.every(
-    (m) => getMaterialCount(m.materialId) >= m.count,
+  return (
+    canAddItem(recipe.outputItemId) &&
+    recipe.materials.every(
+      (m) => getMaterialCount(m.materialId) >= m.count,
+    )
   );
 }
 
@@ -97,6 +107,5 @@ export function craftItem(recipe: CraftRecipe): boolean {
       return false;
     }
   }
-  addItem(recipe.outputItemId);
-  return true;
+  return addItem(recipe.outputItemId);
 }
