@@ -1020,9 +1020,29 @@
         "h": 208
       }
     },
-    "creature-lantern-fox-idle": {
+    "creature-isle-fernling": {
       "frame": {
         "x": 970,
+        "y": 1912,
+        "w": 192,
+        "h": 208
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 208
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 208
+      }
+    },
+    "creature-lantern-fox-idle": {
+      "frame": {
+        "x": 1164,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1042,7 +1062,7 @@
     },
     "creature-lantern-fox": {
       "frame": {
-        "x": 1164,
+        "x": 1358,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1062,7 +1082,7 @@
     },
     "creature-mist-serpent-idle": {
       "frame": {
-        "x": 1358,
+        "x": 1552,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1082,7 +1102,7 @@
     },
     "creature-mist-serpent": {
       "frame": {
-        "x": 1552,
+        "x": 1746,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1102,7 +1122,7 @@
     },
     "creature-mossling-idle": {
       "frame": {
-        "x": 1746,
+        "x": 1940,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1122,7 +1142,7 @@
     },
     "creature-mossling": {
       "frame": {
-        "x": 1940,
+        "x": 2134,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1142,7 +1162,7 @@
     },
     "creature-peat-sprite": {
       "frame": {
-        "x": 2134,
+        "x": 2328,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1162,7 +1182,7 @@
     },
     "creature-rootwalker-idle": {
       "frame": {
-        "x": 2328,
+        "x": 2522,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1182,7 +1202,47 @@
     },
     "creature-rootwalker": {
       "frame": {
-        "x": 2522,
+        "x": 2716,
+        "y": 1912,
+        "w": 192,
+        "h": 208
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 208
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 208
+      }
+    },
+    "creature-salt-scuttle": {
+      "frame": {
+        "x": 2910,
+        "y": 1912,
+        "w": 192,
+        "h": 208
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 208
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 208
+      }
+    },
+    "creature-shoal-wisp": {
+      "frame": {
+        "x": 3104,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1202,7 +1262,7 @@
     },
     "creature-stone-hound-idle": {
       "frame": {
-        "x": 2716,
+        "x": 3298,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1222,7 +1282,7 @@
     },
     "creature-stone-hound": {
       "frame": {
-        "x": 2910,
+        "x": 3492,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1242,7 +1302,7 @@
     },
     "creature-thunder-finch-idle": {
       "frame": {
-        "x": 3104,
+        "x": 3686,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1262,7 +1322,7 @@
     },
     "creature-thunder-finch": {
       "frame": {
-        "x": 3298,
+        "x": 3880,
         "y": 1912,
         "w": 192,
         "h": 208
@@ -1282,8 +1342,8 @@
     },
     "prop-tree": {
       "frame": {
-        "x": 3492,
-        "y": 1912,
+        "x": 0,
+        "y": 2122,
         "w": 192,
         "h": 200
       },
@@ -1301,66 +1361,6 @@
       }
     },
     "floor-emberfen-dark": {
-      "frame": {
-        "x": 3686,
-        "y": 1912,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-emberfen-light": {
-      "frame": {
-        "x": 3880,
-        "y": 1912,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-grove-dark": {
-      "frame": {
-        "x": 0,
-        "y": 2122,
-        "w": 192,
-        "h": 192
-      },
-      "rotated": false,
-      "trimmed": false,
-      "spriteSourceSize": {
-        "x": 0,
-        "y": 0,
-        "w": 192,
-        "h": 192
-      },
-      "sourceSize": {
-        "w": 192,
-        "h": 192
-      }
-    },
-    "floor-grove-light": {
       "frame": {
         "x": 194,
         "y": 2122,
@@ -1380,7 +1380,7 @@
         "h": 192
       }
     },
-    "floor-mistwood-dark": {
+    "floor-emberfen-light": {
       "frame": {
         "x": 388,
         "y": 2122,
@@ -1400,7 +1400,7 @@
         "h": 192
       }
     },
-    "floor-mistwood-light": {
+    "floor-grove-dark": {
       "frame": {
         "x": 582,
         "y": 2122,
@@ -1420,7 +1420,7 @@
         "h": 192
       }
     },
-    "floor-overworld-dark": {
+    "floor-grove-light": {
       "frame": {
         "x": 776,
         "y": 2122,
@@ -1440,7 +1440,7 @@
         "h": 192
       }
     },
-    "floor-overworld-light": {
+    "floor-mistwood-dark": {
       "frame": {
         "x": 970,
         "y": 2122,
@@ -1460,7 +1460,7 @@
         "h": 192
       }
     },
-    "floor-path": {
+    "floor-mistwood-light": {
       "frame": {
         "x": 1164,
         "y": 2122,
@@ -1480,7 +1480,7 @@
         "h": 192
       }
     },
-    "floor-shrine-dark": {
+    "floor-overworld-dark": {
       "frame": {
         "x": 1358,
         "y": 2122,
@@ -1500,7 +1500,7 @@
         "h": 192
       }
     },
-    "floor-shrine-light": {
+    "floor-overworld-light": {
       "frame": {
         "x": 1552,
         "y": 2122,
@@ -1520,7 +1520,7 @@
         "h": 192
       }
     },
-    "floor-village-dark": {
+    "floor-path": {
       "frame": {
         "x": 1746,
         "y": 2122,
@@ -1540,7 +1540,7 @@
         "h": 192
       }
     },
-    "floor-village-light": {
+    "floor-shrine-dark": {
       "frame": {
         "x": 1940,
         "y": 2122,
@@ -1560,9 +1560,69 @@
         "h": 192
       }
     },
-    "prop-cottage": {
+    "floor-shrine-light": {
       "frame": {
         "x": 2134,
+        "y": 2122,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "floor-village-dark": {
+      "frame": {
+        "x": 2328,
+        "y": 2122,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "floor-village-light": {
+      "frame": {
+        "x": 2522,
+        "y": 2122,
+        "w": 192,
+        "h": 192
+      },
+      "rotated": false,
+      "trimmed": false,
+      "spriteSourceSize": {
+        "x": 0,
+        "y": 0,
+        "w": 192,
+        "h": 192
+      },
+      "sourceSize": {
+        "w": 192,
+        "h": 192
+      }
+    },
+    "prop-cottage": {
+      "frame": {
+        "x": 2716,
         "y": 2122,
         "w": 192,
         "h": 176
@@ -1582,7 +1642,7 @@
     },
     "prop-gate-locked": {
       "frame": {
-        "x": 2328,
+        "x": 2910,
         "y": 2122,
         "w": 192,
         "h": 168
@@ -1602,7 +1662,7 @@
     },
     "prop-gate": {
       "frame": {
-        "x": 2522,
+        "x": 3104,
         "y": 2122,
         "w": 192,
         "h": 168
@@ -1622,7 +1682,7 @@
     },
     "prop-hearth": {
       "frame": {
-        "x": 2716,
+        "x": 3298,
         "y": 2122,
         "w": 192,
         "h": 160
@@ -1642,7 +1702,7 @@
     },
     "prop-shrine-altar": {
       "frame": {
-        "x": 2910,
+        "x": 3492,
         "y": 2122,
         "w": 192,
         "h": 160
@@ -1662,7 +1722,7 @@
     },
     "prop-standing-stone": {
       "frame": {
-        "x": 3104,
+        "x": 3686,
         "y": 2122,
         "w": 168,
         "h": 152
@@ -1682,7 +1742,7 @@
     },
     "prop-pebble-pile": {
       "frame": {
-        "x": 3274,
+        "x": 3856,
         "y": 2122,
         "w": 176,
         "h": 128
@@ -1702,8 +1762,8 @@
     },
     "prop-fern": {
       "frame": {
-        "x": 3452,
-        "y": 2122,
+        "x": 0,
+        "y": 2324,
         "w": 160,
         "h": 128
       },
@@ -1728,7 +1788,7 @@
     "format": "RGBA8888",
     "size": {
       "w": 4074,
-      "h": 2316
+      "h": 2454
     },
     "scale": "1"
   }
