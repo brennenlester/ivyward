@@ -33,6 +33,7 @@ import {
 import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQuests";
 import {
   isBoatPlaced,
+  isNearEastLandingDock,
   isSailing,
   getMooredDock,
   setMooredDock,
@@ -428,6 +429,29 @@ export function takePendingWorldPosition(): PendingWorldPosition | null {
   return position;
 }
 
+/** Resolve west/east moored dock, including legacy East Landing auto-arrive saves. */
+function inferMooredDock(snapshot: WorldSnapshot): HarborDockId {
+  if (snapshot.mooredDock === "west" || snapshot.mooredDock === "east") {
+    return snapshot.mooredDock;
+  }
+  // Pre-#94 auto-arrive left players on East Landing pads with the boat "placed"
+  // and sailing cleared, but no mooredDock field. Defaulting those to west strands
+  // the player on the east pads with the boat only boardable at the west dock.
+  if (
+    snapshot.placedBoat === true &&
+    snapshot.sailing !== true &&
+    snapshot.position.zoneId === "harbor" &&
+    isNearEastLandingDock(
+      "harbor",
+      Math.round(snapshot.position.x),
+      Math.round(snapshot.position.y),
+    )
+  ) {
+    return "east";
+  }
+  return "west";
+}
+
 export function exportWorldSnapshot(
   position: PendingWorldPosition,
   hostLabel = "Your world",
@@ -475,10 +499,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setPlacedBoat(snapshot.placedBoat === true);
   if (snapshot.placedBoat === true) {
-    const dock = snapshot.mooredDock;
-    setMooredDock(
-      dock === "west" || dock === "east" ? (dock as HarborDockId) : "west",
-    );
+    setMooredDock(inferMooredDock(snapshot));
   } else {
     setMooredDock(null);
   }

@@ -281,6 +281,25 @@ describe("placedBoat snapshot", () => {
     expect(getMooredDock()).toBe("east");
   });
 
+  it("infers east mooredDock for legacy East Landing auto-arrive saves", () => {
+    applyWorldSnapshot({
+      version: 1,
+      hostLabel: "test",
+      overworldUnlocked: true,
+      questProgress: questProgress(),
+      party: [],
+      nextInstanceId: 1,
+      materials: {},
+      items: {},
+      placedBoat: true,
+      sailing: false,
+      // no mooredDock — pre-#94
+      position: { zoneId: "harbor", x: EAST_LANDING.x, y: EAST_LANDING.y },
+    });
+    expect(isBoatPlaced()).toBe(true);
+    expect(getMooredDock()).toBe("east");
+  });
+
   it("treats missing placedBoat as false for older saves", () => {
     setPlacedBoat(true);
     applyWorldSnapshot({
