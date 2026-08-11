@@ -5,7 +5,6 @@ import {
   ARCHIPELAGO_ENTRY,
   ARCHIPELAGO_INITIAL_WIDTH,
   ARCHIPELAGO_LOOKAHEAD,
-  ARCHIPELAGO_LOOKBEHIND,
   ARCHIPELAGO_MAX_WIDTH,
   ARCHIPELAGO_WATER_ROWS,
   HARBOR_EAST_SAIL_GATES,
@@ -130,16 +129,15 @@ describe("archipelago chunk stream", () => {
     expect(ARCHIPELAGO.tiles[y][result.width - 1]).toBe(TileType.Water);
   });
 
-  it("unloads far-west water behind the player", () => {
-    const result = ensureArchipelagoChunksAround(80);
-    expect(result.grew).toBe(true);
-    expect(result.unloadedColumns.length).toBeGreaterThan(0);
-    const sample = result.unloadedColumns[0];
-    expect(sample).toBeGreaterThanOrEqual(3);
-    expect(sample).toBeLessThan(80 - ARCHIPELAGO_LOOKBEHIND);
-    expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][sample]).toBe(TileType.Wall);
-    // West Harbor return corridor stays water.
-    expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][0]).toBe(TileType.Water);
+  it("keeps a continuous water path west to the Harbor return gate", () => {
+    ensureArchipelagoChunksAround(80);
+    const y = ARCHIPELAGO_ENTRY.y;
+    for (let x = 0; x <= 80; x++) {
+      expect(ARCHIPELAGO.tiles[y][x]).toBe(TileType.Water);
+    }
+    expect(
+      getZone("archipelago").transitions.some((t) => t.targetZone === "harbor"),
+    ).toBe(true);
   });
 });
 

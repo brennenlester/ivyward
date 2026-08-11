@@ -8,7 +8,7 @@ export const ARCHIPELAGO_INITIAL_WIDTH = 24;
 export const ARCHIPELAGO_CHUNK = 8;
 /** Keep this many columns of water ahead of the player. */
 export const ARCHIPELAGO_LOOKAHEAD = 12;
-/** Unload water columns farther west than this distance behind the player. */
+/** Kept for follow-up visual cull; collision unload is deferred (see ensure ponytail). */
 export const ARCHIPELAGO_LOOKBEHIND = 32;
 /** Hard cap so a single session cannot grow forever. */
 export const ARCHIPELAGO_MAX_WIDTH = 200;
@@ -91,8 +91,12 @@ function appendWaterColumns(count: number): void {
 }
 
 /**
- * Grow water east of the player and unload far-west columns (set to Wall).
- * Keeps x=0..2 as the Harbor return corridor so west-edge continuity works.
+ * Grow water east of the player.
+ *
+ * ponytail: no west unload-to-wall — converting far-west Water→Wall trapped the
+ * player behind a permanent barrier and broke Archipelago→Harbor return after
+ * ~LOOKBEHIND tiles. v1 grows a bounded window (max ARCHIPELAGO_MAX_WIDTH);
+ * visual sprite cull / recycle can come later without changing collision.
  */
 export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResult {
   const previousWidth = ARCHIPELAGO.width;
@@ -105,27 +109,11 @@ export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResul
     appendWaterColumns(ARCHIPELAGO_CHUNK);
   }
 
-  const unloadedColumns: number[] = [];
-  const unloadBefore = px - ARCHIPELAGO_LOOKBEHIND;
-  // Preserve west entry corridor (Harbor return gates at x=0).
-  for (let x = 3; x < unloadBefore && x < ARCHIPELAGO.width; x++) {
-    let changed = false;
-    for (let y = 0; y < ARCHIPELAGO.height; y++) {
-      if (ARCHIPELAGO.tiles[y][x] === TileType.Water) {
-        ARCHIPELAGO.tiles[y][x] = TileType.Wall;
-        changed = true;
-      }
-    }
-    if (changed) {
-      unloadedColumns.push(x);
-    }
-  }
-
   return {
     previousWidth,
     width: ARCHIPELAGO.width,
     grew: ARCHIPELAGO.width > previousWidth,
-    unloadedColumns,
+    unloadedColumns: [],
   };
 }
 

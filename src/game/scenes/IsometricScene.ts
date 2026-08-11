@@ -399,25 +399,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private applyArchipelagoStreamVisuals(result: ChunkEnsureResult): void {
-    if (result.unloadedColumns.length > 0) {
-      const unload = new Set(result.unloadedColumns);
-      for (const child of this.children.list.slice()) {
-        if (
-          "getData" in child &&
-          typeof (child as Phaser.GameObjects.Image).getData === "function"
-        ) {
-          const img = child as Phaser.GameObjects.Image;
-          const gx = img.getData("streamX");
-          if (typeof gx === "number" && unload.has(gx)) {
-            img.destroy();
-          }
-        }
-      }
-      const zone = getZone("archipelago");
-      for (const x of result.unloadedColumns) {
-        this.drawWallsInColumns(zone, x, x + 1);
-      }
-    }
+    // ponytail: unloadColumns unused while collision unload is deferred.
     if (result.grew) {
       const zone = getZone("archipelago");
       this.drawZoneTileColumns(zone, result.previousWidth, result.width);
