@@ -216,12 +216,12 @@ describe("repairLegacyOverworldShorePosition", () => {
 
 describe("repairLegacyArchipelagoLayoutPosition", () => {
   it("keeps east progress but moves sailing onto mid-ocean when land blocks old y", () => {
-    // Pre-#102 corridor y=6 under the seed island is now Floor.
+    // Pre-#108 / height-28 mid-band or island Floor underfoot while sailing.
     const sailing = validSnapshot({
       overworldUnlocked: true,
       sailing: true,
       placedBoat: true,
-      position: { zoneId: "archipelago", x: 12, y: 6 },
+      position: { zoneId: "archipelago", x: 12, y: 12 },
     });
     expect(isValidWorldSnapshot(sailing)).toBe(false);
     repairLegacyArchipelagoLayoutPosition(sailing);
@@ -234,7 +234,7 @@ describe("repairLegacyArchipelagoLayoutPosition", () => {
   });
 
   it("snaps invalid on-foot island stands to the nearest current pier", () => {
-    // Pre-#102 south island pier (spacing 16) is no longer Floor.
+    // Open-water gap between columns is not a valid on-foot stand.
     const onFoot = validSnapshot({
       overworldUnlocked: true,
       sailing: false,

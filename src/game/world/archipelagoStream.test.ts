@@ -5,19 +5,25 @@ import {
   ARCHIPELAGO_ENTRY,
   ARCHIPELAGO_HEIGHT,
   ARCHIPELAGO_INITIAL_WIDTH,
-  ARCHIPELAGO_LOOKAHEAD,
   ARCHIPELAGO_LOOKBEHIND,
   ARCHIPELAGO_MAX_WIDTH,
   ARCHIPELAGO_WEST_RETURN_ROWS,
   HARBOR_EAST_SAIL_GATES,
+  ISLAND_COLS,
   ISLAND_ORIGIN_X,
+  ISLAND_ORIGIN_Y,
+  ISLAND_ROWS,
+  ISLAND_SPACING,
   ISLAND_WIDTH,
   allowsSailZoneTransition,
   archipelagoVisualCullBefore,
+  biomeAtIslandTile,
   ensureArchipelagoChunksAround,
+  findNearestIslandDock,
   getArchipelagoProps,
   isArchipelagoIslandPosition,
   isArchipelagoSailPosition,
+  islandCellAt,
   islandTemplateAtIndex,
   listIslandTemplates,
   prepareArchipelagoForPosition,
@@ -60,19 +66,25 @@ beforeEach(() => {
 });
 
 describe("archipelago zone shell", () => {
-  it("registers archipelago in ZONES with open ocean water", () => {
+  it("registers a 100×100 open ocean archipelago", () => {
     expect(ZONES.archipelago).toBeDefined();
     expect(ZONES.archipelago).toBe(ARCHIPELAGO);
     const zone = getZone("archipelago");
     expect(zone.name).toBe("Open Archipelago");
-    expect(zone.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
-    expect(zone.height).toBe(ARCHIPELAGO_HEIGHT);
+    expect(ARCHIPELAGO_HEIGHT).toBe(100);
+    expect(ARCHIPELAGO_INITIAL_WIDTH).toBe(100);
+    expect(ARCHIPELAGO_MAX_WIDTH).toBe(100);
+    expect(zone.width).toBe(100);
+    expect(zone.height).toBe(100);
     expect(zone.tiles[ARCHIPELAGO_ENTRY.y][ARCHIPELAGO_ENTRY.x]).toBe(
       TileType.Water,
     );
-    // Non-island cells are Water (no wall banks); sample top/bottom and mid-band.
     expect(zone.tiles[0][0]).toBe(TileType.Water);
     expect(zone.tiles[ARCHIPELAGO_HEIGHT - 1][0]).toBe(TileType.Water);
+    expect(zone.tiles[0][ARCHIPELAGO_MAX_WIDTH - 1]).toBe(TileType.Water);
+    expect(zone.tiles[ARCHIPELAGO_HEIGHT - 1][ARCHIPELAGO_MAX_WIDTH - 1]).toBe(
+      TileType.Water,
+    );
     for (const y of ARCHIPELAGO_WEST_RETURN_ROWS) {
       expect(zone.tiles[y][0]).toBe(TileType.Water);
     }
@@ -99,6 +111,7 @@ describe("archipelago zone shell", () => {
       targetZone: "harbor",
       targetX: 16,
     });
+    expect(ARCHIPELAGO_ENTRY).toEqual({ x: 1, y: 50 });
     expect(isTileWalkable(getZone("harbor"), 16, 7)).toBe(false); // water on foot
   });
 
@@ -133,19 +146,103 @@ describe("sail-preserving Harbor → archipelago transition", () => {
   });
 });
 
-describe("archipelago chunk stream", () => {
-  it("extends water columns ahead of the player", () => {
-    const nearEdge = ARCHIPELAGO_INITIAL_WIDTH - ARCHIPELAGO_LOOKAHEAD;
-    const result = ensureArchipelagoChunksAround(nearEdge);
-    expect(result.grew).toBe(true);
-    expect(result.width).toBeGreaterThan(ARCHIPELAGO_INITIAL_WIDTH);
-    expect(result.width).toBeLessThanOrEqual(ARCHIPELAGO_MAX_WIDTH);
-    const y = ARCHIPELAGO_ENTRY.y;
-    expect(ARCHIPELAGO.tiles[y][result.width - 1]).toBe(TileType.Water);
+describe("archipelago 2D island grid", () => {
+  it("places sixteen 9×9 islands on a 4×4 grid with sail gaps", () => {
+    const islands = listIslandTemplates(ARCHIPELAGO_MAX_WIDTH);
+    expect(islands).toHaveLength(16);
+    expect(ISLAND_COLS * ISLAND_ROWS).toBe(16);
+    expect(ISLAND_WIDTH).toBe(9);
+    expect(ISLAND_SPACING).toBe(22);
+
+    const origins = [
+      [10, 10],
+      [32, 10],
+      [54, 10],
+      [76, 10],
+      [10, 32],
+      [32, 32],
+      [54, 32],
+      [76, 32],
+      [10, 54],
+      [32, 54],
+      [54, 54],
+      [76, 54],
+      [10, 76],
+      [32, 76],
+      [54, 76],
+      [76, 76],
+    ] as const;
+
+    for (let i = 0; i < islands.length; i++) {
+      const island = islands[i]!;
+      const [ox, oy] = origins[i]!;
+      expect(island.index).toBe(i);
+      expect(island.x).toBe(ox);
+      expect(island.y).toBe(oy);
+      expect(island.x + ISLAND_WIDTH - 1).toBeLessThanOrEqual(84);
+      expect(island.y + ISLAND_WIDTH - 1).toBeLessThanOrEqual(84);
+      expect(island.dock).toEqual({ x: ox + 4, y: oy + 9 });
+      expect(island.pier).toEqual({ x: ox + 4, y: oy + 8 });
+      expect(island.embarkWater).toEqual({ x: ox + 4, y: oy + 10 });
+
+      expect(ARCHIPELAGO.tiles[island.dock.y][island.dock.x]).toBe(TileType.Dock);
+      expect(ARCHIPELAGO.tiles[island.pier.y][island.pier.x]).toBe(TileType.Floor);
+      expect(ARCHIPELAGO.tiles[island.embarkWater.y][island.embarkWater.x]).toBe(
+        TileType.Water,
+      );
+      expect(ARCHIPELAGO.tiles[oy][ox]).toBe(TileType.Floor);
+      expect(ARCHIPELAGO.tiles[oy + ISLAND_WIDTH - 1][ox + ISLAND_WIDTH - 1]).toBe(
+        TileType.Floor,
+      );
+      // Open water in the gap east/south of the footprint.
+      expect(ARCHIPELAGO.tiles[oy][ox + ISLAND_WIDTH]).toBe(TileType.Water);
+      expect(ARCHIPELAGO.tiles[oy + ISLAND_WIDTH][ox]).toBe(TileType.Water);
+    }
+
+    const biomes = new Set(islands.map((i) => i.biome));
+    expect(biomes.has("lush")).toBe(true);
+    expect(biomes.has("barren")).toBe(true);
+    expect(biomes.has("other")).toBe(true);
+
+    const props = getArchipelagoProps();
+    expect(props.length).toBeGreaterThan(0);
+    expect(getZoneProps("archipelago")).toEqual(props);
+  });
+
+  it("resolves islandCellAt / biomeAtIslandTile for floor and dock", () => {
+    const first = islandTemplateAtIndex(0);
+    expect(islandCellAt(first.x, first.y)).toBe("floor");
+    expect(islandCellAt(first.dock.x, first.dock.y)).toBe("dock");
+    expect(islandCellAt(first.embarkWater.x, first.embarkWater.y)).toBe(null);
+    expect(biomeAtIslandTile(first.pier.x, first.pier.y)).toBe("lush");
+    expect(biomeAtIslandTile(ARCHIPELAGO_ENTRY.x, ARCHIPELAGO_ENTRY.y)).toBe(
+      null,
+    );
+    expect(findNearestIslandDock(first.dock.x, first.dock.y)?.index).toBe(0);
+  });
+
+  it("exposes the NW seed island at the origin", () => {
+    const first = islandTemplateAtIndex(0);
+    expect(first.x).toBe(ISLAND_ORIGIN_X);
+    expect(first.y).toBe(ISLAND_ORIGIN_Y);
+    expect(first.biome).toBe("lush");
+    expect(first.row).toBe(0);
+    expect(first.col).toBe(0);
+    expect(ARCHIPELAGO.tiles[first.dock.y][first.dock.x]).toBe(TileType.Dock);
+    expect(isArchipelagoIslandPosition(first.pier.x, first.pier.y)).toBe(true);
+  });
+});
+
+describe("archipelago chunk ensure", () => {
+  it("no-ops when the map is already full width", () => {
+    expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_MAX_WIDTH);
+    const result = ensureArchipelagoChunksAround(80);
+    expect(result.grew).toBe(false);
+    expect(result.width).toBe(ARCHIPELAGO_MAX_WIDTH);
+    expect(result.previousWidth).toBe(ARCHIPELAGO_MAX_WIDTH);
   });
 
   it("keeps a continuous water path west to the Harbor return gate", () => {
-    ensureArchipelagoChunksAround(80);
     const y = ARCHIPELAGO_ENTRY.y;
     for (let x = 0; x <= 80; x++) {
       expect(ARCHIPELAGO.tiles[y][x]).toBe(TileType.Water);
@@ -155,124 +252,30 @@ describe("archipelago chunk stream", () => {
     ).toBe(true);
   });
 
-  it("stamps multi-biome islands with docks and open water around them", () => {
-    ensureArchipelagoChunksAround(80);
-    const islands = listIslandTemplates(ARCHIPELAGO.width);
-    expect(islands.length).toBeGreaterThanOrEqual(3);
-    const biomes = new Set(islands.map((i) => i.biome));
-    expect(biomes.has("lush")).toBe(true);
-    expect(biomes.has("barren")).toBe(true);
-    expect(biomes.has("other")).toBe(true);
-
-    for (const island of islands) {
-      expect(ARCHIPELAGO.tiles[island.dock.y][island.dock.x]).toBe(
-        TileType.Dock,
-      );
-      expect(ARCHIPELAGO.tiles[island.pier.y][island.pier.x]).toBe(
-        TileType.Floor,
-      );
-      expect(ARCHIPELAGO.tiles[island.embarkWater.y][island.embarkWater.x]).toBe(
-        TileType.Water,
-      );
-      // Mid-ocean water between north/south islands (sail around).
-      expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][island.x]).toBe(
-        TileType.Water,
-      );
-      // 9×9 Floor footprint with water on the dock side.
-      const floorY =
-        island.side === "north"
-          ? { y0: 2, y1: 10 }
-          : { y0: 17, y1: 25 };
-      expect(ARCHIPELAGO.tiles[floorY.y0][island.x]).toBe(TileType.Floor);
-      expect(ARCHIPELAGO.tiles[floorY.y1][island.x + ISLAND_WIDTH - 1]).toBe(
-        TileType.Floor,
-      );
-    }
-
-    const props = getArchipelagoProps();
-    expect(props.length).toBeGreaterThan(0);
-    expect(getZoneProps("archipelago")).toEqual(props);
-    const kinds = new Set(props.map((p) => p.kind));
-    expect(kinds.has("tree") || kinds.has("fern")).toBe(true);
-    expect(kinds.has("standing-stone") || kinds.has("pebble-pile")).toBe(true);
-  });
-
-  it("exposes the seed island inside the initial width", () => {
-    const first = islandTemplateAtIndex(0);
-    expect(first.x).toBe(ISLAND_ORIGIN_X);
-    expect(first.biome).toBe("lush");
-    expect(first.side).toBe("north");
-    expect(ISLAND_WIDTH).toBe(9);
-    expect(ARCHIPELAGO.tiles[first.dock.y][first.dock.x]).toBe(TileType.Dock);
-    expect(isArchipelagoIslandPosition(first.pier.x, first.pier.y)).toBe(true);
-  });
-
-  it("stamps post-seed islands when they complete across chunk boundaries", () => {
-    // ISLAND_WIDTH (9) > ARCHIPELAGO_CHUNK (8): origin can precede the grown
-    // range; the island must still stamp once its eastern edge is covered.
-    const second = islandTemplateAtIndex(1);
-    expect(second.x).toBeGreaterThan(ARCHIPELAGO_INITIAL_WIDTH);
-    expect(ARCHIPELAGO.tiles[second.dock.y]?.[second.dock.x]).not.toBe(
-      TileType.Dock,
-    );
-
-    let width = ARCHIPELAGO.width;
-    while (width < second.x + ISLAND_WIDTH) {
-      const nearEdge = width - ARCHIPELAGO_LOOKAHEAD;
-      const result = ensureArchipelagoChunksAround(nearEdge);
-      expect(result.grew).toBe(true);
-      width = result.width;
-    }
-
-    expect(ARCHIPELAGO.tiles[second.dock.y][second.dock.x]).toBe(TileType.Dock);
-    expect(ARCHIPELAGO.tiles[second.pier.y][second.pier.x]).toBe(TileType.Floor);
-    expect(ARCHIPELAGO.tiles[second.embarkWater.y][second.embarkWater.x]).toBe(
-      TileType.Water,
-    );
-  });
-
-  it("reports redrawFrom at the island origin when a stamp crosses chunks", () => {
-    const second = islandTemplateAtIndex(1);
-    let last: ReturnType<typeof ensureArchipelagoChunksAround> | undefined;
-    let width = ARCHIPELAGO.width;
-    while (width < second.x + ISLAND_WIDTH) {
-      const nearEdge = width - ARCHIPELAGO_LOOKAHEAD;
-      last = ensureArchipelagoChunksAround(nearEdge);
-      expect(last.grew).toBe(true);
-      width = last.width;
-    }
-    expect(last).toBeDefined();
-    expect(last!.redrawFrom).toBe(second.x);
-    expect(last!.redrawFrom).toBeLessThan(last!.previousWidth);
-  });
-
   it("reports a visual cull frontier behind the player without walling water", () => {
-    ensureArchipelagoChunksAround(80);
     const cull = archipelagoVisualCullBefore(80);
     expect(cull).toBe(80 - ARCHIPELAGO_LOOKBEHIND);
     expect(cull).toBeGreaterThan(3);
-    // Collision path stays water under the cull window.
     expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][cull - 1]).toBe(TileType.Water);
     expect(archipelagoVisualCullBefore(10)).toBe(3);
   });
 
-  it("accepts sail positions within max width without mutating stream width", () => {
-    resetArchipelagoStream();
-    expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
+  it("accepts sail positions within the 100×100 bounds including far north", () => {
     expect(isArchipelagoSailPosition(90, ARCHIPELAGO_ENTRY.y)).toBe(true);
     expect(isArchipelagoSailPosition(ARCHIPELAGO_MAX_WIDTH, ARCHIPELAGO_ENTRY.y)).toBe(
       false,
     );
-    // Open ocean: any in-bounds water y is sailable (not only a narrow corridor).
     expect(isArchipelagoSailPosition(5, 0)).toBe(true);
     expect(isArchipelagoSailPosition(5, ARCHIPELAGO_HEIGHT - 1)).toBe(true);
     expect(isArchipelagoSailPosition(5, ARCHIPELAGO_HEIGHT)).toBe(false);
+    // North of the first island row remains open water for sailing up.
+    expect(isArchipelagoSailPosition(1, 5)).toBe(true);
     expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
   });
 });
 
 describe("archipelago sailing snapshot", () => {
-  it("accepts mid-ocean sailing positions after chunk generate", () => {
+  it("accepts mid-ocean sailing positions on the full map", () => {
     setInventoryFromSnapshot({}, {});
     setPartyFromSnapshot([], 1);
     setUnlockedAchievements([]);
@@ -317,11 +320,11 @@ describe("archipelago sailing snapshot", () => {
 
     applyWorldSnapshot(snapshot);
     expect(isSailing()).toBe(true);
-    expect(ARCHIPELAGO.width).toBeGreaterThan(midX);
+    expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_MAX_WIDTH);
     expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][midX]).toBe(TileType.Water);
   });
 
-  it("restores on-foot island stand after regenerating chunks", () => {
+  it("restores on-foot island stand on the full stamped grid", () => {
     setInventoryFromSnapshot({}, {});
     setPartyFromSnapshot([], 1);
     setUnlockedAchievements([]);

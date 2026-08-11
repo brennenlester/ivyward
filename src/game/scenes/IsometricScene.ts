@@ -95,6 +95,7 @@ import {
 } from "../world/dockBoat";
 import {
   allowsSailZoneTransition,
+  ARCHIPELAGO_CAMERA_FIT_HEIGHT,
   ARCHIPELAGO_MAX_WIDTH,
   archipelagoVisualCullBefore,
   biomeAtIslandTile,
@@ -625,11 +626,13 @@ export class IsometricScene extends Phaser.Scene {
 
     const cam = this.cameras.main;
     cam.setBounds(bounds.minX, bounds.minY, bounds.width, bounds.height);
-    // Archipelago is intentionally very wide: fit height so startFollow can
-    // pan east/west instead of zooming the whole stream into a sliver.
+    // Archipelago map is larger than the view: fit a local vertical tile count
+    // so startFollow pans N/S/E/W at a playable scale (not a full-map overview).
+    const archipelagoFitBoundsHeight =
+      ARCHIPELAGO_CAMERA_FIT_HEIGHT * TILE_HEIGHT + 160;
     const zoom =
       zone.id === "archipelago"
-        ? this.scale.height / bounds.height
+        ? this.scale.height / archipelagoFitBoundsHeight
         : Math.min(
             this.scale.width / bounds.width,
             this.scale.height / bounds.height,
