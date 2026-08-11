@@ -33,8 +33,12 @@ export const EAST_LANDING_APPROACH = [
 /** Embark water beside East Landing (first approach tile). */
 export const EAST_LANDING_EMBARK_WATER = EAST_LANDING_APPROACH[0];
 
+/** Which Harbor dock currently holds the moored boat. */
+export type HarborDockId = "west" | "east";
+
 let placedBoat = false;
 let sailing = false;
+let mooredDock: HarborDockId | null = null;
 
 export function isBoatPlaced(): boolean {
   return placedBoat;
@@ -42,6 +46,12 @@ export function isBoatPlaced(): boolean {
 
 export function setPlacedBoat(value: boolean): void {
   placedBoat = value;
+  if (!value) {
+    mooredDock = null;
+  } else if (mooredDock === null) {
+    // Older tests/saves that only set placedBoat default to the west dock.
+    mooredDock = "west";
+  }
 }
 
 export function isSailing(): boolean {
@@ -52,9 +62,18 @@ export function setSailing(value: boolean): void {
   sailing = value;
 }
 
+export function getMooredDock(): HarborDockId | null {
+  return mooredDock;
+}
+
+export function setMooredDock(value: HarborDockId | null): void {
+  mooredDock = value;
+}
+
 export function resetPlacedBoatForTest(): void {
   placedBoat = false;
   sailing = false;
+  mooredDock = null;
 }
 
 /** True on/near the west Harbor dock pad (place / west embark-disembark). */
@@ -113,6 +132,7 @@ export function isNearAnyDock(
 }
 
 type DockStand = {
+  id: HarborDockId;
   pier: { x: number; y: number };
   embarkWater: { x: number; y: number };
 };
@@ -124,10 +144,18 @@ function resolveDockStand(
 ): DockStand | undefined {
   // Prefer west dock when both could match (they do not overlap today).
   if (isNearHarborDock(zoneId, tileX, tileY)) {
-    return { pier: HARBOR_PIER, embarkWater: HARBOR_EMBARK_WATER };
+    return {
+      id: "west",
+      pier: HARBOR_PIER,
+      embarkWater: HARBOR_EMBARK_WATER,
+    };
   }
   if (isNearEastLandingDock(zoneId, tileX, tileY)) {
-    return { pier: EAST_LANDING, embarkWater: EAST_LANDING_EMBARK_WATER };
+    return {
+      id: "east",
+      pier: EAST_LANDING,
+      embarkWater: EAST_LANDING_EMBARK_WATER,
+    };
   }
   return undefined;
 }
@@ -193,6 +221,7 @@ export function tryPlaceBoat(
     };
   }
   placedBoat = true;
+  mooredDock = "west";
   notifyWorldChanged();
   return {
     ok: true,
@@ -224,6 +253,12 @@ export function tryEmbark(
     return {
       ok: false,
       message: "No boat is moored here.",
+    };
+  }
+  if (mooredDock !== dock.id) {
+    return {
+      ok: false,
+      message: "Your boat is moored at another dock.",
     };
   }
   if (sailing) {
@@ -270,6 +305,7 @@ export function tryDisembark(
     };
   }
   sailing = false;
+  mooredDock = dock.id;
   notifyWorldChanged();
   return {
     ok: true,

@@ -5,6 +5,7 @@ import {
   isNearEastLandingDock,
   isNearHarborDock,
   isSailing,
+  getMooredDock,
   HARBOR_DOCK,
   HARBOR_EMBARK_WATER,
   HARBOR_PIER,
@@ -241,6 +242,7 @@ describe("placedBoat snapshot", () => {
       y: HARBOR_PIER.y,
     });
     expect(snapshot.placedBoat).toBe(true);
+    expect(snapshot.mooredDock).toBe("west");
     expect(isValidWorldSnapshot(snapshot)).toBe(true);
 
     resetPlacedBoatForTest();
@@ -253,6 +255,30 @@ describe("placedBoat snapshot", () => {
       items: {},
     });
     expect(isBoatPlaced()).toBe(true);
+    expect(getMooredDock()).toBe("west");
+  });
+
+  it("round-trips east mooredDock after East Landing disembark", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(tryDisembark("harbor", 15, 6).ok).toBe(true);
+    const snapshot = exportWorldSnapshot({
+      zoneId: "harbor",
+      x: EAST_LANDING.x,
+      y: EAST_LANDING.y,
+    });
+    expect(snapshot.mooredDock).toBe("east");
+    resetPlacedBoatForTest();
+    applyWorldSnapshot({
+      ...snapshot,
+      questProgress: questProgress(),
+      party: [],
+      nextInstanceId: 1,
+      materials: {},
+      items: {},
+    });
+    expect(isBoatPlaced()).toBe(true);
+    expect(getMooredDock()).toBe("east");
   });
 
   it("treats missing placedBoat as false for older saves", () => {
@@ -363,7 +389,9 @@ describe("East Landing dock-only (no auto sail-end)", () => {
 
   it("reboards from East Landing onto approach water", () => {
     setPlacedBoat(true);
-    setSailing(false);
+    setSailing(true);
+    expect(tryDisembark("harbor", 15, 6).ok).toBe(true);
+    expect(getMooredDock()).toBe("east");
     const result = tryEmbark("harbor", EAST_LANDING.x, EAST_LANDING.y);
     expect(result).toMatchObject({
       ok: true,
@@ -372,6 +400,25 @@ describe("East Landing dock-only (no auto sail-end)", () => {
       playerY: EAST_LANDING_EMBARK_WATER.y,
     });
     expect(isSailing()).toBe(true);
+  });
+
+  it("refuses boarding at East Landing while the boat is moored west", () => {
+    setPlacedBoat(true);
+    expect(getMooredDock()).toBe("west");
+    const result = tryEmbark("harbor", EAST_LANDING.x, EAST_LANDING.y);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("another dock");
+    expect(isSailing()).toBe(false);
+  });
+
+  it("refuses boarding at the west dock while the boat is moored east", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(tryDisembark("harbor", 15, 6).ok).toBe(true);
+    expect(getMooredDock()).toBe("east");
+    const result = tryEmbark("harbor", HARBOR_PIER.x, HARBOR_PIER.y);
+    expect(result.ok).toBe(false);
+    expect(isSailing()).toBe(false);
   });
 
   it("keeps sailing mid-bay away from either dock", () => {

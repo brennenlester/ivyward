@@ -34,11 +34,14 @@ import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQue
 import {
   isBoatPlaced,
   isSailing,
+  getMooredDock,
+  setMooredDock,
   setPlacedBoat,
   setSailing,
   HARBOR_DOCK,
   HARBOR_PIER,
   HARBOR_EMBARK_WATER,
+  type HarborDockId,
 } from "./dockBoat";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
@@ -60,6 +63,8 @@ export type WorldSnapshot = {
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
   /** Boat moored at the Harbor dock. Optional for older saves. */
   placedBoat?: boolean;
+  /** Which Harbor dock holds the moored boat. Optional for older saves. */
+  mooredDock?: "west" | "east";
   /** Player is sailing in Harbor. Optional for older saves. */
   sailing?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
@@ -371,6 +376,14 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
 
+  if (
+    s.mooredDock !== undefined &&
+    s.mooredDock !== "west" &&
+    s.mooredDock !== "east"
+  ) {
+    return false;
+  }
+
   if (s.sailing !== undefined && typeof s.sailing !== "boolean") {
     return false;
   }
@@ -429,6 +442,7 @@ export function exportWorldSnapshot(
     claimedNpcGifts: getClaimedNpcGifts(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
+    mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
@@ -460,6 +474,14 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setPlacedBoat(snapshot.placedBoat === true);
+  if (snapshot.placedBoat === true) {
+    const dock = snapshot.mooredDock;
+    setMooredDock(
+      dock === "west" || dock === "east" ? (dock as HarborDockId) : "west",
+    );
+  } else {
+    setMooredDock(null);
+  }
   setSailing(snapshot.sailing === true);
   // Sailing only makes sense on Harbor Water/Dock; otherwise clear it.
   if (isSailing()) {

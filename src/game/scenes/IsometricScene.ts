@@ -80,9 +80,11 @@ import {
 } from "../world/gatherState";
 import {
   isBoatPlaced,
+  getMooredDock,
   isNearAnyDock,
   isNearHarborDock,
   isSailing,
+  EAST_LANDING,
   HARBOR_DOCK,
   tryDisembark,
   tryEmbark,
@@ -758,16 +760,24 @@ export class IsometricScene extends Phaser.Scene {
       return undefined;
     }
     const atWestDock = isNearHarborDock(this.currentZoneId, tileX, tileY);
+    const moored = getMooredDock();
+    const atMooredDock =
+      (moored === "west" && atWestDock) || (moored === "east" && !atWestDock);
     if (isVisitorMode()) {
-      if (isBoatPlaced()) {
+      if (isBoatPlaced() && atMooredDock) {
         return "Boat moored (embark is host only)";
       }
-      return atWestDock ? "Dock (host can place a boat)" : undefined;
+      return atWestDock && !isBoatPlaced()
+        ? "Dock (host can place a boat)"
+        : undefined;
     }
     if (isSailing()) {
       return "Press E — Disembark";
     }
     if (isBoatPlaced()) {
+      if (!atMooredDock) {
+        return undefined;
+      }
       return "Press E — Board boat";
     }
     // Place boat only at the west Harbor dock.
@@ -790,12 +800,13 @@ export class IsometricScene extends Phaser.Scene {
     if (isSailing()) {
       return;
     }
-    const screen = this.toScreen(HARBOR_DOCK.x, HARBOR_DOCK.y);
+    const pad = getMooredDock() === "east" ? EAST_LANDING : HARBOR_DOCK;
+    const screen = this.toScreen(pad.x, pad.y);
     const boat = this.add
       .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, getBoatTextureKey())
       .setOrigin(0.5, 1);
     fitDisplay(boat, PROP_DISPLAY["prop-boat"]);
-    boat.setDepth(depthForGridCell(HARBOR_DOCK.x, HARBOR_DOCK.y, PROP_LAYER));
+    boat.setDepth(depthForGridCell(pad.x, pad.y, PROP_LAYER));
     this.dockBoat = boat;
   }
 
