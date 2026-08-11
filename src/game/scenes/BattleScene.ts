@@ -35,6 +35,7 @@ import {
   type WandererPartner,
 } from "../battle/wandererWeapons";
 import {
+  appendGodSparKillCheatKey,
   resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
@@ -60,9 +61,31 @@ export class BattleScene extends Phaser.Scene {
   private switchMenuOpen = false;
   private wandererFallbackOpen = false;
   private usingArmedWanderer = false;
+  private battleEnded = false;
+  private godSparKillCheatBuffer = "";
   private actionButtons: Phaser.GameObjects.Text[] = [];
   private switchMenuObjects: Phaser.GameObjects.GameObject[] = [];
   private wandererFallbackObjects: Phaser.GameObjects.GameObject[] = [];
+  // ponytail: temporary god-spar kill cheat
+  private onGodSparKillCheatKeyDown = (event: KeyboardEvent) => {
+    const result = appendGodSparKillCheatKey(
+      this.godSparKillCheatBuffer,
+      event.key,
+    );
+    this.godSparKillCheatBuffer = result.buffer;
+    if (
+      !result.triggered ||
+      this.wildCreatureId !== TIDE_SOVEREIGN_ID ||
+      this.battleEnded
+    ) {
+      return;
+    }
+
+    this.wild.currentHp = 0;
+    this.refreshHp();
+    this.flashCombatant("wild");
+    this.endBattle(true);
+  };
 
   constructor() {
     super({ key: "BattleScene" });
@@ -79,6 +102,8 @@ export class BattleScene extends Phaser.Scene {
     this.switchMenuOpen = false;
     this.wandererFallbackOpen = false;
     this.usingArmedWanderer = false;
+    this.battleEnded = false;
+    this.godSparKillCheatBuffer = "";
     this.actionButtons = [];
     this.switchMenuObjects = [];
     this.wandererFallbackObjects = [];
@@ -189,6 +214,10 @@ export class BattleScene extends Phaser.Scene {
     this.refreshHp();
     this.log(`A training spar with ${this.wild.name} begins.`);
     this.buildActionButtons();
+    this.input.keyboard?.on("keydown", this.onGodSparKillCheatKeyDown);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      this.input.keyboard?.off("keydown", this.onGodSparKillCheatKeyDown);
+    });
   }
 
   private drawArena(): void {
@@ -630,6 +659,9 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private wildTurn(): void {
+    if (this.battleEnded) {
+      return;
+    }
     const move = pickRandomMove(this.wild);
     const outcome = resolveAttack(this.wild, move, this.player);
     if (outcome.kind === "miss") {
@@ -726,6 +758,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private endBattle(playerWon: boolean): void {
+    if (this.battleEnded) {
+      return;
+    }
+    this.battleEnded = true;
     this.waitingForPlayer = false;
     this.hideSwitchMenu();
     this.hideWandererFallbackMenu();

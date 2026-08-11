@@ -13,6 +13,7 @@ export const GOD_SAIL_ENCOUNTER_DELAY_MS = 10_000;
 export const GOD_BEFRIEND_CHANCE = 0.08;
 export const NORMAL_BEFRIEND_CHANCE = 0.55;
 export const GOD_SAIL_CHEAT = "0319";
+export const GOD_SPAR_KILL_CHEAT = "0601";
 
 export type GodSailEncounterContext = {
   sailing: boolean;
@@ -86,6 +87,14 @@ export function appendGodSailCheatKey(
 ): { buffer: string; triggered: boolean } {
   const next = `${buffer}${key}`.slice(-GOD_SAIL_CHEAT.length);
   return { buffer: next, triggered: next.endsWith(GOD_SAIL_CHEAT) };
+}
+
+export function appendGodSparKillCheatKey(
+  buffer: string,
+  key: string,
+): { buffer: string; triggered: boolean } {
+  const next = `${buffer}${key}`.slice(-GOD_SPAR_KILL_CHEAT.length);
+  return { buffer: next, triggered: next.endsWith(GOD_SPAR_KILL_CHEAT) };
 }
 
 export function getBefriendChance(creatureId: string): number {

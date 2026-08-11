@@ -19,6 +19,7 @@ import {
 } from "../battle/wandererWeapons";
 import {
   appendGodSailCheatKey,
+  appendGodSparKillCheatKey,
   canForceGodSailEncounter,
   claimTideSovereign,
   createPendingGodSailEncounter,
@@ -140,6 +141,20 @@ describe("god sail encounter", () => {
     expect(movementAttempt.acquired).toBe(false);
     expect(movementAttempt.pending).toBe(firstLock.pending);
     expect(movementAttempt.pending.origin).toEqual({ x: 12.25, y: 7.5 });
+  });
+
+  it("detects the temporary 0601 god-spar kill cheat", () => {
+    let buffer = "";
+    for (const key of ["x", "0", "6", "0"]) {
+      const result = appendGodSparKillCheatKey(buffer, key);
+      buffer = result.buffer;
+      expect(result.triggered).toBe(false);
+    }
+
+    expect(appendGodSparKillCheatKey(buffer, "1")).toEqual({
+      buffer: "0601",
+      triggered: true,
+    });
   });
 
   it("uses the difficult god befriend rate without changing normal encounters", () => {
