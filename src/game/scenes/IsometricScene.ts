@@ -640,7 +640,7 @@ export class IsometricScene extends Phaser.Scene {
       this.drawArchipelagoLiveRect(
         zone,
         next.xMin,
-        prev.xMin,
+        Math.min(prev.xMin, next.xMax),
         next.yMin,
         next.yMax,
       );
@@ -648,7 +648,7 @@ export class IsometricScene extends Phaser.Scene {
     if (next.xMax > prev.xMax) {
       this.drawArchipelagoLiveRect(
         zone,
-        prev.xMax,
+        Math.max(prev.xMax, next.xMin),
         next.xMax,
         next.yMin,
         next.yMax,
