@@ -57,3 +57,11 @@ export function playerDepthAboveGrid(
 ): number {
   return depthForGridCell(maxWidth - 1, maxHeight - 1, 1) + 1;
 }
+
+/** Offset so world HUD texts sit above the player and harvest particles (+1). */
+export const HUD_DEPTH_ABOVE_PLAYER = 10;
+
+/** Depth for gather/quest/achievement/shrine world HUD texts. */
+export function hudDepthAbovePlayer(playerDepth: number): number {
+  return playerDepth + HUD_DEPTH_ABOVE_PLAYER;
+}

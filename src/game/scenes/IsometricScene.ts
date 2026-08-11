@@ -12,6 +12,7 @@ import {
   TILE_WIDTH,
   depthForGridCell,
   gridToScreen,
+  hudDepthAbovePlayer,
   playerDepthAboveGrid,
 } from "../isometric";
 import {
@@ -960,7 +961,7 @@ export class IsometricScene extends Phaser.Scene {
         padding: { x: 14, y: 8 },
       })
       .setOrigin(0.5)
-      .setDepth(10_001);
+      .setDepth(hudDepthAbovePlayer(this.playerDepth));
     placeWorldHudText(this, this.shrinePrompt, "bottom", 48);
   }
 
@@ -1230,7 +1231,7 @@ export class IsometricScene extends Phaser.Scene {
         align: "center",
       })
       .setOrigin(0.5, 0)
-      .setDepth(10_001);
+      .setDepth(hudDepthAbovePlayer(this.playerDepth));
     placeWorldHudText(this, this.gatherToast, "top", 120);
 
     this.time.delayedCall(1800, () => {
@@ -1302,7 +1303,7 @@ export class IsometricScene extends Phaser.Scene {
         wordWrap: { width: 360 },
       })
       .setOrigin(0.5, 0)
-      .setDepth(10_001);
+      .setDepth(hudDepthAbovePlayer(this.playerDepth));
     placeWorldHudText(this, this.questToast, "top", 120);
 
     this.time.delayedCall(2800, () => {
@@ -1333,7 +1334,7 @@ export class IsometricScene extends Phaser.Scene {
         wordWrap: { width: 360 },
       })
       .setOrigin(0.5, 0)
-      .setDepth(10_001);
+      .setDepth(hudDepthAbovePlayer(this.playerDepth));
     placeWorldHudText(this, this.achievementToast, "top", 176);
 
     this.time.delayedCall(4200, () => {
