@@ -65,6 +65,21 @@ export function createPendingGodSailEncounter(
   };
 }
 
+export function lockPendingGodSailEncounter(
+  current: PendingGodSailEncounter | undefined,
+  x: number,
+  y: number,
+  forced = false,
+): { pending: PendingGodSailEncounter; acquired: boolean } {
+  if (current) {
+    return { pending: current, acquired: false };
+  }
+  return {
+    pending: createPendingGodSailEncounter(x, y, forced),
+    acquired: true,
+  };
+}
+
 export function appendGodSailCheatKey(
   buffer: string,
   key: string,
@@ -84,6 +99,8 @@ export type GodClaimResult = {
   weaponGranted: boolean;
 };
 
+export type TideSovereignOutcome = "befriend" | "spar-win" | "flee";
+
 /** Idempotently grants every permanent result of obtaining the god creature. */
 export function claimTideSovereign(): GodClaimResult {
   const creatureAdded = !hasCreature(TIDE_SOVEREIGN_ID);
@@ -100,4 +117,10 @@ export function claimTideSovereign(): GodClaimResult {
     setGodSailEncounterClaimed(true);
   }
   return { creatureAdded, weaponGranted };
+}
+
+export function resolveTideSovereignOutcome(
+  outcome: TideSovereignOutcome,
+): GodClaimResult | null {
+  return outcome === "flee" ? null : claimTideSovereign();
 }

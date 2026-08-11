@@ -45,7 +45,7 @@ import {
 import {
   appendGodSailCheatKey,
   canForceGodSailEncounter,
-  createPendingGodSailEncounter,
+  lockPendingGodSailEncounter,
   rollGodSailEncounter,
   shouldAttemptGodSailEncounter,
   type PendingGodSailEncounter,
@@ -364,6 +364,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryRandomEncounter(step: number): void {
+    if (this.inEncounter || this.pendingGodSailEncounter) {
+      return;
+    }
     const sailing = isSailing();
     if (sailing) {
       this.tryGodSailEncounter(step);
@@ -404,6 +407,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryGodSailEncounter(step: number): void {
+    if (this.inEncounter || this.pendingGodSailEncounter) {
+      return;
+    }
     const islandIndex =
       this.currentZoneId === "archipelago"
         ? islandIndexAtTile(this.playerGridX, this.playerGridY)
@@ -434,6 +440,7 @@ export class IsometricScene extends Phaser.Scene {
   private tryForceGodSailEncounter(): void {
     if (
       this.inEncounter ||
+      this.pendingGodSailEncounter ||
       !canForceGodSailEncounter({
         sailing: isSailing(),
         zoneId: this.currentZoneId,
@@ -446,11 +453,16 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private scheduleGodSailEncounter(forced: boolean): void {
-    const pending = createPendingGodSailEncounter(
+    const lock = lockPendingGodSailEncounter(
+      this.pendingGodSailEncounter,
       this.playerGridX,
       this.playerGridY,
       forced,
     );
+    if (this.inEncounter || !lock.acquired) {
+      return;
+    }
+    const pending = lock.pending;
     this.pendingGodSailEncounter = pending;
     this.inEncounter = true;
     setTouchControlsEnabled(false);

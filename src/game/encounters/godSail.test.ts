@@ -26,7 +26,9 @@ import {
   GOD_BEFRIEND_CHANCE,
   GOD_SAIL_ENCOUNTER_CHANCE,
   GOD_SAIL_ENCOUNTER_DELAY_MS,
+  lockPendingGodSailEncounter,
   NORMAL_BEFRIEND_CHANCE,
+  resolveTideSovereignOutcome,
   rollGodSailEncounter,
   shouldAttemptGodSailEncounter,
   TIDE_CLEAVER_ID,
@@ -109,6 +111,18 @@ describe("god sail encounter", () => {
       origin: { x: 12.25, y: 7.5 },
     });
     expect(Object.isFrozen(pending.origin)).toBe(true);
+
+    const firstLock = lockPendingGodSailEncounter(undefined, 12.25, 7.5, true);
+    const movementAttempt = lockPendingGodSailEncounter(
+      firstLock.pending,
+      20,
+      30,
+      false,
+    );
+    expect(firstLock.acquired).toBe(true);
+    expect(movementAttempt.acquired).toBe(false);
+    expect(movementAttempt.pending).toBe(firstLock.pending);
+    expect(movementAttempt.pending.origin).toEqual({ x: 12.25, y: 7.5 });
   });
 
   it("uses the difficult god befriend rate without changing normal encounters", () => {
@@ -119,7 +133,12 @@ describe("god sail encounter", () => {
   });
 
   it("claims a spar-killed god as fainted with one weapon and a permanent flag", () => {
-    expect(claimTideSovereign()).toEqual({
+    expect(resolveTideSovereignOutcome("flee")).toBeNull();
+    expect(isGodSailEncounterClaimed()).toBe(false);
+    expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(false);
+    expect(getItemCount(TIDE_CLEAVER_ID)).toBe(0);
+
+    expect(resolveTideSovereignOutcome("spar-win")).toEqual({
       creatureAdded: true,
       weaponGranted: true,
     });

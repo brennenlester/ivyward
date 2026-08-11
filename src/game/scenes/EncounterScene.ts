@@ -12,8 +12,8 @@ import {
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
-  claimTideSovereign,
   getBefriendChance,
+  resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
 import { isVisitorMode } from "../world/worldSession";
@@ -194,7 +194,7 @@ export class EncounterScene extends Phaser.Scene {
     const catchChance = getBefriendChance(this.creatureId);
     if (Math.random() < catchChance) {
       if (this.creatureId === TIDE_SOVEREIGN_ID) {
-        claimTideSovereign();
+        resolveTideSovereignOutcome("befriend");
         this.showResult("The Tide Sovereign joined you, fainted. Tide Cleaver obtained!");
       } else {
         addToParty(this.creatureId);
@@ -244,6 +244,9 @@ export class EncounterScene extends Phaser.Scene {
       return;
     }
     this.actionTaken = true;
+    if (this.creatureId === TIDE_SOVEREIGN_ID) {
+      resolveTideSovereignOutcome("flee");
+    }
     this.endEncounter();
   }
 

@@ -35,7 +35,7 @@ import {
   type WandererPartner,
 } from "../battle/wandererWeapons";
 import {
-  claimTideSovereign,
+  resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
@@ -732,7 +732,7 @@ export class BattleScene extends Phaser.Scene {
     this.syncActivePartyHp();
 
     if (playerWon && this.wildCreatureId === TIDE_SOVEREIGN_ID) {
-      claimTideSovereign();
+      resolveTideSovereignOutcome("spar-win");
       this.log(
         "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
       );
