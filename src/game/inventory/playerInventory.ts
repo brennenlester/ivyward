@@ -61,7 +61,14 @@ export function setInventoryFromSnapshot(
   items: Record<string, number>,
 ): void {
   playerInventory.materials = { ...materials };
-  playerInventory.items = { ...items };
+  const nextItems = { ...items };
+  for (const [itemId, cap] of Object.entries(ITEM_HOLD_CAPS)) {
+    const count = nextItems[itemId];
+    if (count !== undefined && count > cap) {
+      nextItems[itemId] = cap;
+    }
+  }
+  playerInventory.items = nextItems;
 }
 
 export function getInventorySummary(): string {

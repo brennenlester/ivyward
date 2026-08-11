@@ -106,3 +106,10 @@ describe("brook crystal recipe", () => {
     ]);
   });
 });
+
+describe("brook crystal hold cap on snapshot restore", () => {
+  it("clamps brook-crystal above 20 when loading inventory", () => {
+    setInventoryFromSnapshot({}, { "brook-crystal": 99 });
+    expect(getItemCount("brook-crystal")).toBe(20);
+  });
+});
