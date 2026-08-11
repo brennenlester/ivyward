@@ -9,7 +9,6 @@ import {
   ARCHIPELAGO,
   findNearestIslandDock,
   listIslandTemplates,
-  prepareArchipelagoForPosition,
 } from "./archipelagoStream";
 
 /** Moonwake Harbor dock pad (boat moor / board). */
@@ -171,8 +170,9 @@ function findArchipelagoDockStand(
   if (zoneId !== "archipelago") {
     return undefined;
   }
-  // Ensure island stamps exist around the player before scanning docks.
-  prepareArchipelagoForPosition(tileX);
+  // Pure scan of already-stamped islands only. Do not grow the stream here —
+  // scene `syncArchipelagoStream` owns growth + visual redraw; mutating width
+  // from the interact prompt would discard ChunkEnsureResult and skip drawing.
   for (const island of listIslandTemplates(ARCHIPELAGO.width)) {
     const dist =
       Math.abs(island.dock.x - tileX) + Math.abs(island.dock.y - tileY);

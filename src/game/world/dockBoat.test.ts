@@ -39,6 +39,7 @@ import { restoreQuestProgress } from "../story/questProgress";
 import { setPartyFromSnapshot } from "../creatures/party";
 import { setUnlockedAchievements } from "../progression/achievements";
 import {
+  ARCHIPELAGO,
   islandTemplateAtIndex,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
@@ -626,5 +627,15 @@ describe("archipelago island dock embark/disembark", () => {
     expect(result.ok).toBe(false);
     expect(isBoatPlaced()).toBe(false);
     expect(getItemCount("boat")).toBe(1);
+  });
+
+  it("does not grow the stream when checking archipelago dock proximity", () => {
+    resetArchipelagoStream();
+    const widthBefore = ARCHIPELAGO.width;
+    expect(isNearArchipelagoDock("archipelago", 11, 6)).toBe(true);
+    expect(ARCHIPELAGO.width).toBe(widthBefore);
+    // Far-east dock not yet stamped — must not mutate width for a prompt scan.
+    expect(isNearArchipelagoDock("archipelago", 100, 6)).toBe(false);
+    expect(ARCHIPELAGO.width).toBe(widthBefore);
   });
 });
