@@ -252,9 +252,15 @@ def main():
     tw, th = 48 * SCALE, 64 * SCALE
 
     # West is authoritative for side views.
-    process("player-west-idle.png", "player/player-west-0.png", tw, th)
+    process("player-west-idle.png", "player/player-west-0.png", tw, th, dark_studio_bg=True)
     for i in range(1, 5):
-        process(f"player-west-walk{i}.png", f"player/player-west-{i}.png", tw, th)
+        process(
+            f"player-west-walk{i}.png",
+            f"player/player-west-{i}.png",
+            tw,
+            th,
+            dark_studio_bg=True,
+        )
 
     # East = hflip west (outfit-locked multi-frame).
     for frame in range(0, 5):
@@ -266,16 +272,16 @@ def main():
         print(f"ok player/player-east-{frame}.png (hflip west-{frame})")
 
     # South: idle + walk1; walk2 keeps staff on viewer-left.
-    process("player-south-idle.png", "player/player-south-0.png", tw, th)
-    process("player-south-walk1.png", "player/player-south-1.png", tw, th)
+    process("player-south-idle.png", "player/player-south-0.png", tw, th, dark_studio_bg=True)
+    process("player-south-walk1.png", "player/player-south-1.png", tw, th, dark_studio_bg=True)
     south1 = Image.open(player / "player-south-1.png").convert("RGBA")
     opposite_stride_keep_staff(south1).save(player / "player-south-2.png", optimize=True)
     print("ok player/player-south-2.png (lower-flip keep staff)")
 
     # North: idle + two contact walks from Imagine (no prop teleport).
-    process("player-north-idle.png", "player/player-north-0.png", tw, th)
-    process("player-north-walk1.png", "player/player-north-1.png", tw, th)
-    process("player-north-walk2.png", "player/player-north-2.png", tw, th)
+    process("player-north-idle.png", "player/player-north-0.png", tw, th, dark_studio_bg=True)
+    process("player-north-walk1.png", "player/player-north-1.png", tw, th, dark_studio_bg=True)
+    process("player-north-walk2.png", "player/player-north-2.png", tw, th, dark_studio_bg=True)
 
     for c in [
         "mossling", "ember-wisp", "brook-nymph", "stone-hound", "mist-serpent",

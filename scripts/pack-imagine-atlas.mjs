@@ -17,6 +17,11 @@ const OUT_JSON = path.join(OUT_DIR, "imagine.json");
 const PADDING = 2;
 const MAX_SIDE = 4096;
 
+const SKIP_ATLAS_KEYS = new Set([
+  // Loaded separately in PreloadScene; packing the 1024² sheet bloats the atlas.
+  "creature-tide-sovereign",
+]);
+
 function collectPngs() {
   const files = [];
   for (const dir of ["player", "creatures", "world"]) {
@@ -24,8 +29,10 @@ function collectPngs() {
     if (!fs.existsSync(abs)) continue;
     for (const name of fs.readdirSync(abs)) {
       if (!name.endsWith(".png")) continue;
+      const key = name.replace(/\.png$/, "");
+      if (SKIP_ATLAS_KEYS.has(key)) continue;
       files.push({
-        key: name.replace(/\.png$/, ""),
+        key,
         path: path.join(abs, name),
       });
     }
