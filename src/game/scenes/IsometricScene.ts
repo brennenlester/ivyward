@@ -448,9 +448,30 @@ export class IsometricScene extends Phaser.Scene {
     }
 
     if (result.grew) {
-      this.drawZoneTileColumns(zone, result.previousWidth, result.width);
-      this.drawWallsInColumns(zone, result.previousWidth, result.width);
-      this.drawArchipelagoPropsInColumns(result.previousWidth, result.width);
+      const from = result.redrawFrom;
+      // Delayed island stamps may rewrite columns west of previousWidth;
+      // drop stale water sprites before redrawing Floor/Dock/props.
+      if (from < result.previousWidth) {
+        for (const child of this.children.list.slice()) {
+          if (
+            "getData" in child &&
+            typeof (child as Phaser.GameObjects.Image).getData === "function"
+          ) {
+            const img = child as Phaser.GameObjects.Image;
+            const gx = img.getData("streamX");
+            if (
+              typeof gx === "number" &&
+              gx >= from &&
+              gx < result.previousWidth
+            ) {
+              img.destroy();
+            }
+          }
+        }
+      }
+      this.drawZoneTileColumns(zone, from, result.width);
+      this.drawWallsInColumns(zone, from, result.width);
+      this.drawArchipelagoPropsInColumns(from, result.width);
     }
   }
 

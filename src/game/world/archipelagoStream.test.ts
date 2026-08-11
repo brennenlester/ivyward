@@ -3,13 +3,15 @@ import { isTileWalkable } from "./collision";
 import {
   ARCHIPELAGO,
   ARCHIPELAGO_ENTRY,
+  ARCHIPELAGO_HEIGHT,
   ARCHIPELAGO_INITIAL_WIDTH,
   ARCHIPELAGO_LOOKAHEAD,
   ARCHIPELAGO_LOOKBEHIND,
   ARCHIPELAGO_MAX_WIDTH,
-  ARCHIPELAGO_WATER_ROWS,
+  ARCHIPELAGO_WEST_RETURN_ROWS,
   HARBOR_EAST_SAIL_GATES,
   ISLAND_ORIGIN_X,
+  ISLAND_WIDTH,
   allowsSailZoneTransition,
   archipelagoVisualCullBefore,
   ensureArchipelagoChunksAround,
@@ -58,16 +60,20 @@ beforeEach(() => {
 });
 
 describe("archipelago zone shell", () => {
-  it("registers archipelago in ZONES with open water corridor", () => {
+  it("registers archipelago in ZONES with open ocean water", () => {
     expect(ZONES.archipelago).toBeDefined();
     expect(ZONES.archipelago).toBe(ARCHIPELAGO);
     const zone = getZone("archipelago");
     expect(zone.name).toBe("Open Archipelago");
     expect(zone.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
+    expect(zone.height).toBe(ARCHIPELAGO_HEIGHT);
     expect(zone.tiles[ARCHIPELAGO_ENTRY.y][ARCHIPELAGO_ENTRY.x]).toBe(
       TileType.Water,
     );
-    for (const y of ARCHIPELAGO_WATER_ROWS) {
+    // Non-island cells are Water (no wall banks); sample top/bottom and mid-band.
+    expect(zone.tiles[0][0]).toBe(TileType.Water);
+    expect(zone.tiles[ARCHIPELAGO_HEIGHT - 1][0]).toBe(TileType.Water);
+    for (const y of ARCHIPELAGO_WEST_RETURN_ROWS) {
       expect(zone.tiles[y][0]).toBe(TileType.Water);
     }
   });
@@ -168,9 +174,19 @@ describe("archipelago chunk stream", () => {
       expect(ARCHIPELAGO.tiles[island.embarkWater.y][island.embarkWater.x]).toBe(
         TileType.Water,
       );
-      // Open water corridor beside the island (sail around).
-      expect(ARCHIPELAGO.tiles[7][island.x]).toBe(TileType.Water);
-      expect(ARCHIPELAGO.tiles[8][island.x]).toBe(TileType.Water);
+      // Mid-ocean water between north/south islands (sail around).
+      expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][island.x]).toBe(
+        TileType.Water,
+      );
+      // 9×9 Floor footprint with water on the dock side.
+      const floorY =
+        island.side === "north"
+          ? { y0: 2, y1: 10 }
+          : { y0: 17, y1: 25 };
+      expect(ARCHIPELAGO.tiles[floorY.y0][island.x]).toBe(TileType.Floor);
+      expect(ARCHIPELAGO.tiles[floorY.y1][island.x + ISLAND_WIDTH - 1]).toBe(
+        TileType.Floor,
+      );
     }
 
     const props = getArchipelagoProps();
@@ -185,8 +201,49 @@ describe("archipelago chunk stream", () => {
     const first = islandTemplateAtIndex(0);
     expect(first.x).toBe(ISLAND_ORIGIN_X);
     expect(first.biome).toBe("lush");
+    expect(first.side).toBe("north");
+    expect(ISLAND_WIDTH).toBe(9);
     expect(ARCHIPELAGO.tiles[first.dock.y][first.dock.x]).toBe(TileType.Dock);
     expect(isArchipelagoIslandPosition(first.pier.x, first.pier.y)).toBe(true);
+  });
+
+  it("stamps post-seed islands when they complete across chunk boundaries", () => {
+    // ISLAND_WIDTH (9) > ARCHIPELAGO_CHUNK (8): origin can precede the grown
+    // range; the island must still stamp once its eastern edge is covered.
+    const second = islandTemplateAtIndex(1);
+    expect(second.x).toBeGreaterThan(ARCHIPELAGO_INITIAL_WIDTH);
+    expect(ARCHIPELAGO.tiles[second.dock.y]?.[second.dock.x]).not.toBe(
+      TileType.Dock,
+    );
+
+    let width = ARCHIPELAGO.width;
+    while (width < second.x + ISLAND_WIDTH) {
+      const nearEdge = width - ARCHIPELAGO_LOOKAHEAD;
+      const result = ensureArchipelagoChunksAround(nearEdge);
+      expect(result.grew).toBe(true);
+      width = result.width;
+    }
+
+    expect(ARCHIPELAGO.tiles[second.dock.y][second.dock.x]).toBe(TileType.Dock);
+    expect(ARCHIPELAGO.tiles[second.pier.y][second.pier.x]).toBe(TileType.Floor);
+    expect(ARCHIPELAGO.tiles[second.embarkWater.y][second.embarkWater.x]).toBe(
+      TileType.Water,
+    );
+  });
+
+  it("reports redrawFrom at the island origin when a stamp crosses chunks", () => {
+    const second = islandTemplateAtIndex(1);
+    let last: ReturnType<typeof ensureArchipelagoChunksAround> | undefined;
+    let width = ARCHIPELAGO.width;
+    while (width < second.x + ISLAND_WIDTH) {
+      const nearEdge = width - ARCHIPELAGO_LOOKAHEAD;
+      last = ensureArchipelagoChunksAround(nearEdge);
+      expect(last.grew).toBe(true);
+      width = last.width;
+    }
+    expect(last).toBeDefined();
+    expect(last!.redrawFrom).toBe(second.x);
+    expect(last!.redrawFrom).toBeLessThan(last!.previousWidth);
   });
 
   it("reports a visual cull frontier behind the player without walling water", () => {
@@ -206,7 +263,10 @@ describe("archipelago chunk stream", () => {
     expect(isArchipelagoSailPosition(ARCHIPELAGO_MAX_WIDTH, ARCHIPELAGO_ENTRY.y)).toBe(
       false,
     );
-    expect(isArchipelagoSailPosition(5, 0)).toBe(false);
+    // Open ocean: any in-bounds water y is sailable (not only a narrow corridor).
+    expect(isArchipelagoSailPosition(5, 0)).toBe(true);
+    expect(isArchipelagoSailPosition(5, ARCHIPELAGO_HEIGHT - 1)).toBe(true);
+    expect(isArchipelagoSailPosition(5, ARCHIPELAGO_HEIGHT)).toBe(false);
     expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
   });
 });

@@ -3,6 +3,7 @@ import {
   exportWorldSnapshot,
   isValidWorldSnapshot,
   migrateBoatStateToHarbor,
+  repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
   type WorldSnapshot,
 } from "./worldSnapshot";
@@ -92,6 +93,7 @@ export function loadHostSave(): WorldSnapshot | null {
     const parsed = JSON.parse(raw) as unknown;
     migrateBoatStateToHarbor(parsed);
     repairLegacyOverworldShorePosition(parsed);
+    repairLegacyArchipelagoLayoutPosition(parsed);
     if (!isValidWorldSnapshot(parsed)) {
       clearHostSave();
       return null;

@@ -40,6 +40,7 @@ import { setPartyFromSnapshot } from "../creatures/party";
 import { setUnlockedAchievements } from "../progression/achievements";
 import {
   ARCHIPELAGO,
+  ARCHIPELAGO_ENTRY,
   islandTemplateAtIndex,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
@@ -610,11 +611,14 @@ describe("archipelago island dock embark/disembark", () => {
     prepareArchipelagoForPosition(island.x);
     setPlacedBoat(true);
     setSailing(true);
-    // Mid-corridor beside the island — not near the dock.
-    expect(isNearArchipelagoDock("archipelago", island.x, 7)).toBe(false);
-    expect(isTileWalkable(getZone("archipelago"), island.x, 7)).toBe(true);
-    expect(isTileWalkable(getZone("archipelago"), island.x, 8)).toBe(true);
-    const mid = tryDisembark("archipelago", island.x, 7);
+    // Mid-ocean beside the island — not near the dock.
+    const midY = ARCHIPELAGO_ENTRY.y;
+    expect(isNearArchipelagoDock("archipelago", island.x, midY)).toBe(false);
+    expect(isTileWalkable(getZone("archipelago"), island.x, midY)).toBe(true);
+    expect(isTileWalkable(getZone("archipelago"), island.x, midY + 1)).toBe(
+      true,
+    );
+    const mid = tryDisembark("archipelago", island.x, midY);
     expect(mid.ok).toBe(false);
     expect(isSailing()).toBe(true);
   });
@@ -632,10 +636,13 @@ describe("archipelago island dock embark/disembark", () => {
   it("does not grow the stream when checking archipelago dock proximity", () => {
     resetArchipelagoStream();
     const widthBefore = ARCHIPELAGO.width;
-    expect(isNearArchipelagoDock("archipelago", 11, 6)).toBe(true);
+    const seedDock = islandTemplateAtIndex(0).dock;
+    expect(isNearArchipelagoDock("archipelago", seedDock.x, seedDock.y)).toBe(
+      true,
+    );
     expect(ARCHIPELAGO.width).toBe(widthBefore);
     // Far-east dock not yet stamped — must not mutate width for a prompt scan.
-    expect(isNearArchipelagoDock("archipelago", 100, 6)).toBe(false);
+    expect(isNearArchipelagoDock("archipelago", 100, seedDock.y)).toBe(false);
     expect(ARCHIPELAGO.width).toBe(widthBefore);
   });
 });
