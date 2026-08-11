@@ -4,20 +4,32 @@ import {
   getEffectiveMaxHp,
   playerParty,
 } from "../creatures/party";
-import { consumeItem } from "../inventory/playerInventory";
+import { consumeItem, getItemCount } from "../inventory/playerInventory";
+import { grantFlatLevel, MAX_LEVEL } from "../progression/leveling";
 
-export type ConsumableEffectType = "heal" | "revive";
+export type ConsumableEffectType = "heal" | "revive" | "level";
 
-export type ConsumableDefinition = {
+type HpConsumableDefinition = {
   itemId: string;
-  effectType: ConsumableEffectType;
+  effectType: "heal" | "revive";
   /** Fraction of effective max HP restored or revived to. */
   hpFraction: number;
 };
 
+type LevelConsumableDefinition = {
+  itemId: string;
+  effectType: "level";
+  itemCost: number;
+};
+
+export type ConsumableDefinition =
+  | HpConsumableDefinition
+  | LevelConsumableDefinition;
+
 export const CONSUMABLE_ITEMS: ConsumableDefinition[] = [
   { itemId: "brook-tonic", effectType: "heal", hpFraction: 0.5 },
   { itemId: "moonwake-draught", effectType: "revive", hpFraction: 0.5 },
+  { itemId: "brook-crystal", effectType: "level", itemCost: 2 },
 ];
 
 export const FUSION_ITEM_IDS = ["ember-charm", "moss-salve"] as const;
@@ -39,14 +51,17 @@ export type ConsumableResult =
   | { ok: false; message: string };
 
 export function canUseConsumableOn(
-  creature: { currentHp: number },
+  creature: { currentHp: number; level: number },
   consumable: ConsumableDefinition,
   maxHp: number,
 ): boolean {
   if (consumable.effectType === "heal") {
     return creature.currentHp > 0 && creature.currentHp < maxHp;
   }
-  return creature.currentHp <= 0;
+  if (consumable.effectType === "revive") {
+    return creature.currentHp <= 0;
+  }
+  return creature.level < MAX_LEVEL;
 }
 
 export function applyConsumable(
@@ -63,6 +78,7 @@ export function applyConsumable(
     return { ok: false, message: "Creature not found." };
   }
 
+  const def = getCreatureDefinition(creature.definitionId);
   const maxHp = getEffectiveMaxHp(creature);
   if (!canUseConsumableOn(creature, consumable, maxHp)) {
     if (consumable.effectType === "heal") {
@@ -71,14 +87,33 @@ export function applyConsumable(
       }
       return { ok: false, message: "Creature is already at full health." };
     }
-    return { ok: false, message: "Creature is not fainted." };
+    if (consumable.effectType === "revive") {
+      return { ok: false, message: "Creature is not fainted." };
+    }
+    return {
+      ok: false,
+      message: `${def.name} is already at max level ${MAX_LEVEL}.`,
+    };
   }
 
-  if (!consumeItem(itemId)) {
-    return { ok: false, message: "You don't have that item." };
+  const itemCost = consumable.effectType === "level" ? consumable.itemCost : 1;
+  if (getItemCount(itemId) < itemCost) {
+    return consumable.effectType === "level"
+      ? { ok: false, message: "You need 2 Brook Crystals." }
+      : { ok: false, message: "You don't have that item." };
+  }
+  if (!consumeItem(itemId, itemCost)) {
+    return { ok: false, message: "Could not use that item." };
   }
 
-  const def = getCreatureDefinition(creature.definitionId);
+  if (consumable.effectType === "level") {
+    grantFlatLevel(creature);
+    return {
+      ok: true,
+      message: `${def.name} reached Lv.${creature.level}.`,
+    };
+  }
+
   const amount = Math.max(1, Math.floor(maxHp * consumable.hpFraction));
 
   if (consumable.effectType === "heal") {
@@ -125,8 +160,10 @@ export function getEligibleCreaturesForConsumable(itemId: string): {
             : creature.currentHp >= maxHp
               ? "Full HP"
               : undefined;
-      } else {
+      } else if (consumable.effectType === "revive") {
         reason = "Not fainted";
+      } else {
+        reason = `Max level ${MAX_LEVEL}`;
       }
     }
     return {

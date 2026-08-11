@@ -5,6 +5,7 @@ import {
   CRAFT_RECIPES,
 } from "./recipes";
 import {
+  addItem,
   getItemCount,
   getMaterialCount,
   setInventoryFromSnapshot,
@@ -12,6 +13,7 @@ import {
 import { setVisitorMode } from "../world/worldSession";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
+const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
 
 beforeEach(() => {
   setInventoryFromSnapshot({}, {});
@@ -63,5 +65,51 @@ describe("boat recipe", () => {
     expect(craftItem(boatRecipe)).toBe(false);
     expect(getMaterialCount("wood")).toBe(8);
     expect(getItemCount("boat")).toBe(0);
+  });
+});
+
+describe("brook crystal recipe", () => {
+  it("crafts one Brook Crystal from one Brook Pearl", () => {
+    expect(brookCrystalRecipe).toMatchObject({
+      name: "Brook Crystal",
+      outputItemId: "brook-crystal",
+      materials: [{ materialId: "brook-pearl", count: 1 }],
+    });
+    setInventoryFromSnapshot({ "brook-pearl": 1 }, {});
+
+    expect(craftItem(brookCrystalRecipe)).toBe(true);
+    expect(getMaterialCount("brook-pearl")).toBe(0);
+    expect(getItemCount("brook-crystal")).toBe(1);
+  });
+
+  it("enforces the 20-crystal hold cap on add and craft", () => {
+    setInventoryFromSnapshot({ "brook-pearl": 1 }, { "brook-crystal": 20 });
+
+    expect(addItem("brook-crystal")).toBe(false);
+    expect(canCraft(brookCrystalRecipe)).toBe(false);
+    expect(craftItem(brookCrystalRecipe)).toBe(false);
+    expect(getMaterialCount("brook-pearl")).toBe(1);
+    expect(getItemCount("brook-crystal")).toBe(20);
+  });
+
+  it("leaves the existing Brook Pearl recipes unchanged", () => {
+    expect(CRAFT_RECIPES.find((r) => r.id === "brook-tonic")?.materials).toEqual([
+      { materialId: "brook-pearl", count: 2 },
+      { materialId: "folklore-dust", count: 1 },
+    ]);
+    expect(
+      CRAFT_RECIPES.find((r) => r.id === "moonwake-draught")?.materials,
+    ).toEqual([
+      { materialId: "moss-fiber", count: 1 },
+      { materialId: "brook-pearl", count: 1 },
+      { materialId: "folklore-dust", count: 1 },
+    ]);
+  });
+});
+
+describe("brook crystal hold cap on snapshot restore", () => {
+  it("clamps brook-crystal above 20 when loading inventory", () => {
+    setInventoryFromSnapshot({}, { "brook-crystal": 99 });
+    expect(getItemCount("brook-crystal")).toBe(20);
   });
 });
