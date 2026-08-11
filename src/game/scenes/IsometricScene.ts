@@ -1481,7 +1481,8 @@ export class IsometricScene extends Phaser.Scene {
     const bob = this.isMoving ? walkBobOffset(this.walkPhase) : 0;
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(this.playerDepth);
-    this.syncSailingBoat(screen.x, this.playerBaseY + bob);
+    // Boat stays on the waterline; only the trainer bobs with gait.
+    this.syncSailingBoat(screen.x, this.playerBaseY);
   }
 
   private syncSailingBoat(screenX: number, baseY: number): void {
