@@ -5,10 +5,12 @@ import {
   ARCHIPELAGO_ENTRY,
   ARCHIPELAGO_INITIAL_WIDTH,
   ARCHIPELAGO_LOOKAHEAD,
+  ARCHIPELAGO_LOOKBEHIND,
   ARCHIPELAGO_MAX_WIDTH,
   ARCHIPELAGO_WATER_ROWS,
   HARBOR_EAST_SAIL_GATES,
   allowsSailZoneTransition,
+  archipelagoVisualCullBefore,
   ensureArchipelagoChunksAround,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
@@ -138,6 +140,16 @@ describe("archipelago chunk stream", () => {
     expect(
       getZone("archipelago").transitions.some((t) => t.targetZone === "harbor"),
     ).toBe(true);
+  });
+
+  it("reports a visual cull frontier behind the player without walling water", () => {
+    ensureArchipelagoChunksAround(80);
+    const cull = archipelagoVisualCullBefore(80);
+    expect(cull).toBe(80 - ARCHIPELAGO_LOOKBEHIND);
+    expect(cull).toBeGreaterThan(3);
+    // Collision path stays water under the cull window.
+    expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][cull - 1]).toBe(TileType.Water);
+    expect(archipelagoVisualCullBefore(10)).toBe(3);
   });
 });
 

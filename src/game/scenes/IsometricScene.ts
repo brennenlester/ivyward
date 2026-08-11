@@ -92,6 +92,7 @@ import {
 } from "../world/dockBoat";
 import {
   allowsSailZoneTransition,
+  archipelagoVisualCullBefore,
   ensureArchipelagoChunksAround,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
@@ -160,6 +161,8 @@ export class IsometricScene extends Phaser.Scene {
   private dockBoat?: Phaser.GameObjects.Image;
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
+  /** Westmost column still holding archipelago stream sprites (exclusive cull). */
+  private archipelagoCullBefore = 3;
 
   constructor() {
     super({ key: "IsometricScene" });
@@ -391,17 +394,49 @@ export class IsometricScene extends Phaser.Scene {
   /** Extend / unload archipelago water columns and refresh floor sprites + camera. */
   private syncArchipelagoStream(): void {
     const result = ensureArchipelagoChunksAround(this.playerGridX);
-    if (!result.grew && result.unloadedColumns.length === 0) {
+    const cullBefore = archipelagoVisualCullBefore(this.playerGridX);
+    const grew = result.grew;
+    const cullChanged = cullBefore !== this.archipelagoCullBefore;
+    if (!grew && !cullChanged) {
       return;
     }
-    this.applyArchipelagoStreamVisuals(result);
-    this.layoutPlayfield(getZone("archipelago"));
+    this.applyArchipelagoStreamVisuals(result, cullBefore);
+    this.archipelagoCullBefore = cullBefore;
+    if (grew) {
+      this.layoutPlayfield(getZone("archipelago"));
+    }
   }
 
-  private applyArchipelagoStreamVisuals(result: ChunkEnsureResult): void {
-    // ponytail: unloadColumns unused while collision unload is deferred.
+  private applyArchipelagoStreamVisuals(
+    result: ChunkEnsureResult,
+    cullBefore: number,
+  ): void {
+    const zone = getZone("archipelago");
+    const prevCull = this.archipelagoCullBefore;
+
+    // Visual unload: drop sprites far west of the player (tiles stay Water).
+    if (cullBefore > prevCull) {
+      for (const child of this.children.list.slice()) {
+        if (
+          "getData" in child &&
+          typeof (child as Phaser.GameObjects.Image).getData === "function"
+        ) {
+          const img = child as Phaser.GameObjects.Image;
+          const gx = img.getData("streamX");
+          if (typeof gx === "number" && gx >= 3 && gx < cullBefore) {
+            img.destroy();
+          }
+        }
+      }
+    }
+
+    // Sailing west: restore sprites that re-enter the lookbehind window.
+    if (cullBefore < prevCull) {
+      this.drawZoneTileColumns(zone, cullBefore, prevCull);
+      this.drawWallsInColumns(zone, cullBefore, prevCull);
+    }
+
     if (result.grew) {
-      const zone = getZone("archipelago");
       this.drawZoneTileColumns(zone, result.previousWidth, result.width);
       this.drawWallsInColumns(zone, result.previousWidth, result.width);
     }
@@ -422,6 +457,9 @@ export class IsometricScene extends Phaser.Scene {
 
     if (zoneId === "archipelago") {
       prepareArchipelagoForPosition(this.playerGridX);
+      this.archipelagoCullBefore = archipelagoVisualCullBefore(this.playerGridX);
+    } else {
+      this.archipelagoCullBefore = 3;
     }
 
     ensureWorldTextures(this, zoneId);
@@ -431,6 +469,25 @@ export class IsometricScene extends Phaser.Scene {
 
     this.drawBackdrop(zone);
     this.drawZoneTiles(zone);
+    if (zoneId === "archipelago" && this.archipelagoCullBefore > 3) {
+      // Mid-stream load: only keep sprites near the player (+ west gate cols 0–2).
+      for (const child of this.children.list.slice()) {
+        if (
+          "getData" in child &&
+          typeof (child as Phaser.GameObjects.Image).getData === "function"
+        ) {
+          const img = child as Phaser.GameObjects.Image;
+          const gx = img.getData("streamX");
+          if (
+            typeof gx === "number" &&
+            gx >= 3 &&
+            gx < this.archipelagoCullBefore
+          ) {
+            img.destroy();
+          }
+        }
+      }
+    }
     this.drawProps(zone);
     this.drawNpcs(zone);
     this.drawPlacedBoat(zone);

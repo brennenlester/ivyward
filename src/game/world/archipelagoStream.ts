@@ -8,7 +8,7 @@ export const ARCHIPELAGO_INITIAL_WIDTH = 24;
 export const ARCHIPELAGO_CHUNK = 8;
 /** Keep this many columns of water ahead of the player. */
 export const ARCHIPELAGO_LOOKAHEAD = 12;
-/** Kept for follow-up visual cull; collision unload is deferred (see ensure ponytail). */
+/** Cull floor/wall sprites farther west than this distance behind the player. */
 export const ARCHIPELAGO_LOOKBEHIND = 32;
 /** Hard cap so a single session cannot grow forever. */
 export const ARCHIPELAGO_MAX_WIDTH = 200;
@@ -93,10 +93,9 @@ function appendWaterColumns(count: number): void {
 /**
  * Grow water east of the player.
  *
- * ponytail: no west unload-to-wall — converting far-west Water→Wall trapped the
- * player behind a permanent barrier and broke Archipelago→Harbor return after
- * ~LOOKBEHIND tiles. v1 grows a bounded window (max ARCHIPELAGO_MAX_WIDTH);
- * visual sprite cull / recycle can come later without changing collision.
+ * Collision tiles stay Water so the player can always sail west back to the
+ * Harbor return gates. "Unload behind" is visual-only via
+ * `archipelagoVisualCullBefore` (scene destroys far-west sprites).
  */
 export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResult {
   const previousWidth = ARCHIPELAGO.width;
@@ -115,6 +114,15 @@ export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResul
     grew: ARCHIPELAGO.width > previousWidth,
     unloadedColumns: [],
   };
+}
+
+/**
+ * Columns with x in [3, cullBefore) may drop sprites (visual unload).
+ * x=0..2 stay drawn so the west Harbor gate remains visible when nearby.
+ * Collision tiles are never walled.
+ */
+export function archipelagoVisualCullBefore(playerX: number): number {
+  return Math.max(3, Math.floor(playerX) - ARCHIPELAGO_LOOKBEHIND);
 }
 
 /** Ensure the stream covers a saved/target x before walkability or spawn. */
