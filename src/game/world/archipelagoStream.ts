@@ -1,24 +1,24 @@
 import { TileType, type ZoneDefinition, type ZoneId } from "./zoneTypes";
 import type { PropKind, ZoneProp } from "./zoneProps";
 
-/** Tall open-ocean height so height-fit camera fills the play view with water. */
-export const ARCHIPELAGO_HEIGHT = 28;
-/** Seed width before the player sails farther east. */
-export const ARCHIPELAGO_INITIAL_WIDTH = 24;
-/** Columns appended per ensure growth step. */
+/** Full open-ocean height (sailing north/south stays in-bounds). */
+export const ARCHIPELAGO_HEIGHT = 100;
+/** Full playfield width generated at reset (no east stream past max). */
+export const ARCHIPELAGO_INITIAL_WIDTH = 100;
+/** Hard cap — map is fixed 100×100; ensureChunks fills once or no-ops. */
+export const ARCHIPELAGO_MAX_WIDTH = 100;
+/** @deprecated Kept for callers; growth no longer streams by chunk. */
 export const ARCHIPELAGO_CHUNK = 8;
-/** Keep this many columns of water ahead of the player. */
+/** @deprecated Kept for callers; map is fully generated at reset. */
 export const ARCHIPELAGO_LOOKAHEAD = 12;
 /** Cull floor/wall sprites farther west than this distance behind the player. */
 export const ARCHIPELAGO_LOOKBEHIND = 32;
-/** Hard cap so a single session cannot grow forever (known eastbound session limit). */
-export const ARCHIPELAGO_MAX_WIDTH = 200;
 
-/** Mid-ocean west return band (Harbor gates map to ARCHIPELAGO_ENTRY). */
-export const ARCHIPELAGO_WEST_RETURN_ROWS = [12, 13, 14, 15] as const;
+/** West return band near mid-ocean entry (Harbor gates map to ARCHIPELAGO_ENTRY). */
+export const ARCHIPELAGO_WEST_RETURN_ROWS = [48, 49, 50, 51] as const;
 
-/** West entry spawn when sailing in from Harbor (mid open ocean). */
-export const ARCHIPELAGO_ENTRY = { x: 1, y: 14 } as const;
+/** West entry spawn when sailing in from Harbor (west mid open ocean). */
+export const ARCHIPELAGO_ENTRY = { x: 1, y: 50 } as const;
 
 /** Harbor east water tiles that gate into the archipelago (sail only). */
 export const HARBOR_EAST_SAIL_GATES = [
@@ -26,34 +26,34 @@ export const HARBOR_EAST_SAIL_GATES = [
   { x: 17, y: 7 },
 ] as const;
 
-/** Columns between island west edges (9×9 footprint + open water gap). */
+/** Columns/rows between island NW corners (9×9 footprint + open water gap). */
 export const ISLAND_SPACING = 22;
-/** First island west edge (leave west entry clear). */
+/** First island NW corner (leave west entry clear). */
 export const ISLAND_ORIGIN_X = 10;
+export const ISLAND_ORIGIN_Y = 10;
 /** Island Floor footprint width/height in tiles. */
 export const ISLAND_WIDTH = 9;
+/** 4×4 island grid across the 100×100 ocean. */
+export const ISLAND_COLS = 4;
+export const ISLAND_ROWS = 4;
 
-/** North island Floor rows (inclusive); dock sits on water at y=11. */
-const NORTH_FLOOR_Y0 = 2;
-const NORTH_FLOOR_Y1 = 10;
-const NORTH_DOCK_Y = 11;
-const NORTH_EMBARK_Y = 12;
-
-/** South island Floor rows (inclusive); dock sits on water at y=16. */
-const SOUTH_FLOOR_Y0 = 17;
-const SOUTH_FLOOR_Y1 = 25;
-const SOUTH_DOCK_Y = 16;
-const SOUTH_EMBARK_Y = 15;
+/** Dock sits on south water edge; pier is southern Floor row; embark is water south of dock. */
+const DOCK_LOCAL_X = 4;
+const DOCK_LOCAL_Y = 9;
+const PIER_LOCAL_Y = 8;
+const EMBARK_LOCAL_Y = 10;
 
 export type IslandBiome = "lush" | "barren" | "other";
-export type IslandSide = "north" | "south";
 
 export type IslandTemplate = {
   index: number;
   biome: IslandBiome;
-  side: IslandSide;
+  row: number;
+  col: number;
   /** Westmost column of the footprint. */
   x: number;
+  /** Northmost row of the footprint. */
+  y: number;
   /** Dock tile (embark/disembark interact). */
   dock: { x: number; y: number };
   /** On-foot stand tile after disembark. */
@@ -129,12 +129,21 @@ function westHarborTransitions(): ZoneDefinition["transitions"] {
   }));
 }
 
+function inBounds(tileX: number, tileY: number): boolean {
+  return (
+    tileX >= 0 &&
+    tileX < ARCHIPELAGO_MAX_WIDTH &&
+    tileY >= 0 &&
+    tileY < ARCHIPELAGO_HEIGHT
+  );
+}
+
 /**
- * Mutable archipelago zone. Chunk ensure extends `tiles`/`width` east;
- * far-west water may be walled off (unload) without shifting coordinates.
+ * Mutable archipelago zone. Fixed 100×100 ocean; ensure may fill to max once.
+ * Visual cull still drops far-west sprites for performance.
  *
  * Save strategy: mid-ocean restores `position.x` and calls
- * `prepareArchipelagoForPosition` so enough water columns exist before
+ * `prepareArchipelagoForPosition` so the full map exists before
  * walkability checks (prefer restore-with-generate over clamp-to-dock).
  */
 export const ARCHIPELAGO: ZoneDefinition = {
@@ -148,54 +157,64 @@ export const ARCHIPELAGO: ZoneDefinition = {
   transitions: westHarborTransitions(),
 };
 
-/** Deterministic island index for a west-edge column, or -1 if none. */
-export function islandIndexAtOrigin(originX: number): number {
-  if (originX < ISLAND_ORIGIN_X) {
+/** Island index for a NW-corner column/row pair, or -1 if not a grid origin. */
+export function islandIndexAtOrigin(originX: number, originY: number): number {
+  if (originX < ISLAND_ORIGIN_X || originY < ISLAND_ORIGIN_Y) {
     return -1;
   }
-  const delta = originX - ISLAND_ORIGIN_X;
-  if (delta % ISLAND_SPACING !== 0) {
+  const deltaX = originX - ISLAND_ORIGIN_X;
+  const deltaY = originY - ISLAND_ORIGIN_Y;
+  if (deltaX % ISLAND_SPACING !== 0 || deltaY % ISLAND_SPACING !== 0) {
     return -1;
   }
-  return delta / ISLAND_SPACING;
+  const col = deltaX / ISLAND_SPACING;
+  const row = deltaY / ISLAND_SPACING;
+  if (col < 0 || col >= ISLAND_COLS || row < 0 || row >= ISLAND_ROWS) {
+    return -1;
+  }
+  return row * ISLAND_COLS + col;
 }
 
 export function islandTemplateAtIndex(index: number): IslandTemplate {
-  const x = ISLAND_ORIGIN_X + index * ISLAND_SPACING;
+  const col = index % ISLAND_COLS;
+  const row = Math.floor(index / ISLAND_COLS);
+  const x = ISLAND_ORIGIN_X + col * ISLAND_SPACING;
+  const y = ISLAND_ORIGIN_Y + row * ISLAND_SPACING;
   const biome = BIOMES[index % BIOMES.length]!;
-  const side: IslandSide = index % 2 === 0 ? "north" : "south";
-  const dockX = x + 1;
-  if (side === "north") {
-    return {
-      index,
-      biome,
-      side,
-      x,
-      dock: { x: dockX, y: NORTH_DOCK_Y },
-      pier: { x: dockX, y: NORTH_FLOOR_Y1 },
-      embarkWater: { x: dockX, y: NORTH_EMBARK_Y },
-    };
-  }
+  const dockX = x + DOCK_LOCAL_X;
   return {
     index,
     biome,
-    side,
+    row,
+    col,
     x,
-    dock: { x: dockX, y: SOUTH_DOCK_Y },
-    pier: { x: dockX, y: SOUTH_FLOOR_Y0 },
-    embarkWater: { x: dockX, y: SOUTH_EMBARK_Y },
+    y,
+    dock: { x: dockX, y: y + DOCK_LOCAL_Y },
+    pier: { x: dockX, y: y + PIER_LOCAL_Y },
+    embarkWater: { x: dockX, y: y + EMBARK_LOCAL_Y },
   };
 }
 
 /** All island templates whose footprint fits in `[0, maxWidth)`. */
 export function listIslandTemplates(maxWidth: number): IslandTemplate[] {
   const out: IslandTemplate[] = [];
-  for (let i = 0; ; i++) {
-    const origin = ISLAND_ORIGIN_X + i * ISLAND_SPACING;
-    if (origin + ISLAND_WIDTH > maxWidth) {
-      break;
+  const total = ISLAND_ROWS * ISLAND_COLS;
+  for (let i = 0; i < total; i++) {
+    const island = islandTemplateAtIndex(i);
+    if (island.x + ISLAND_WIDTH > maxWidth) {
+      continue;
     }
-    out.push(islandTemplateAtIndex(i));
+    if (island.y + ISLAND_WIDTH > ARCHIPELAGO_HEIGHT) {
+      continue;
+    }
+    // Dock/embark sit one/two rows south of the Floor; skip if out of bounds.
+    if (
+      !inBounds(island.dock.x, island.dock.y) ||
+      !inBounds(island.embarkWater.x, island.embarkWater.y)
+    ) {
+      continue;
+    }
+    out.push(island);
   }
   return out;
 }
@@ -206,10 +225,31 @@ function propKindsForBiome(biome: IslandBiome): PropKind[] {
   return OTHER_PROPS;
 }
 
-function floorYRange(side: IslandSide): { y0: number; y1: number } {
-  return side === "north"
-    ? { y0: NORTH_FLOOR_Y0, y1: NORTH_FLOOR_Y1 }
-    : { y0: SOUTH_FLOOR_Y0, y1: SOUTH_FLOOR_Y1 };
+function islandCoordsAt(
+  tileX: number,
+  tileY: number,
+): { index: number; localX: number; localY: number; island: IslandTemplate } | null {
+  if (
+    tileX < ISLAND_ORIGIN_X ||
+    tileY < ISLAND_ORIGIN_Y ||
+    tileX >= ARCHIPELAGO_MAX_WIDTH ||
+    tileY >= ARCHIPELAGO_HEIGHT
+  ) {
+    return null;
+  }
+  const col = Math.floor((tileX - ISLAND_ORIGIN_X) / ISLAND_SPACING);
+  const row = Math.floor((tileY - ISLAND_ORIGIN_Y) / ISLAND_SPACING);
+  if (col < 0 || col >= ISLAND_COLS || row < 0 || row >= ISLAND_ROWS) {
+    return null;
+  }
+  const index = row * ISLAND_COLS + col;
+  const island = islandTemplateAtIndex(index);
+  if (island.x + ISLAND_WIDTH > ARCHIPELAGO_MAX_WIDTH) {
+    return null;
+  }
+  const localX = tileX - island.x;
+  const localY = tileY - island.y;
+  return { index, localX, localY, island };
 }
 
 /** Pure: Floor/Dock occupancy for a cell under the island templates. */
@@ -217,25 +257,20 @@ export function islandCellAt(
   tileX: number,
   tileY: number,
 ): "floor" | "dock" | null {
-  if (tileX < ISLAND_ORIGIN_X || tileX >= ARCHIPELAGO_MAX_WIDTH) {
+  const hit = islandCoordsAt(tileX, tileY);
+  if (!hit) {
     return null;
   }
-  const relative = tileX - ISLAND_ORIGIN_X;
-  const index = Math.floor(relative / ISLAND_SPACING);
-  const origin = ISLAND_ORIGIN_X + index * ISLAND_SPACING;
-  const localX = tileX - origin;
-  if (localX < 0 || localX >= ISLAND_WIDTH) {
-    return null;
-  }
-  if (origin + ISLAND_WIDTH > ARCHIPELAGO_MAX_WIDTH) {
-    return null;
-  }
-  const island = islandTemplateAtIndex(index);
+  const { localX, localY, island } = hit;
   if (tileX === island.dock.x && tileY === island.dock.y) {
     return "dock";
   }
-  const { y0, y1 } = floorYRange(island.side);
-  if (tileY >= y0 && tileY <= y1) {
+  if (
+    localX >= 0 &&
+    localX < ISLAND_WIDTH &&
+    localY >= 0 &&
+    localY < ISLAND_WIDTH
+  ) {
     return "floor";
   }
   return null;
@@ -256,31 +291,45 @@ export function biomeAtIslandTile(
   if (islandCellAt(tileX, tileY) === null) {
     return null;
   }
-  const relative = tileX - ISLAND_ORIGIN_X;
-  const index = Math.floor(relative / ISLAND_SPACING);
-  return BIOMES[index % BIOMES.length]!;
+  const hit = islandCoordsAt(tileX, tileY);
+  if (!hit) {
+    return null;
+  }
+  return BIOMES[hit.index % BIOMES.length]!;
 }
 
 function stampIsland(island: IslandTemplate): void {
-  const { x, side, dock, biome, pier } = island;
-  const { y0, y1 } = floorYRange(side);
+  const { x, y, dock, biome, pier } = island;
   for (let dx = 0; dx < ISLAND_WIDTH; dx++) {
-    for (let y = y0; y <= y1; y++) {
-      ARCHIPELAGO.tiles[y][x + dx] = TileType.Floor;
+    for (let dy = 0; dy < ISLAND_WIDTH; dy++) {
+      const tx = x + dx;
+      const ty = y + dy;
+      if (!inBounds(tx, ty)) {
+        continue;
+      }
+      ARCHIPELAGO.tiles[ty][tx] = TileType.Floor;
     }
   }
-  ARCHIPELAGO.tiles[dock.y][dock.x] = TileType.Dock;
+  if (inBounds(dock.x, dock.y)) {
+    ARCHIPELAGO.tiles[dock.y][dock.x] = TileType.Dock;
+  }
 
   const kinds = propKindsForBiome(biome);
   for (let i = 0; i < ISLAND_PROP_CELLS.length; i++) {
     const cell = ISLAND_PROP_CELLS[i]!;
     const px = x + cell.dx;
-    const py = y0 + cell.dy;
+    const py = y + cell.dy;
     // Keep the embark pier clear of props.
     if (px === pier.x && py === pier.y) {
       continue;
     }
-    if (cell.dx < 0 || cell.dx >= ISLAND_WIDTH || py < y0 || py > y1) {
+    if (
+      cell.dx < 0 ||
+      cell.dx >= ISLAND_WIDTH ||
+      cell.dy < 0 ||
+      cell.dy >= ISLAND_WIDTH ||
+      !inBounds(px, py)
+    ) {
       continue;
     }
     archipelagoProps.push({
@@ -293,8 +342,6 @@ function stampIsland(island: IslandTemplate): void {
 
 /**
  * Stamp islands whose full footprint newly fits in `[0, xEnd)`.
- * Origins may precede `xStart` when ISLAND_WIDTH > chunk size — stamp once
- * the eastern edge crosses into the grown columns (avoid re-stamping).
  * Returns the westmost origin stamped, or null if none.
  */
 function stampIslandsInColumnRange(
@@ -328,23 +375,18 @@ function appendWaterColumns(count: number): void {
 }
 
 /**
- * Grow water east of the player.
+ * Ensure the archipelago is at full width (100). Normally a no-op after reset.
  *
  * Collision tiles stay Water so the player can always sail west back to the
  * Harbor return gates. "Unload behind" is visual-only via
  * `archipelagoVisualCullBefore` (scene destroys far-west sprites).
- * Newly generated columns may receive island Floor/Dock stamps.
  */
-export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResult {
+export function ensureArchipelagoChunksAround(_playerX: number): ChunkEnsureResult {
   const previousWidth = ARCHIPELAGO.width;
-  const px = Math.floor(playerX);
   let redrawFrom = previousWidth;
 
-  while (
-    px + ARCHIPELAGO_LOOKAHEAD >= ARCHIPELAGO.width - 1 &&
-    ARCHIPELAGO.width < ARCHIPELAGO_MAX_WIDTH
-  ) {
-    appendWaterColumns(ARCHIPELAGO_CHUNK);
+  if (ARCHIPELAGO.width < ARCHIPELAGO_MAX_WIDTH) {
+    appendWaterColumns(ARCHIPELAGO_MAX_WIDTH - ARCHIPELAGO.width);
   }
 
   if (ARCHIPELAGO.width > previousWidth) {
@@ -379,12 +421,7 @@ export function archipelagoVisualCullBefore(playerX: number): number {
 export function isArchipelagoSailPosition(x: number, y: number): boolean {
   const tileX = Math.round(x);
   const tileY = Math.round(y);
-  if (
-    tileX < 0 ||
-    tileX >= ARCHIPELAGO_MAX_WIDTH ||
-    tileY < 0 ||
-    tileY >= ARCHIPELAGO_HEIGHT
-  ) {
+  if (!inBounds(tileX, tileY)) {
     return false;
   }
   // Island Floor blocks sail; docks remain sailable.
@@ -446,7 +483,7 @@ export function findNearestIslandDock(
   return best;
 }
 
-/** Rebuild the initial ocean shell (tests / leaving the zone). */
+/** Rebuild the full 100×100 ocean with all island stamps (tests / leaving the zone). */
 export function resetArchipelagoStream(): void {
   archipelagoProps = [];
   ARCHIPELAGO.width = ARCHIPELAGO_INITIAL_WIDTH;
@@ -459,5 +496,5 @@ export function resetArchipelagoStream(): void {
   stampIslandsInColumnRange(0, ARCHIPELAGO_INITIAL_WIDTH);
 }
 
-// Stamp the seed islands into the module singleton on load.
+// Stamp the full island grid into the module singleton on load.
 stampIslandsInColumnRange(0, ARCHIPELAGO_INITIAL_WIDTH);
