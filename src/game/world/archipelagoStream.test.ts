@@ -24,6 +24,7 @@ import {
   isArchipelagoIslandPosition,
   isArchipelagoSailPosition,
   islandCellAt,
+  islandIndexAtTile,
   islandTemplateAtIndex,
   listIslandTemplates,
   prepareArchipelagoForPosition,
@@ -216,6 +217,11 @@ describe("archipelago 2D island grid", () => {
     expect(islandCellAt(first.embarkWater.x, first.embarkWater.y)).toBe(null);
     expect(biomeAtIslandTile(first.pier.x, first.pier.y)).toBe("lush");
     expect(biomeAtIslandTile(ARCHIPELAGO_ENTRY.x, ARCHIPELAGO_ENTRY.y)).toBe(
+      null,
+    );
+    expect(islandIndexAtTile(first.pier.x, first.pier.y)).toBe(0);
+    expect(islandIndexAtTile(first.dock.x, first.dock.y)).toBe(0);
+    expect(islandIndexAtTile(ARCHIPELAGO_ENTRY.x, ARCHIPELAGO_ENTRY.y)).toBe(
       null,
     );
     expect(findNearestIslandDock(first.dock.x, first.dock.y)?.index).toBe(0);

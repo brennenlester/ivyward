@@ -303,6 +303,18 @@ export function biomeAtIslandTile(
   return BIOMES[hit.index % BIOMES.length]!;
 }
 
+/** Island grid index for Floor/Dock tiles, or null on open water. */
+export function islandIndexAtTile(
+  tileX: number,
+  tileY: number,
+): number | null {
+  if (islandCellAt(tileX, tileY) === null) {
+    return null;
+  }
+  const hit = islandCoordsAt(tileX, tileY);
+  return hit?.index ?? null;
+}
+
 function stampIsland(island: IslandTemplate): void {
   const { x, y, dock, biome, pier } = island;
   for (let dx = 0; dx < ISLAND_WIDTH; dx++) {

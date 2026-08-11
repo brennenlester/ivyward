@@ -1,24 +1,50 @@
-import type { IslandBiome } from "../world/archipelagoStream";
+import { ISLAND_COLS, ISLAND_ROWS } from "../world/archipelagoStream";
 import type { ZoneId } from "../world/zoneTypes";
 
 type EncounterEntry = { id: string; weight: number };
 
 /**
- * On-foot archipelago island pools by biome.
+ * One exclusive on-foot creature per archipelago island (index 0..15).
+ * Islands 0–2 reuse the original three; 3–15 are island-exclusive species.
  * Sailing never rolls these — IsometricScene skips encounters while isSailing().
  */
-export const ARCHIPELAGO_BIOME_ENCOUNTERS: Record<
-  IslandBiome,
-  EncounterEntry[]
-> = {
-  lush: [{ id: "isle-fernling", weight: 100 }],
-  barren: [{ id: "salt-scuttle", weight: 100 }],
-  other: [{ id: "shoal-wisp", weight: 100 }],
-};
+export const ARCHIPELAGO_ISLAND_CREATURE_IDS = [
+  "isle-fernling",
+  "salt-scuttle",
+  "shoal-wisp",
+  "tide-urchin",
+  "coral-skitter",
+  "drift-kelpie",
+  "dune-hermit",
+  "brackish-newt",
+  "pearl-moth",
+  "reef-spinner",
+  "mist-anemone",
+  "barnacle-toad",
+  "gulf-lantern",
+  "spray-finch",
+  "lagoon-hare",
+  "atoll-wisp",
+] as const;
 
-const ARCHIPELAGO_EXCLUSIVE_IDS = (
-  Object.values(ARCHIPELAGO_BIOME_ENCOUNTERS) as EncounterEntry[][]
-).flatMap((table) => table.map((entry) => entry.id));
+const ARCHIPELAGO_ISLAND_COUNT = ISLAND_ROWS * ISLAND_COLS;
+
+if (ARCHIPELAGO_ISLAND_CREATURE_IDS.length !== ARCHIPELAGO_ISLAND_COUNT) {
+  throw new Error(
+    `Archipelago creature map length ${ARCHIPELAGO_ISLAND_CREATURE_IDS.length} !== island count ${ARCHIPELAGO_ISLAND_COUNT}`,
+  );
+}
+
+/** Exclusive creature id for island index 0..15. */
+export function creatureIdForIslandIndex(index: number): string {
+  const id = ARCHIPELAGO_ISLAND_CREATURE_IDS[index];
+  if (id === undefined) {
+    throw new Error(`No creature for island index ${index}`);
+  }
+  return id;
+}
+
+const ARCHIPELAGO_EXCLUSIVE_IDS: string[] = [...ARCHIPELAGO_ISLAND_CREATURE_IDS];
 
 /**
  * Habitats = encounter pools only.
@@ -45,8 +71,8 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
   ],
   // Harbor shell: no wild table yet (boat/side-scroll follow-ups).
   harbor: [],
-  // Union of biome exclusives for codex habitat discovery.
-  // Biome-specific rolls use ARCHIPELAGO_BIOME_ENCOUNTERS via rollWildCreature.
+  // Union of per-island exclusives for codex habitat discovery.
+  // Per-island rolls use creatureIdForIslandIndex via rollWildCreature.
   archipelago: ARCHIPELAGO_EXCLUSIVE_IDS.map((id) => ({ id, weight: 1 })),
   mistwood: [
     { id: "thunder-finch", weight: 70 },
@@ -82,8 +108,8 @@ function rollFromTable(table: EncounterEntry[]): string | null {
 }
 
 export type RollWildOptions = {
-  /** Island biome when rolling in the archipelago zone. Required for a hit. */
-  biome?: IslandBiome | null;
+  /** Island index when rolling in the archipelago zone. Required for a hit. */
+  islandIndex?: number | null;
 };
 
 /** Wild rolls only while on foot — sailing never attempts encounters. */
@@ -96,12 +122,13 @@ export function rollWildCreature(
   options?: RollWildOptions,
 ): string | null {
   if (zoneId === "archipelago") {
-    // Biome is knowable from the island tile streamer; no biome ⇒ no roll
+    // Island index is knowable from the Floor/Dock tile; missing ⇒ no roll
     // (open water / mid-sail must not hit the habitat union).
-    if (!options?.biome) {
+    const index = options?.islandIndex;
+    if (index == null || index < 0 || index >= ARCHIPELAGO_ISLAND_COUNT) {
       return null;
     }
-    return rollFromTable(ARCHIPELAGO_BIOME_ENCOUNTERS[options.biome]);
+    return creatureIdForIslandIndex(index);
   }
   return rollFromTable(ZONE_ENCOUNTERS[zoneId]);
 }
