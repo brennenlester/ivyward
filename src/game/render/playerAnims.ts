@@ -1,6 +1,6 @@
 import Phaser from "phaser";
 import { PLAYER_DISPLAY, fitDisplay } from "./displaySizes";
-import { walkStrideFrame } from "./playerWalk";
+import { WALK_FRAME_COUNT, walkStrideFrame } from "./playerWalk";
 
 const FRAME_WIDTH = 48;
 const FRAME_HEIGHT = 64;
@@ -17,7 +17,8 @@ function drawTrainer(
   facing: Facing,
   frame: number,
 ): void {
-  const stride = frame === 1 ? -3 : frame === 2 ? 3 : 0;
+  // Procedural fallback: odd frames lean one way, even the other.
+  const stride = frame === 0 ? 0 : frame % 2 === 1 ? -3 : 3;
   const side = facing === "east" ? 1 : facing === "west" ? -1 : 0;
   const back = facing === "north";
   const center = 24 + side * 2;
@@ -25,7 +26,6 @@ function drawTrainer(
   g.fillStyle(0x17243c, 0.24);
   g.fillEllipse(24, 61, 26, 6);
 
-  // Longer legs and boots keep the hero youthful rather than chibi.
   g.fillStyle(0x243454, 1);
   g.fillRect(center - 10, 43, 7, 14 + Math.max(0, stride));
   g.fillRect(center + 3, 43, 7, 14 + Math.max(0, -stride));
@@ -33,7 +33,6 @@ function drawTrainer(
   g.fillRoundedRect(center - 12, 56 + Math.max(0, stride), 11, 5, 2);
   g.fillRoundedRect(center + 2, 56 + Math.max(0, -stride), 11, 5, 2);
 
-  // Backpack and cape/vest silhouette.
   g.fillStyle(0x1d293b, 1);
   g.fillRoundedRect(center - 14 - side * 2, 29, 9, 19, 3);
   g.fillStyle(0x6b4a32, 1);
@@ -45,7 +44,6 @@ function drawTrainer(
   g.fillStyle(0xf0b65f, 1);
   g.fillRoundedRect(center - 3, 30, 6, 5, 2);
 
-  // Swinging arms make the three walk frames read at a glance.
   g.fillStyle(0x315d7c, 1);
   g.fillRoundedRect(center - 16, 31 + stride / 3, 6, 15, 3);
   g.fillRoundedRect(center + 10, 31 - stride / 3, 6, 15, 3);
@@ -53,7 +51,6 @@ function drawTrainer(
   g.fillCircle(center - 13, 46 + stride / 3, 3);
   g.fillCircle(center + 13, 46 - stride / 3, 3);
 
-  // Hair, face, and a wide anime-style eye pair.
   g.fillStyle(0x31233e, 1);
   g.fillCircle(center, 19, 12);
   g.fillStyle(0x5a3b6c, 1);
@@ -106,9 +103,8 @@ export function getPlayerIdleTextureKey(facing: Facing = "south"): string {
 
 export function ensurePlayerAnims(scene: Phaser.Scene): void {
   for (const facing of FACINGS) {
-    // Prefer packed Imagine walk sheets (0=idle/walk1, 1=walk1, 2=walk2).
-    // Procedural frames fill any missing keys — no squash/rotate derivation.
-    for (const frame of [0, 1, 2] as const) {
+    const walkCount = WALK_FRAME_COUNT[facing];
+    for (let frame = 0; frame <= walkCount; frame += 1) {
       if (!isImagineTexture(scene, textureKey(facing, frame))) {
         generateFrame(scene, facing, frame);
       }
@@ -124,15 +120,14 @@ export function ensurePlayerAnims(scene: Phaser.Scene): void {
       });
     }
 
-    // Walk poses are applied from travel distance in IsometricScene — keep a
-    // short anim only as a fallback if something still calls sprite.play(walk).
     const walkKey = `player-walk-${facing}`;
     if (scene.anims.exists(walkKey)) {
       scene.anims.remove(walkKey);
     }
+    const walkFrames = Array.from({ length: walkCount }, (_, i) => i + 1);
     scene.anims.create({
       key: walkKey,
-      frames: [1, 2].map((frame) => ({
+      frames: walkFrames.map((frame) => ({
         key: textureKey(facing, frame),
       })),
       frameRate: 8,
@@ -141,7 +136,7 @@ export function ensurePlayerAnims(scene: Phaser.Scene): void {
   }
 }
 
-/** Idle frame 0, or distance-synced contact pose while moving. */
+/** Idle frame 0, or distance-synced walk pose while moving. */
 export function applyPlayerPose(
   sprite: Phaser.GameObjects.Sprite,
   facing: Facing,
@@ -149,7 +144,9 @@ export function applyPlayerPose(
   walkPhase: number,
 ): void {
   sprite.anims.stop();
-  const frame = moving ? walkStrideFrame(walkPhase) : 0;
+  const frame = moving
+    ? walkStrideFrame(walkPhase, WALK_FRAME_COUNT[facing])
+    : 0;
   const key = textureKey(facing, frame);
   if (sprite.texture.key !== key) {
     sprite.setTexture(key);

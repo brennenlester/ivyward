@@ -4,14 +4,32 @@ export const WALK_CYCLES_PER_TILE = 0.85;
 /** Vertical lift (px up) at mid-pass between contact poses. */
 export const WALK_BOB_AMPLITUDE = 2;
 
+/** Walk texture indices 1..N per facing (0 is always idle). Hybrid #134 sheet plan. */
+export const WALK_FRAME_COUNT: Record<
+  "south" | "north" | "east" | "west",
+  number
+> = {
+  east: 4,
+  west: 4,
+  south: 2,
+  north: 2,
+};
+
 function wrap01(phase: number): number {
   const wrapped = phase % 1;
   return wrapped < 0 ? wrapped + 1 : wrapped;
 }
 
-/** Contact pose index for a distance-driven walk phase. */
-export function walkStrideFrame(phase: number): 1 | 2 {
-  return wrap01(phase) < 0.5 ? 1 : 2;
+/**
+ * Distance-driven walk texture index (1..walkFrameCount).
+ * Evenly samples the walk sheet across one gait cycle.
+ */
+export function walkStrideFrame(
+  phase: number,
+  walkFrameCount = 2,
+): number {
+  const n = Math.max(1, Math.floor(walkFrameCount));
+  return 1 + Math.min(n - 1, Math.floor(wrap01(phase) * n));
 }
 
 /**
