@@ -1,3 +1,8 @@
+import {
+  ARCHIPELAGO,
+  ARCHIPELAGO_ENTRY,
+  HARBOR_EAST_SAIL_GATES,
+} from "./archipelagoStream";
 import { TileType, type ZoneDefinition, type ZoneId } from "./zoneTypes";
 
 function borderedFloor(
@@ -203,6 +208,14 @@ const HARBOR: ZoneDefinition = {
   darkTint: 0x5a8098,
   transitions: [
     { x: 0, y: 4, targetZone: "overworld", targetX: 7, targetY: 1 },
+    // East water edge → open archipelago (sail-preserving; on-foot cannot reach water).
+    ...HARBOR_EAST_SAIL_GATES.map((gate) => ({
+      x: gate.x,
+      y: gate.y,
+      targetZone: "archipelago" as const,
+      targetX: ARCHIPELAGO_ENTRY.x,
+      targetY: ARCHIPELAGO_ENTRY.y,
+    })),
   ],
 };
 
@@ -244,6 +257,7 @@ export const ZONES: Record<ZoneId, ZoneDefinition> = {
   village: VILLAGE,
   overworld: OVERWORLD,
   harbor: HARBOR,
+  archipelago: ARCHIPELAGO,
   mistwood: MISTWOOD,
   emberfen: EMBERFEN,
   "warden-cottage": WARDEN_COTTAGE,

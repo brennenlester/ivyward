@@ -27,6 +27,8 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
   ],
   // Harbor shell: no wild table yet (boat/side-scroll follow-ups).
   harbor: [],
+  // Archipelago ocean stream: islands/creatures are #96/#97.
+  archipelago: [],
   mistwood: [
     { id: "thunder-finch", weight: 70 },
     { id: "lantern-fox", weight: 10 },

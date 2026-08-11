@@ -44,6 +44,11 @@ import {
   HARBOR_EMBARK_WATER,
   type HarborDockId,
 } from "./dockBoat";
+import {
+  isArchipelagoSailPosition,
+  isSailableZone,
+  prepareArchipelagoForPosition,
+} from "./archipelagoStream";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
@@ -66,7 +71,7 @@ export type WorldSnapshot = {
   placedBoat?: boolean;
   /** Which Harbor dock holds the moored boat. Optional for older saves. */
   mooredDock?: "west" | "east";
-  /** Player is sailing in Harbor. Optional for older saves. */
+  /** Player is sailing on Harbor / Archipelago water. Optional for older saves. */
   sailing?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
@@ -109,6 +114,10 @@ function isSpawnWalkable(
   overworldUnlocked: boolean,
   sailing = false,
 ): boolean {
+  // Validate archipelago mid-sail without mutating the live stream (generate on apply).
+  if (sailing && zoneId === "archipelago") {
+    return isArchipelagoSailPosition(x, y);
+  }
   const zone = ZONES[zoneId];
   const tileX = Math.round(x);
   const tileY = Math.round(y);
@@ -504,14 +513,17 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     setMooredDock(null);
   }
   setSailing(snapshot.sailing === true);
-  // Sailing only makes sense on Harbor Water/Dock; otherwise clear it.
+  // Sailing only makes sense on Harbor/Archipelago Water/Dock; otherwise clear it.
   if (isSailing()) {
+    if (snapshot.position.zoneId === "archipelago") {
+      prepareArchipelagoForPosition(snapshot.position.x);
+    }
     const zone = ZONES[snapshot.position.zoneId];
     const tileX = Math.round(snapshot.position.x);
     const tileY = Math.round(snapshot.position.y);
     const tile = zone.tiles[tileY]?.[tileX];
     if (
-      snapshot.position.zoneId !== "harbor" ||
+      !isSailableZone(snapshot.position.zoneId) ||
       (tile !== TileType.Water && tile !== TileType.Dock)
     ) {
       setSailing(false);

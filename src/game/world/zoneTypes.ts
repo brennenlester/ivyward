@@ -4,6 +4,7 @@ export type ZoneId =
   | "village"
   | "overworld"
   | "harbor"
+  | "archipelago"
   | "mistwood"
   | "emberfen"
   | "warden-cottage"
