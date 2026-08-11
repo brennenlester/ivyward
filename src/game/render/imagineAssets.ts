@@ -7,8 +7,8 @@ export const IMAGINE_ATLAS_KEY = "imagine-atlas";
  * fall through to procedural ensure* helpers after promoteAtlasFrames runs.
  *
  * Trainer frames: Style D walk1 → `player-*-0`/`*-1`.
- * Frame 2: S/N=hflip(walk1); W=walk2; E=hflip(west cycle).
- * Subtle walk bob in IsometricScene sells stride on side/back views.
+ * Frame 2: S=lower-body flip keeping staff side; N=hflip(walk1); W=walk2; E=hflip(west).
+ * Distance-synced stride + sine bob in IsometricScene (no free-running skate).
  * Mistwood/Emberfen floors+borders are recolored Style D tiles (no unique Imagine sheets yet).
  */
 export function preloadImagineAssets(scene: Phaser.Scene): void {
