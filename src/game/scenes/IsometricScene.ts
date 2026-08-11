@@ -237,6 +237,9 @@ export class IsometricScene extends Phaser.Scene {
       this.travelSinceEncounter = 0;
       this.godSailTravelSinceEncounter = 0;
       setTouchControlsEnabled(true);
+      if (this.input.keyboard) {
+        this.input.keyboard.enabled = true;
+      }
       const zoneId = this.currentZoneId;
       const x = this.playerGridX;
       const y = this.playerGridY;
@@ -466,6 +469,9 @@ export class IsometricScene extends Phaser.Scene {
     this.pendingGodSailEncounter = pending;
     this.inEncounter = true;
     setTouchControlsEnabled(false);
+    if (this.input.keyboard) {
+      this.input.keyboard.enabled = false;
+    }
     this.player.setTint(0x48d7d1);
     const pulse = this.tweens.add({
       targets: this.player,

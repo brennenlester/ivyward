@@ -103,6 +103,23 @@ describe("god sail encounter", () => {
       }),
     ).toBe(false);
 
+    const naturallyClaimed = {
+      sailing: true,
+      zoneId: "archipelago" as const,
+      islandIndex: null,
+      visitor: false,
+      claimed: true,
+    };
+    const naturallyOnIsland = {
+      ...naturallyClaimed,
+      islandIndex: 3,
+      claimed: false,
+    };
+    expect(shouldAttemptGodSailEncounter(naturallyClaimed)).toBe(false);
+    expect(shouldAttemptGodSailEncounter(naturallyOnIsland)).toBe(false);
+    expect(canForceGodSailEncounter(naturallyClaimed)).toBe(true);
+    expect(canForceGodSailEncounter(naturallyOnIsland)).toBe(true);
+
     const pending = createPendingGodSailEncounter(12.25, 7.5, true);
     expect(pending).toMatchObject({
       creatureId: TIDE_SOVEREIGN_ID,
@@ -163,5 +180,19 @@ describe("god sail encounter", () => {
     });
     expect(playerParty.creatures).toHaveLength(1);
     expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
+  });
+
+  it("claims a befriended god with the same fainted one-time outcome", () => {
+    expect(resolveTideSovereignOutcome("befriend")).toEqual({
+      creatureAdded: true,
+      weaponGranted: true,
+    });
+    expect(playerParty.creatures).toHaveLength(1);
+    expect(playerParty.creatures[0]).toMatchObject({
+      definitionId: TIDE_SOVEREIGN_ID,
+      currentHp: 0,
+    });
+    expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
+    expect(isGodSailEncounterClaimed()).toBe(true);
   });
 });
