@@ -1,6 +1,7 @@
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
-  ARCHIPELAGO_BIOME_ENCOUNTERS,
+  ARCHIPELAGO_ISLAND_CREATURE_IDS,
+  creatureIdForIslandIndex,
   getArchipelagoExclusiveIds,
   getCreaturesForZone,
   getHabitatsForCreature,
@@ -10,6 +11,9 @@ import {
   ZONE_ENCOUNTERS,
 } from "./tables";
 import type { ZoneId } from "../world/zoneTypes";
+import { ISLAND_COLS, ISLAND_ROWS } from "../world/archipelagoStream";
+import { getCreatureDefinition } from "../creatures/catalog";
+import { getMaterialForCreature } from "../inventory/materials";
 
 describe("getHabitatsForCreature", () => {
   it("lists every habitat that can spawn the creature", () => {
@@ -48,18 +52,26 @@ describe("getKnownCreaturesForZone", () => {
 });
 
 describe("archipelago exclusive encounters", () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-  });
-
   it("suppresses wild rolls while sailing and allows them on foot", () => {
     expect(shouldAttemptWildEncounter(true)).toBe(false);
     expect(shouldAttemptWildEncounter(false)).toBe(true);
   });
 
+  it("maps each island index to a unique creature", () => {
+    const islandCount = ISLAND_ROWS * ISLAND_COLS;
+    expect(ARCHIPELAGO_ISLAND_CREATURE_IDS).toHaveLength(islandCount);
+    const ids = ARCHIPELAGO_ISLAND_CREATURE_IDS.map((_, i) =>
+      creatureIdForIslandIndex(i),
+    );
+    expect(new Set(ids).size).toBe(islandCount);
+    expect(creatureIdForIslandIndex(0)).toBe("isle-fernling");
+    expect(creatureIdForIslandIndex(1)).toBe("salt-scuttle");
+    expect(creatureIdForIslandIndex(2)).toBe("shoal-wisp");
+  });
+
   it("lists exclusive ids only in the archipelago zone table", () => {
     const exclusive = new Set(getArchipelagoExclusiveIds());
-    expect(exclusive.size).toBeGreaterThanOrEqual(3);
+    expect(exclusive.size).toBe(ISLAND_ROWS * ISLAND_COLS);
 
     for (const [zoneId, table] of Object.entries(ZONE_ENCOUNTERS) as [
       ZoneId,
@@ -77,33 +89,25 @@ describe("archipelago exclusive encounters", () => {
     );
   });
 
-  it("rolls biome-exclusive ids for each island biome", () => {
-    vi.spyOn(Math, "random").mockReturnValue(0);
-    expect(rollWildCreature("archipelago", { biome: "lush" })).toBe(
-      "isle-fernling",
-    );
-    expect(rollWildCreature("archipelago", { biome: "barren" })).toBe(
-      "salt-scuttle",
-    );
-    expect(rollWildCreature("archipelago", { biome: "other" })).toBe(
-      "shoal-wisp",
-    );
+  it("rolls the island creature for every island index", () => {
+    for (let i = 0; i < ARCHIPELAGO_ISLAND_CREATURE_IDS.length; i++) {
+      expect(rollWildCreature("archipelago", { islandIndex: i })).toBe(
+        creatureIdForIslandIndex(i),
+      );
+    }
   });
 
-  it("returns null for archipelago without a biome (no open-water exclusives)", () => {
+  it("returns null for archipelago without an island (no open-water exclusives)", () => {
     expect(rollWildCreature("archipelago")).toBeNull();
-    expect(rollWildCreature("archipelago", { biome: null })).toBeNull();
+    expect(rollWildCreature("archipelago", { islandIndex: null })).toBeNull();
+    expect(rollWildCreature("archipelago", { islandIndex: -1 })).toBeNull();
+    expect(rollWildCreature("archipelago", { islandIndex: 99 })).toBeNull();
   });
 
-  it("keeps biome tables disjoint and covered by the union habitat", () => {
-    const lush = ARCHIPELAGO_BIOME_ENCOUNTERS.lush.map((e) => e.id);
-    const barren = ARCHIPELAGO_BIOME_ENCOUNTERS.barren.map((e) => e.id);
-    const other = ARCHIPELAGO_BIOME_ENCOUNTERS.other.map((e) => e.id);
-    expect(new Set([...lush, ...barren, ...other]).size).toBe(
-      lush.length + barren.length + other.length,
-    );
-    for (const id of [...lush, ...barren, ...other]) {
-      expect(ZONE_ENCOUNTERS.archipelago.some((e) => e.id === id)).toBe(true);
+  it("keeps island creatures in catalog with material drops", () => {
+    for (const id of ARCHIPELAGO_ISLAND_CREATURE_IDS) {
+      expect(getCreatureDefinition(id).id).toBe(id);
+      expect(getMaterialForCreature(id)).toBeTruthy();
     }
   });
 });

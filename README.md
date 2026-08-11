@@ -72,7 +72,7 @@ The game hides one achievement. It is never listed, counted, or named in the UI 
 <details>
 <summary>Spoiler</summary>
 
-Filling every codex page (all 14 creatures that appear in habitat encounter tables) unlocks **Codex Keeper** and grants **Brook Tonic ×5** and **Moonwake Draught ×5** — five heals and five revives. It awards once per save. `Bramblewarden` and `Hearthflame` are evolution-only and are not required.
+Filling every codex page (all 27 creatures that appear in habitat encounter tables) unlocks **Codex Keeper** and grants **Brook Tonic ×5** and **Moonwake Draught ×5** — five heals and five revives. It awards once per save. `Bramblewarden` and `Hearthflame` are evolution-only and are not required.
 
 </details>
 

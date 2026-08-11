@@ -101,6 +101,7 @@ import {
   biomeAtIslandTile,
   ensureArchipelagoChunksAround,
   getArchipelagoPropsInColumns,
+  islandIndexAtTile,
   ISLAND_BIOME_FLOOR_TINT,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
@@ -352,11 +353,11 @@ export class IsometricScene extends Phaser.Scene {
       return;
     }
 
-    const biome =
+    const islandIndex =
       this.currentZoneId === "archipelago"
-        ? biomeAtIslandTile(this.playerGridX, this.playerGridY)
+        ? islandIndexAtTile(this.playerGridX, this.playerGridY)
         : null;
-    const creatureId = rollWildCreature(this.currentZoneId, { biome });
+    const creatureId = rollWildCreature(this.currentZoneId, { islandIndex });
     if (!creatureId) {
       return;
     }

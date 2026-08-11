@@ -353,6 +353,207 @@ function drawShoalWisp(g: Phaser.GameObjects.Graphics, color: number): void {
   drawEyes(g, 20, 28, 20, 3);
 }
 
+function drawTideUrchin(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 28, 18, 16, color);
+  for (const angle of [0, 45, 90, 135, 180, 225, 270, 315]) {
+    const rad = (angle * Math.PI) / 180;
+    const x = 24 + Math.cos(rad) * 14;
+    const y = 28 + Math.sin(rad) * 12;
+    g.fillStyle(OUTLINE, 1);
+    g.fillTriangle(24, 28, x - 2, y, x + 2, y);
+    g.fillStyle(shade(color, 30), 1);
+    g.fillTriangle(24, 28, x - 1, y - 1, x + 1, y - 1);
+  }
+  drawEyes(g, 20, 28, 26, 2.5);
+}
+
+function drawCoralSkitter(g: Phaser.GameObjects.Graphics, color: number): void {
+  for (const [x, y] of [
+    [12, 38],
+    [20, 40],
+    [28, 40],
+    [36, 38],
+  ] as const) {
+    g.fillStyle(OUTLINE, 1);
+    g.fillEllipse(x, y, 5, 3);
+    g.fillStyle(shade(color, -25), 1);
+    g.fillEllipse(x, y - 1, 3, 2);
+  }
+  blob(g, 24, 26, 22, 14, color);
+  g.fillStyle(shade(color, 40), 1);
+  g.fillCircle(18, 22, 3);
+  g.fillCircle(30, 20, 4);
+  drawEyes(g, 20, 28, 24);
+}
+
+function drawDriftKelpie(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 30, 20, 16, shade(color, -20));
+  blob(g, 24, 20, 16, 14, color);
+  g.fillStyle(OUTLINE, 1);
+  g.fillTriangle(10, 18, 4, 34, 16, 28);
+  g.fillTriangle(38, 18, 44, 34, 32, 28);
+  g.fillStyle(shade(color, 25), 1);
+  g.fillTriangle(11, 19, 7, 30, 15, 26);
+  g.fillTriangle(37, 19, 41, 30, 33, 26);
+  g.fillStyle(0xa8e8c0, 0.7);
+  g.fillCircle(20, 16, 2);
+  drawEyes(g, 20, 28, 18);
+}
+
+function drawDuneHermit(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(24, 34, 26, 16);
+  g.fillStyle(color, 1);
+  g.fillEllipse(24, 33, 22, 13);
+  g.fillStyle(shade(color, 35), 1);
+  g.fillEllipse(24, 30, 12, 8);
+  blob(g, 24, 20, 14, 12, shade(color, -15));
+  g.fillStyle(OUTLINE, 1);
+  g.fillRoundedRect(14, 36, 4, 10, 1);
+  g.fillRoundedRect(30, 36, 4, 10, 1);
+  drawEyes(g, 20, 28, 18, 2.5);
+}
+
+function drawBrackishNewt(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 32, 24, 12, shade(color, -20));
+  blob(g, 24, 24, 16, 14, color);
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(38, 30, 14, 6);
+  g.fillStyle(shade(color, 10), 1);
+  g.fillEllipse(37, 29, 11, 4);
+  g.fillStyle(0x90b878, 0.8);
+  g.fillCircle(18, 22, 2);
+  g.fillCircle(26, 20, 2);
+  drawEyes(g, 18, 26, 22, 2.5);
+}
+
+function drawPearlMoth(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(12, 22, 16, 22);
+  g.fillEllipse(36, 22, 16, 22);
+  g.fillStyle(color, 1);
+  g.fillEllipse(12, 22, 13, 18);
+  g.fillEllipse(36, 22, 13, 18);
+  g.fillStyle(0xffffff, 0.55);
+  g.fillCircle(10, 18, 4);
+  g.fillCircle(38, 18, 4);
+  blob(g, 24, 28, 10, 14, shade(color, -40));
+  drawEyes(g, 21, 27, 26, 2);
+}
+
+function drawReefSpinner(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 28, 20, 16, color);
+  g.fillStyle(OUTLINE, 1);
+  g.fillCircle(24, 26, 8);
+  g.fillStyle(shade(color, 40), 1);
+  g.fillCircle(24, 26, 6);
+  g.fillStyle(0xe0ffff, 0.9);
+  g.fillCircle(24, 24, 3);
+  for (const [x, y] of [
+    [10, 20],
+    [38, 20],
+    [12, 36],
+    [36, 36],
+  ] as const) {
+    g.fillStyle(OUTLINE, 1);
+    g.fillTriangle(24, 26, x, y - 3, x, y + 3);
+  }
+  drawEyes(g, 20, 28, 34, 2);
+}
+
+function drawMistAnemone(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 34, 18, 12, shade(color, -25));
+  for (const [x, tipY] of [
+    [14, 8],
+    [24, 4],
+    [34, 8],
+    [18, 14],
+    [30, 14],
+  ] as const) {
+    g.fillStyle(OUTLINE, 1);
+    g.fillTriangle(x, tipY, x - 4, 30, x + 4, 30);
+    g.fillStyle(shade(color, 30), 0.85);
+    g.fillTriangle(x, tipY + 2, x - 3, 28, x + 3, 28);
+  }
+  drawEyes(g, 20, 28, 36, 2.5);
+}
+
+function drawBarnacleToad(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 34, 26, 14, shade(color, -20));
+  blob(g, 24, 24, 22, 16, color);
+  for (const [x, y] of [
+    [16, 22],
+    [24, 18],
+    [32, 24],
+  ] as const) {
+    g.fillStyle(OUTLINE, 1);
+    g.fillCircle(x, y, 4);
+    g.fillStyle(shade(color, 25), 1);
+    g.fillCircle(x, y, 2.5);
+  }
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(14, 40, 8, 5);
+  g.fillEllipse(34, 40, 8, 5);
+  drawEyes(g, 18, 30, 28);
+}
+
+function drawGulfLantern(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(OUTLINE, 1);
+  g.fillRoundedRect(22, 34, 4, 12, 1);
+  g.fillStyle(shade(color, -30), 1);
+  g.fillRoundedRect(23, 35, 2, 10, 1);
+  blob(g, 24, 20, 20, 20, color);
+  g.fillStyle(0xfff0c0, 0.9);
+  g.fillCircle(24, 18, 8);
+  g.fillStyle(color, 0.35);
+  g.fillCircle(24, 20, 16);
+  drawEyes(g, 20, 28, 22, 2.5);
+}
+
+function drawSprayFinch(g: Phaser.GameObjects.Graphics, color: number): void {
+  blob(g, 24, 28, 18, 14, color);
+  g.fillStyle(OUTLINE, 1);
+  g.fillTriangle(34, 24, 44, 20, 34, 30);
+  g.fillStyle(shade(color, 20), 1);
+  g.fillTriangle(35, 24, 41, 21, 35, 28);
+  g.fillStyle(OUTLINE, 1);
+  g.fillTriangle(18, 18, 24, 6, 30, 18);
+  g.fillStyle(shade(color, 40), 1);
+  g.fillTriangle(20, 17, 24, 9, 28, 17);
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(16, 36, 6, 4);
+  g.fillEllipse(30, 36, 6, 4);
+  drawEyes(g, 20, 26, 26, 2.5);
+}
+
+function drawLagoonHare(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(16, 10, 8, 18);
+  g.fillEllipse(32, 10, 8, 18);
+  g.fillStyle(shade(color, 20), 1);
+  g.fillEllipse(16, 10, 5, 14);
+  g.fillEllipse(32, 10, 5, 14);
+  blob(g, 24, 30, 22, 16, color);
+  blob(g, 24, 20, 16, 14, shade(color, 15));
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(14, 40, 6, 4);
+  g.fillEllipse(34, 40, 6, 4);
+  drawEyes(g, 20, 28, 20);
+}
+
+function drawAtollWisp(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(shade(color, 40), 0.25);
+  g.fillCircle(24, 26, 20);
+  blob(g, 24, 26, 16, 16, color);
+  g.fillStyle(0xe8ffff, 0.95);
+  g.fillCircle(24, 22, 6);
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(24, 40, 18, 5);
+  g.fillStyle(shade(color, 20), 0.7);
+  g.fillEllipse(24, 39, 14, 3);
+  drawEyes(g, 20, 28, 26, 2.5);
+}
+
 const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
   mossling: drawMossling,
   "ember-wisp": drawEmberWisp,
@@ -370,6 +571,19 @@ const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
   "isle-fernling": drawIsleFernling,
   "salt-scuttle": drawSaltScuttle,
   "shoal-wisp": drawShoalWisp,
+  "tide-urchin": drawTideUrchin,
+  "coral-skitter": drawCoralSkitter,
+  "drift-kelpie": drawDriftKelpie,
+  "dune-hermit": drawDuneHermit,
+  "brackish-newt": drawBrackishNewt,
+  "pearl-moth": drawPearlMoth,
+  "reef-spinner": drawReefSpinner,
+  "mist-anemone": drawMistAnemone,
+  "barnacle-toad": drawBarnacleToad,
+  "gulf-lantern": drawGulfLantern,
+  "spray-finch": drawSprayFinch,
+  "lagoon-hare": drawLagoonHare,
+  "atoll-wisp": drawAtollWisp,
 };
 
 export function ensureCreatureTextures(scene: Phaser.Scene): void {
