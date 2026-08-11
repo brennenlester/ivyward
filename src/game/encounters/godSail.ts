@@ -1,4 +1,5 @@
 import { addToPartyFainted, hasCreature } from "../creatures/party";
+import type { MoveDefinition } from "../creatures/types";
 import { addItem, getItemCount } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import {
@@ -14,6 +15,55 @@ export const GOD_BEFRIEND_CHANCE = 0.08;
 export const NORMAL_BEFRIEND_CHANCE = 0.55;
 export const GOD_SAIL_CHEAT = "0319";
 export const GOD_SPAR_KILL_CHEAT = "0601";
+
+export type TideSovereignAttack = {
+  move: MoveDefinition;
+  damage: number;
+};
+
+const STILL_TIDE: TideSovereignAttack = {
+  move: {
+    id: "still-tide",
+    name: "Still Tide",
+    power: 10,
+    type: "water",
+    accuracy: 100,
+  },
+  damage: 10,
+};
+
+export const TIDE_SOVEREIGN_ATTACK_PATTERN: readonly TideSovereignAttack[] = [
+  STILL_TIDE,
+  {
+    move: {
+      id: "abyss-surge",
+      name: "Abyss Surge",
+      power: 15,
+      type: "water",
+      accuracy: 100,
+    },
+    damage: 15,
+  },
+  STILL_TIDE,
+  {
+    move: {
+      id: "crown-crash",
+      name: "Crown Crash",
+      power: 20,
+      type: "water",
+      accuracy: 100,
+    },
+    damage: 20,
+  },
+];
+
+export function getTideSovereignAttack(
+  turnIndex: number,
+): TideSovereignAttack {
+  return TIDE_SOVEREIGN_ATTACK_PATTERN[
+    turnIndex % TIDE_SOVEREIGN_ATTACK_PATTERN.length
+  ];
+}
 
 export type GodSailEncounterContext = {
   sailing: boolean;

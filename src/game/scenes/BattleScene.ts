@@ -36,6 +36,7 @@ import {
 } from "../battle/wandererWeapons";
 import {
   appendGodSparKillCheatKey,
+  getTideSovereignAttack,
   resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
@@ -63,6 +64,7 @@ export class BattleScene extends Phaser.Scene {
   private usingArmedWanderer = false;
   private battleEnded = false;
   private godSparKillCheatBuffer = "";
+  private tideSovereignTurnIndex = 0;
   private actionButtons: Phaser.GameObjects.Text[] = [];
   private switchMenuObjects: Phaser.GameObjects.GameObject[] = [];
   private wandererFallbackObjects: Phaser.GameObjects.GameObject[] = [];
@@ -104,6 +106,7 @@ export class BattleScene extends Phaser.Scene {
     this.usingArmedWanderer = false;
     this.battleEnded = false;
     this.godSparKillCheatBuffer = "";
+    this.tideSovereignTurnIndex = 0;
     this.actionButtons = [];
     this.switchMenuObjects = [];
     this.wandererFallbackObjects = [];
@@ -118,6 +121,7 @@ export class BattleScene extends Phaser.Scene {
       currentHp: wildDef.maxHp,
       attack: wildDef.attack,
       defense: wildDef.defense,
+      defenseDisabled: data.wildCreatureId === TIDE_SOVEREIGN_ID,
       moves: wildDef.moves,
       folkloreType: wildDef.folkloreType,
     };
@@ -662,22 +666,31 @@ export class BattleScene extends Phaser.Scene {
     if (this.battleEnded) {
       return;
     }
-    const move = pickRandomMove(this.wild);
-    const outcome = resolveAttack(this.wild, move, this.player);
-    if (outcome.kind === "miss") {
-      this.log(`${this.wild.name} used ${move.name} — missed!`);
-    } else if (outcome.kind === "immune") {
-      this.log(
-        `${this.wild.name} used ${move.name} — it had no effect${formatMatchupHint(outcome.matchup)}`,
-      );
-      this.showDamageCounter("player", 0);
-    } else {
-      applyDamage(this.player, outcome.damage);
-      this.showDamageCounter("player", outcome.damage);
+    if (this.wildCreatureId === TIDE_SOVEREIGN_ID) {
+      const attack = getTideSovereignAttack(this.tideSovereignTurnIndex);
+      this.tideSovereignTurnIndex += 1;
+      applyDamage(this.player, attack.damage);
+      this.showDamageCounter("player", attack.damage);
       this.flashCombatant("player");
-      this.log(
-        `${this.wild.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
-      );
+      this.log(`${this.wild.name} used ${attack.move.name}.`);
+    } else {
+      const move = pickRandomMove(this.wild);
+      const outcome = resolveAttack(this.wild, move, this.player);
+      if (outcome.kind === "miss") {
+        this.log(`${this.wild.name} used ${move.name} — missed!`);
+      } else if (outcome.kind === "immune") {
+        this.log(
+          `${this.wild.name} used ${move.name} — it had no effect${formatMatchupHint(outcome.matchup)}`,
+        );
+        this.showDamageCounter("player", 0);
+      } else {
+        applyDamage(this.player, outcome.damage);
+        this.showDamageCounter("player", outcome.damage);
+        this.flashCombatant("player");
+        this.log(
+          `${this.wild.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
+        );
+      }
     }
     this.refreshHp();
 

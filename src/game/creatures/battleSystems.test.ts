@@ -93,6 +93,30 @@ describe("resolveAttack", () => {
     expect(outcome).toEqual({ kind: "immune", matchup: "immune", damage: 0 });
   });
 
+  it("treats disabled defense as neutral and contributes zero defense", () => {
+    const attacker = combatant({ folkloreType: "storm", attack: 13 });
+    const sovereign = combatant({
+      folkloreType: "water",
+      defense: 99,
+      defenseDisabled: true,
+      immunityTo: "storm",
+    });
+    const stormMove: MoveDefinition = {
+      id: "bolt",
+      name: "Bolt",
+      power: 12,
+      type: "storm",
+      accuracy: 100,
+    };
+
+    expect(resolveAttack(attacker, stormMove, sovereign, () => 0)).toEqual({
+      kind: "hit",
+      matchup: "neutral",
+      damage: 25,
+    });
+    expect(calcDamage(attacker, stormMove, sovereign)).toBe(25);
+  });
+
   it("applies signature damage buff to one move", () => {
     const attacker = combatant({
       folkloreType: "mist",

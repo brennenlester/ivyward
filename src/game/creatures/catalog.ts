@@ -458,9 +458,9 @@ export const CREATURES: CreatureDefinition[] = [
     early: false,
     excludeFromCodex: true,
     moves: [
-      { id: "abyss-surge", name: "Abyss Surge", power: 12, type: "water", accuracy: 90 },
-      { id: "crown-crash", name: "Crown Crash", power: 16, type: "water", accuracy: 75 },
-      { id: "still-tide", name: "Still Tide", power: 8, type: "water", accuracy: 100 },
+      { id: "still-tide", name: "Still Tide", power: 10, type: "water", accuracy: 100 },
+      { id: "abyss-surge", name: "Abyss Surge", power: 15, type: "water", accuracy: 100 },
+      { id: "crown-crash", name: "Crown Crash", power: 20, type: "water", accuracy: 100 },
     ],
   },
 ];

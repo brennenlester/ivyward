@@ -24,6 +24,7 @@ import {
   claimTideSovereign,
   createPendingGodSailEncounter,
   getBefriendChance,
+  getTideSovereignAttack,
   GOD_BEFRIEND_CHANCE,
   GOD_SAIL_ENCOUNTER_CHANCE,
   GOD_SAIL_ENCOUNTER_DELAY_MS,
@@ -33,6 +34,7 @@ import {
   rollGodSailEncounter,
   shouldAttemptGodSailEncounter,
   TIDE_CLEAVER_ID,
+  TIDE_SOVEREIGN_ATTACK_PATTERN,
   TIDE_SOVEREIGN_ID,
 } from "./godSail";
 import {
@@ -162,6 +164,30 @@ describe("god sail encounter", () => {
     expect(getBefriendChance(TIDE_SOVEREIGN_ID)).toBe(GOD_BEFRIEND_CHANCE);
     expect(getBefriendChance("mossling")).toBe(NORMAL_BEFRIEND_CHANCE);
     expect(NORMAL_BEFRIEND_CHANCE).toBe(0.55);
+  });
+
+  it("cycles flat sovereign attacks as 10, 15, 10, 20", () => {
+    expect(
+      Array.from({ length: 8 }, (_, index) => {
+        const attack = getTideSovereignAttack(index);
+        return [attack.move.name, attack.damage];
+      }),
+    ).toEqual([
+      ["Still Tide", 10],
+      ["Abyss Surge", 15],
+      ["Still Tide", 10],
+      ["Crown Crash", 20],
+      ["Still Tide", 10],
+      ["Abyss Surge", 15],
+      ["Still Tide", 10],
+      ["Crown Crash", 20],
+    ]);
+    expect(TIDE_SOVEREIGN_ATTACK_PATTERN).toHaveLength(4);
+    expect(getCreatureDefinition(TIDE_SOVEREIGN_ID).moves).toEqual([
+      { id: "still-tide", name: "Still Tide", power: 10, type: "water", accuracy: 100 },
+      { id: "abyss-surge", name: "Abyss Surge", power: 15, type: "water", accuracy: 100 },
+      { id: "crown-crash", name: "Crown Crash", power: 20, type: "water", accuracy: 100 },
+    ]);
   });
 
   it("claims a spar-killed god as fainted with one weapon and a permanent flag", () => {

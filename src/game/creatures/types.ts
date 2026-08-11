@@ -56,6 +56,8 @@ export type BattleCombatant = {
   currentHp: number;
   attack: number;
   defense: number;
+  /** Defender contributes no defense and receives neutral matchup damage. */
+  defenseDisabled?: boolean;
   moves: MoveDefinition[];
   folkloreType: FolkloreType;
   /** Rolled immunity trait target (move type that deals 0). */
