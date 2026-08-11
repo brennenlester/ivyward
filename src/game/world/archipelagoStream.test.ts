@@ -12,6 +12,7 @@ import {
   allowsSailZoneTransition,
   archipelagoVisualCullBefore,
   ensureArchipelagoChunksAround,
+  isArchipelagoSailPosition,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
 } from "./archipelagoStream";
@@ -150,6 +151,17 @@ describe("archipelago chunk stream", () => {
     // Collision path stays water under the cull window.
     expect(ARCHIPELAGO.tiles[ARCHIPELAGO_ENTRY.y][cull - 1]).toBe(TileType.Water);
     expect(archipelagoVisualCullBefore(10)).toBe(3);
+  });
+
+  it("accepts sail positions within max width without mutating stream width", () => {
+    resetArchipelagoStream();
+    expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
+    expect(isArchipelagoSailPosition(90, ARCHIPELAGO_ENTRY.y)).toBe(true);
+    expect(isArchipelagoSailPosition(ARCHIPELAGO_MAX_WIDTH, ARCHIPELAGO_ENTRY.y)).toBe(
+      false,
+    );
+    expect(isArchipelagoSailPosition(5, 0)).toBe(false);
+    expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
   });
 });
 

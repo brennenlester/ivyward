@@ -10,7 +10,7 @@ export const ARCHIPELAGO_CHUNK = 8;
 export const ARCHIPELAGO_LOOKAHEAD = 12;
 /** Cull floor/wall sprites farther west than this distance behind the player. */
 export const ARCHIPELAGO_LOOKBEHIND = 32;
-/** Hard cap so a single session cannot grow forever. */
+/** Hard cap so a single session cannot grow forever (known eastbound session limit). */
 export const ARCHIPELAGO_MAX_WIDTH = 200;
 
 /** Water corridor rows (sail path). */
@@ -123,6 +123,17 @@ export function ensureArchipelagoChunksAround(playerX: number): ChunkEnsureResul
  */
 export function archipelagoVisualCullBefore(playerX: number): number {
   return Math.max(3, Math.floor(playerX) - ARCHIPELAGO_LOOKBEHIND);
+}
+
+/** Pure sail-position check for snapshot validation (does not mutate the stream). */
+export function isArchipelagoSailPosition(x: number, y: number): boolean {
+  const tileX = Math.round(x);
+  const tileY = Math.round(y);
+  return (
+    tileX >= 0 &&
+    tileX < ARCHIPELAGO_MAX_WIDTH &&
+    WATER_ROW_SET.has(tileY)
+  );
 }
 
 /** Ensure the stream covers a saved/target x before walkability or spawn. */

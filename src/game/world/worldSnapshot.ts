@@ -45,6 +45,7 @@ import {
   type HarborDockId,
 } from "./dockBoat";
 import {
+  isArchipelagoSailPosition,
   isSailableZone,
   prepareArchipelagoForPosition,
 } from "./archipelagoStream";
@@ -113,8 +114,9 @@ function isSpawnWalkable(
   overworldUnlocked: boolean,
   sailing = false,
 ): boolean {
+  // Validate archipelago mid-sail without mutating the live stream (generate on apply).
   if (sailing && zoneId === "archipelago") {
-    prepareArchipelagoForPosition(x);
+    return isArchipelagoSailPosition(x, y);
   }
   const zone = ZONES[zoneId];
   const tileX = Math.round(x);
@@ -131,8 +133,8 @@ function isSpawnWalkable(
   if (tile === TileType.Floor || tile === TileType.Dock) {
     return true;
   }
-  // Mid-sail saves restore onto Water in Harbor / Archipelago.
-  if (sailing && isSailableZone(zoneId) && tile === TileType.Water) {
+  // Mid-sail saves restore onto Water in Harbor.
+  if (sailing && zoneId === "harbor" && tile === TileType.Water) {
     return true;
   }
   if (tile === TileType.OverworldGate) {

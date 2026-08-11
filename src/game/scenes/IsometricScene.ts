@@ -92,6 +92,7 @@ import {
 } from "../world/dockBoat";
 import {
   allowsSailZoneTransition,
+  ARCHIPELAGO_MAX_WIDTH,
   archipelagoVisualCullBefore,
   ensureArchipelagoChunksAround,
   prepareArchipelagoForPosition,
@@ -701,7 +702,12 @@ export class IsometricScene extends Phaser.Scene {
       emberfen: { sky: 0xe0a868, hill: 0x8a5030, mist: 0xffe0b0 },
     };
     const colors = palette[zone.id];
-    const bounds = this.getZoneWorldBounds(zone);
+    // Size archipelago backdrop to the hard max width so growth never outruns sky.
+    const boundsZone =
+      zone.id === "archipelago"
+        ? { ...zone, width: ARCHIPELAGO_MAX_WIDTH }
+        : zone;
+    const bounds = this.getZoneWorldBounds(boundsZone);
     const g = this.add.graphics().setDepth(-1000).setScrollFactor(0.16);
 
     if (zone.interior || !colors) {
