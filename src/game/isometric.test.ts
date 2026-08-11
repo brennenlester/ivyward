@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   depthForGridCell,
+  hudDepthAbovePlayer,
   playerDepthAboveGrid,
   TILE_HEIGHT,
 } from "./isometric";
@@ -27,6 +28,23 @@ describe("playerDepthAboveGrid", () => {
       PROP_LAYER,
     );
     expect(playerDepth).toBeGreaterThan(maxPropDepth);
+  });
+});
+
+describe("hudDepthAbovePlayer", () => {
+  it("stays above player and max archipelago tile/prop depth", () => {
+    const playerDepth = playerDepthAboveGrid(
+      ARCHIPELAGO_MAX_WIDTH,
+      ARCHIPELAGO_HEIGHT,
+    );
+    const hudDepth = hudDepthAbovePlayer(playerDepth);
+    const maxPropDepth = depthForGridCell(
+      ARCHIPELAGO_MAX_WIDTH - 1,
+      ARCHIPELAGO_HEIGHT - 1,
+      PROP_LAYER,
+    );
+    expect(hudDepth).toBeGreaterThan(playerDepth);
+    expect(hudDepth).toBeGreaterThan(maxPropDepth);
   });
 });
 
