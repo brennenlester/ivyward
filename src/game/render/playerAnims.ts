@@ -1,5 +1,6 @@
 import Phaser from "phaser";
 import { PLAYER_DISPLAY, fitDisplay } from "./displaySizes";
+import { walkStrideFrame } from "./playerWalk";
 
 const FRAME_WIDTH = 48;
 const FRAME_HEIGHT = 64;
@@ -123,19 +124,37 @@ export function ensurePlayerAnims(scene: Phaser.Scene): void {
       });
     }
 
+    // Walk poses are applied from travel distance in IsometricScene — keep a
+    // short anim only as a fallback if something still calls sprite.play(walk).
     const walkKey = `player-walk-${facing}`;
     if (scene.anims.exists(walkKey)) {
       scene.anims.remove(walkKey);
     }
     scene.anims.create({
       key: walkKey,
-      frames: [1, 2, 1, 2].map((frame) => ({
+      frames: [1, 2].map((frame) => ({
         key: textureKey(facing, frame),
       })),
-      frameRate: 10,
+      frameRate: 8,
       repeat: -1,
     });
   }
+}
+
+/** Idle frame 0, or distance-synced contact pose while moving. */
+export function applyPlayerPose(
+  sprite: Phaser.GameObjects.Sprite,
+  facing: Facing,
+  moving: boolean,
+  walkPhase: number,
+): void {
+  sprite.anims.stop();
+  const frame = moving ? walkStrideFrame(walkPhase) : 0;
+  const key = textureKey(facing, frame);
+  if (sprite.texture.key !== key) {
+    sprite.setTexture(key);
+  }
+  fitDisplay(sprite, PLAYER_DISPLAY);
 }
 
 /** Keep display size stable when anim swaps texture keys. */

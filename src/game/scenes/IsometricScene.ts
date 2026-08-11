@@ -36,7 +36,16 @@ import {
   RENDER_DPR,
   resizeGameForDisplay,
 } from "../render/pixelRatio";
-import { ensurePlayerAnims, bindPlayerDisplaySize } from "../render/playerAnims";
+import {
+  applyPlayerPose,
+  ensurePlayerAnims,
+  bindPlayerDisplaySize,
+} from "../render/playerAnims";
+import {
+  WALK_CYCLES_PER_TILE,
+  walkBobOffset,
+  walkFootfallsSince,
+} from "../render/playerWalk";
 import {
   ENCOUNTER_TRAVEL_THRESHOLD,
   rollWildCreature,
@@ -181,6 +190,8 @@ export class IsometricScene extends Phaser.Scene {
   private onWindowResize = () => this.onResize();
   private layoutLocked = false;
   private isMoving = false;
+  /** Distance-driven gait phase (cycles); advances only when a step applies. */
+  private walkPhase = 0;
   private playerBaseY = 0;
   /** Moored boat sprite at the Harbor dock (hidden while sailing). */
   private dockBoat?: Phaser.GameObjects.Image;
@@ -331,9 +342,7 @@ export class IsometricScene extends Phaser.Scene {
       return;
     }
 
-    this.isMoving = true;
     this.updateFacing(dx, dy);
-    this.playPlayerAnimation();
 
     const length = Math.hypot(dx, dy);
     dx /= length;
@@ -344,10 +353,15 @@ export class IsometricScene extends Phaser.Scene {
     const nextX = this.playerGridX + dx * step;
     const nextY = this.playerGridY + dy * step;
 
-    if (canOccupy(zone, nextX, nextY)) {
+    const moved = canOccupy(zone, nextX, nextY);
+    if (moved) {
       this.playerGridX = nextX;
       this.playerGridY = nextY;
-      playStepSfx(this, _time);
+      const prevPhase = this.walkPhase;
+      this.walkPhase += step * WALK_CYCLES_PER_TILE;
+      if (walkFootfallsSince(prevPhase, this.walkPhase) > 0) {
+        playStepSfx(this, _time);
+      }
       updateHostPosition(
         this.currentZoneId,
         this.playerGridX,
@@ -359,6 +373,9 @@ export class IsometricScene extends Phaser.Scene {
       this.tryZoneTransition(zone);
       this.tryRandomEncounter(step);
     }
+    // Blocked tiles must not keep a skating walk cycle.
+    this.isMoving = moved;
+    this.playPlayerAnimation();
     this.syncPlayerToGrid();
   }
 
@@ -1461,14 +1478,10 @@ export class IsometricScene extends Phaser.Scene {
     const screen = this.toScreen(this.playerGridX, this.playerGridY);
 
     this.playerBaseY = screen.y + TILE_HEIGHT / 2 - 2;
-    // Small bob synced to walk frames — keeps side/back strides from reading as a skate.
-    let bob = 0;
-    if (this.isMoving && this.player?.anims.currentFrame) {
-      bob = this.player.anims.currentFrame.index % 2 === 0 ? 0 : -2;
-    }
+    const bob = this.isMoving ? walkBobOffset(this.walkPhase) : 0;
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(this.playerDepth);
-    this.syncSailingBoat(screen.x, this.playerBaseY);
+    this.syncSailingBoat(screen.x, this.playerBaseY + bob);
   }
 
   private syncSailingBoat(screenX: number, baseY: number): void {
@@ -1494,10 +1507,12 @@ export class IsometricScene extends Phaser.Scene {
     if (!this.player) {
       return;
     }
-    const key = `player-${this.isMoving ? "walk" : "idle"}-${this.playerFacing}`;
-    if (this.player.anims.currentAnim?.key !== key) {
-      this.player.play(key);
-    }
+    applyPlayerPose(
+      this.player,
+      this.playerFacing,
+      this.isMoving,
+      this.walkPhase,
+    );
   }
 
   private updateQuestToast(): void {

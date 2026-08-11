@@ -148,6 +148,104 @@ def process(src_name, dest_rel, max_w, max_h, pad=4, dark_studio_bg=False):
     print(f"ok {dest_rel}")
 
 
+def opposite_stride_keep_staff(src: Image.Image, split_ratio: float = 0.56, blend: int = 10) -> Image.Image:
+    """Opposite contact via lower-body hflip; keep staff on the original side.
+
+    Full-body hflip teleports the south staff between hands each stride. Flip
+    only the legs, strip the mirrored staff stub, and restore the original stick.
+    """
+    src = src.convert("RGBA")
+    w, h = src.size
+    pix = src.load()
+    staff = [[False] * w for _ in range(h)]
+    brown = [[False] * w for _ in range(h)]
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = pix[x, y]
+            if (
+                a > 180
+                and 70 < r < 160
+                and 45 < g < 120
+                and b < 90
+                and r > g
+                and r > b + 15
+            ):
+                brown[y][x] = True
+    for y in range(h):
+        for x in range(52, min(72, w)):
+            if not brown[y][x]:
+                continue
+            y0, y1 = max(0, y - 8), min(h, y + 9)
+            density = sum(1 for yy in range(y0, y1) if brown[yy][x]) / (y1 - y0)
+            if density > 0.45:
+                staff[y][x] = True
+    staff_d = [row[:] for row in staff]
+    for y in range(h):
+        for x in range(w):
+            if not staff[y][x]:
+                continue
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    yy, xx = y + dy, x + dx
+                    if 0 <= yy < h and 0 <= xx < w:
+                        staff_d[yy][xx] = True
+
+    flipped = src.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+    fpix = flipped.load()
+    for y in range(h):
+        for x in range(w):
+            # Mirrored staff column
+            mx = w - 1 - x
+            hit = False
+            for dy in range(-2, 3):
+                for dx in range(-2, 3):
+                    yy, xx = y + dy, mx + dx
+                    if 0 <= yy < h and 0 <= xx < w and staff_d[yy][xx]:
+                        hit = True
+                        break
+                if hit:
+                    break
+            if hit:
+                fpix[x, y] = (0, 0, 0, 0)
+
+    split = int(h * split_ratio)
+    out = src.copy()
+    opix = out.load()
+    for y in range(split, h):
+        for x in range(w):
+            opix[x, y] = fpix[x, y]
+    for y in range(h):
+        for x in range(w):
+            if staff_d[y][x]:
+                opix[x, y] = pix[x, y]
+
+    staff_xs = [x for x in range(w) if any(staff_d[y][x] for y in range(h))]
+    staff_x0 = (min(staff_xs) - 3) if staff_xs else 0
+    staff_x1 = (max(staff_xs) + 3) if staff_xs else -1
+    for i in range(blend):
+        y = split - blend // 2 + i
+        if not (0 <= y < h):
+            continue
+        alpha = max(0.0, min(1.0, (y - (split - blend / 2)) / blend))
+        for x in range(w):
+            if staff_x0 <= x <= staff_x1:
+                continue
+            sr, sg, sb, sa = pix[x, y]
+            fr, fg, fb, fa = fpix[x, y]
+            if sa == 0 and fa == 0:
+                continue
+            opix[x, y] = (
+                int((1 - alpha) * sr + alpha * fr),
+                int((1 - alpha) * sg + alpha * fg),
+                int((1 - alpha) * sb + alpha * fb),
+                int((1 - alpha) * sa + alpha * fa),
+            )
+        for x in range(w):
+            if staff_d[y][x]:
+                opix[x, y] = pix[x, y]
+    return out
+
+
 def main():
     for facing in ["south", "north", "east", "west"]:
         # Style D walk1 is canonical idle + stride frame 1 (outfit-matched).
@@ -167,12 +265,16 @@ def main():
     # Stride frame 2 — prefer readable limb change without different-trainer flash.
     player = DST / "player"
 
-    # South/North: hflip walk1 (opposite contact, same outfit; no limb clipping).
-    for facing in ("south", "north"):
-        Image.open(player / f"player-{facing}-1.png").convert("RGBA").transpose(
-            Image.Transpose.FLIP_LEFT_RIGHT
-        ).save(player / f"player-{facing}-2.png", optimize=True)
-        print(f"ok player/player-{facing}-2.png (hflip walk1)")
+    # South: lower-body opposite stride; staff stays on walk1 side (no hand teleport).
+    south1 = Image.open(player / "player-south-1.png").convert("RGBA")
+    opposite_stride_keep_staff(south1).save(player / "player-south-2.png", optimize=True)
+    print("ok player/player-south-2.png (lower-flip keep staff)")
+
+    # North: hflip walk1 (no held staff; backpack mostly symmetric).
+    Image.open(player / "player-north-1.png").convert("RGBA").transpose(
+        Image.Transpose.FLIP_LEFT_RIGHT
+    ).save(player / "player-north-2.png", optimize=True)
+    print("ok player/player-north-2.png (hflip walk1)")
 
     # West: Imagine walk2 (outfit-matched side stride).
     process(
