@@ -29,7 +29,11 @@ import {
   listIslandTemplates,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
-} from "./archipelagoStream";
+  ARCHIPELAGO_VISUAL_AHEAD,
+  ARCHIPELAGO_VISUAL_MARGIN_Y,
+  ARCHIPELAGO_GATE_COLUMNS,
+  archipelagoVisualWindow,
+  isInArchipelagoVisualWindow} from "./archipelagoStream";
 import { getZone, ZONES } from "./zones";
 import { TileType } from "./zoneTypes";
 import { getZoneProps } from "./zoneProps";
@@ -360,5 +364,32 @@ describe("archipelago sailing snapshot", () => {
     expect(isSailing()).toBe(false);
     expect(ARCHIPELAGO.tiles[island.pier.y][island.pier.x]).toBe(TileType.Floor);
     expect(ARCHIPELAGO.tiles[island.dock.y][island.dock.x]).toBe(TileType.Dock);
+  });
+});
+
+
+describe("archipelago visual XY window", () => {
+  it("keeps a local XY window and always includes west gate columns in membership", () => {
+    const win = archipelagoVisualWindow(80, 50);
+    expect(win.xMin).toBe(80 - ARCHIPELAGO_LOOKBEHIND);
+    expect(win.xMax).toBe(Math.min(ARCHIPELAGO_MAX_WIDTH, 80 + ARCHIPELAGO_VISUAL_AHEAD + 1));
+    expect(win.yMin).toBe(50 - ARCHIPELAGO_VISUAL_MARGIN_Y);
+    expect(win.yMax).toBe(50 + ARCHIPELAGO_VISUAL_MARGIN_Y + 1);
+    expect(isInArchipelagoVisualWindow(1, 0, win)).toBe(true);
+    expect(isInArchipelagoVisualWindow(1, 99, win)).toBe(true);
+    expect(isInArchipelagoVisualWindow(win.xMin, win.yMin, win)).toBe(true);
+    expect(isInArchipelagoVisualWindow(win.xMin - 1, win.yMin, win)).toBe(false);
+    expect(isInArchipelagoVisualWindow(win.xMax, win.yMin, win)).toBe(false);
+    expect(isInArchipelagoVisualWindow(win.xMin, win.yMax, win)).toBe(false);
+  });
+
+  it("does not shrink collision tiles when computing the visual window", () => {
+    const win = archipelagoVisualWindow(80, 50);
+    expect(ARCHIPELAGO.width).toBe(ARCHIPELAGO_INITIAL_WIDTH);
+    expect(ARCHIPELAGO.height).toBe(ARCHIPELAGO_HEIGHT);
+    expect(ARCHIPELAGO.tiles[0][0]).toBe(TileType.Water);
+    expect(ARCHIPELAGO.tiles[win.yMin][win.xMin]).toBeDefined();
+    expect(archipelagoVisualCullBefore(80)).toBe(win.xMin);
+    expect(ARCHIPELAGO_GATE_COLUMNS).toBe(3);
   });
 });

@@ -18,6 +18,66 @@ export const ARCHIPELAGO_CHUNK = 8;
 export const ARCHIPELAGO_LOOKAHEAD = 12;
 /** Cull floor/wall sprites farther west than this distance behind the player. */
 export const ARCHIPELAGO_LOOKBEHIND = 32;
+/** Live visual columns east of the player (camera margin). */
+export const ARCHIPELAGO_VISUAL_AHEAD = 20;
+/** Live visual rows north/south of the player (camera margin). */
+export const ARCHIPELAGO_VISUAL_MARGIN_Y = 18;
+/** West Harbor gate columns that stay drawn (x in [0, GATE)). */
+export const ARCHIPELAGO_GATE_COLUMNS = 3;
+
+/** Inclusive/exclusive tile window for archipelago floor/prop sprites. */
+export type ArchipelagoVisualWindow = {
+  /** Live columns start (always >= GATE_COLUMNS). */
+  xMin: number;
+  /** Live columns end (exclusive). */
+  xMax: number;
+  yMin: number;
+  /** Rows end (exclusive). */
+  yMax: number;
+};
+
+/**
+ * Pure XY sprite window around the player.
+ * Collision tiles are unrelated — this only bounds Phaser image creation.
+ * Columns [0, GATE) are drawn separately so the Harbor return gate stays visible.
+ */
+export function archipelagoVisualWindow(
+  playerX: number,
+  playerY: number,
+  mapWidth = ARCHIPELAGO_MAX_WIDTH,
+  mapHeight = ARCHIPELAGO_HEIGHT,
+): ArchipelagoVisualWindow {
+  const px = Math.floor(playerX);
+  const py = Math.floor(playerY);
+  const xMin = Math.max(
+    ARCHIPELAGO_GATE_COLUMNS,
+    px - ARCHIPELAGO_LOOKBEHIND,
+  );
+  const xMax = Math.min(
+    mapWidth,
+    Math.max(xMin, px + ARCHIPELAGO_VISUAL_AHEAD + 1),
+  );
+  const yMin = Math.max(0, py - ARCHIPELAGO_VISUAL_MARGIN_Y);
+  const yMax = Math.min(mapHeight, py + ARCHIPELAGO_VISUAL_MARGIN_Y + 1);
+  return { xMin, xMax, yMin, yMax };
+}
+
+/** True when a stream sprite at (gx, gy) should remain drawn for `win`. */
+export function isInArchipelagoVisualWindow(
+  gx: number,
+  gy: number,
+  win: ArchipelagoVisualWindow,
+): boolean {
+  if (gx >= 0 && gx < ARCHIPELAGO_GATE_COLUMNS) {
+    return true;
+  }
+  return (
+    gx >= win.xMin &&
+    gx < win.xMax &&
+    gy >= win.yMin &&
+    gy < win.yMax
+  );
+}
 
 /** West return band near mid-ocean entry (Harbor gates map to ARCHIPELAGO_ENTRY). */
 export const ARCHIPELAGO_WEST_RETURN_ROWS = [48, 49, 50, 51] as const;
@@ -426,12 +486,25 @@ export function ensureArchipelagoChunksAround(_playerX: number): ChunkEnsureResu
 }
 
 /**
- * Columns with x in [3, cullBefore) may drop sprites (visual unload).
- * x=0..2 stay drawn so the west Harbor gate remains visible when nearby.
+ * Westmost live column (exclusive of gate cols 0..2).
+ * Prefer `archipelagoVisualWindow` for XY culling; kept for callers/tests.
  * Collision tiles are never walled.
  */
 export function archipelagoVisualCullBefore(playerX: number): number {
-  return Math.max(3, Math.floor(playerX) - ARCHIPELAGO_LOOKBEHIND);
+  return archipelagoVisualWindow(playerX, ARCHIPELAGO_ENTRY.y).xMin;
+}
+
+export function getArchipelagoPropsInWindow(
+  win: ArchipelagoVisualWindow,
+): ZoneProp[] {
+  return archipelagoProps.filter(
+    (p) =>
+      (p.x >= 0 && p.x < ARCHIPELAGO_GATE_COLUMNS) ||
+      (p.x >= win.xMin &&
+        p.x < win.xMax &&
+        p.y >= win.yMin &&
+        p.y < win.yMax),
+  );
 }
 
 /** Pure sail-position check for snapshot validation (does not mutate the stream). */
