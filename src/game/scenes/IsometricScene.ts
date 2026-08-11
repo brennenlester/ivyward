@@ -12,6 +12,7 @@ import {
   TILE_WIDTH,
   depthForGridCell,
   gridToScreen,
+  playerDepthAboveGrid,
 } from "../isometric";
 import {
   NPC_TEXTURE_KEY,
@@ -108,8 +109,6 @@ import { getItemCount } from "../inventory/playerInventory";
 
 const FLOOR_LAYER = 0;
 const PROP_LAYER = 0.45;
-/** Fixed depth above all tiles, walls, and props. */
-const PLAYER_DEPTH = 20_000;
 const HUD_GAP = 8;
 const SCREEN_MARGIN = 12;
 const MOVE_SPEED = 6;
@@ -169,6 +168,8 @@ export class IsometricScene extends Phaser.Scene {
   private sailingBoat?: Phaser.GameObjects.Image;
   /** Westmost column still holding archipelago stream sprites (exclusive cull). */
   private archipelagoCullBefore = 3;
+  /** Above all tiles/props for the current zone size (grows with archipelago). */
+  private playerDepth = playerDepthAboveGrid(1, 1);
 
   constructor() {
     super({ key: "IsometricScene" });
@@ -449,6 +450,7 @@ export class IsometricScene extends Phaser.Scene {
 
     if (result.grew) {
       const from = result.redrawFrom;
+      this.playerDepth = playerDepthAboveGrid(result.width, zone.height);
       // Delayed island stamps may rewrite columns west of previousWidth;
       // drop stale water sprites before redrawing Floor/Dock/props.
       if (from < result.previousWidth) {
@@ -481,6 +483,7 @@ export class IsometricScene extends Phaser.Scene {
     }
     this.currentZoneId = zoneId;
     const zone = getZone(zoneId);
+    this.playerDepth = playerDepthAboveGrid(zone.width, zone.height);
     markZoneDiscovered(zoneId);
 
     this.children.removeAll(true);
@@ -1185,7 +1188,7 @@ export class IsometricScene extends Phaser.Scene {
     for (let i = 0; i < 8; i += 1) {
       const particle = this.add
         .rectangle(screen.x, screen.y + TILE_HEIGHT / 2 - 18, 4, 4, color)
-        .setDepth(PLAYER_DEPTH + 1);
+        .setDepth(this.playerDepth + 1);
       this.tweens.add({
         targets: particle,
         x: particle.x + (i - 3.5) * 7,
@@ -1229,7 +1232,7 @@ export class IsometricScene extends Phaser.Scene {
       bob = this.player.anims.currentFrame.index % 2 === 0 ? 0 : -2;
     }
     this.player.setPosition(screen.x, this.playerBaseY + bob);
-    this.player.setDepth(PLAYER_DEPTH);
+    this.player.setDepth(this.playerDepth);
     this.syncSailingBoat(screen.x, this.playerBaseY);
   }
 
@@ -1249,7 +1252,7 @@ export class IsometricScene extends Phaser.Scene {
     } else {
       this.sailingBoat.setPosition(screenX, baseY);
     }
-    this.sailingBoat.setDepth(PLAYER_DEPTH - 1);
+    this.sailingBoat.setDepth(this.playerDepth - 1);
   }
 
   private playPlayerAnimation(): void {
