@@ -23,6 +23,8 @@ export type CreatureDefinition = {
   moves: MoveDefinition[];
   /** Early-region creature obtainable before overworld. */
   early: boolean;
+  /** Secret creature omitted from habitat discovery and the codex. */
+  excludeFromCodex?: boolean;
 };
 
 export type CreatureInstance = {

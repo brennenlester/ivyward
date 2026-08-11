@@ -9,6 +9,8 @@ export const worldState = {
   discoveredZones: [] as ZoneId[],
   /** Creature species seen in an encounter — shown in every matching habitat. */
   discoveredCreatures: [] as string[],
+  /** Tide Sovereign was obtained; natural god-sail rolls stop permanently. */
+  godSailEncounterClaimed: false,
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -21,6 +23,20 @@ export function setDiscoveredZones(zones: ZoneId[]): void {
 
 export function setDiscoveredCreatures(creatureIds: string[]): void {
   worldState.discoveredCreatures = [...new Set(creatureIds)];
+}
+
+export function isGodSailEncounterClaimed(): boolean {
+  return worldState.godSailEncounterClaimed;
+}
+
+export function setGodSailEncounterClaimed(
+  claimed: boolean,
+  notify = true,
+): void {
+  worldState.godSailEncounterClaimed = claimed;
+  if (notify) {
+    notifyWorldChanged();
+  }
 }
 
 export function markZoneDiscovered(zoneId: ZoneId): void {

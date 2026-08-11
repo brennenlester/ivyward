@@ -11,6 +11,11 @@ import {
 } from "../render/displaySizes";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
+import {
+  claimTideSovereign,
+  getBefriendChance,
+  TIDE_SOVEREIGN_ID,
+} from "../encounters/godSail";
 import { isVisitorMode } from "../world/worldSession";
 import { markCreatureDiscovered } from "../world/worldState";
 
@@ -39,8 +44,10 @@ export class EncounterScene extends Phaser.Scene {
     bindOverlayPixelRatio(this);
     ensureCreatureTextures(this);
     playEncounterSfx(this);
-    markCreatureDiscovered(this.creatureId);
     const def = getCreatureDefinition(this.creatureId);
+    if (!def.excludeFromCodex) {
+      markCreatureDiscovered(this.creatureId);
+    }
 
     this.cameras.main.fadeIn(160, 255, 255, 255);
 
@@ -184,10 +191,15 @@ export class EncounterScene extends Phaser.Scene {
       return;
     }
 
-    const catchChance = 0.55;
+    const catchChance = getBefriendChance(this.creatureId);
     if (Math.random() < catchChance) {
-      addToParty(this.creatureId);
-      this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);
+      if (this.creatureId === TIDE_SOVEREIGN_ID) {
+        claimTideSovereign();
+        this.showResult("The Tide Sovereign joined you, fainted. Tide Cleaver obtained!");
+      } else {
+        addToParty(this.creatureId);
+        this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);
+      }
     } else {
       this.showResult("It slipped away...");
     }

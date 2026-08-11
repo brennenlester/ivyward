@@ -3,6 +3,8 @@ import type { ZoneId } from "../world/zoneTypes";
 
 type EncounterEntry = { id: string; weight: number };
 
+export const ENCOUNTER_TRAVEL_THRESHOLD = 0.75;
+
 /**
  * One exclusive on-foot creature per archipelago island (index 0..15).
  * Islands 0–2 reuse the original three; 3–15 are island-exclusive species.

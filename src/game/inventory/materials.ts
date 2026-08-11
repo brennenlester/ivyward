@@ -65,6 +65,7 @@ export const MATERIAL_NAMES: Record<string, string> = {
 };
 
 export const ITEM_NAMES: Record<string, string> = {
+  "tide-cleaver": "Tide Cleaver",
   "wood-cudgel": "Wood Cudgel",
   "stone-knife": "Stone Knife",
   "ember-charm": "Ember Charm",

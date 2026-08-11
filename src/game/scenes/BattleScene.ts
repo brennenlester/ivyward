@@ -34,6 +34,10 @@ import {
   resolveWandererForBattle,
   type WandererPartner,
 } from "../battle/wandererWeapons";
+import {
+  claimTideSovereign,
+  TIDE_SOVEREIGN_ID,
+} from "../encounters/godSail";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { markCreatureDiscovered } from "../world/worldState";
 
@@ -69,7 +73,6 @@ export class BattleScene extends Phaser.Scene {
     wandererPartner: WandererPartnerData;
   }): void {
     this.wildCreatureId = data.wildCreatureId;
-    markCreatureDiscovered(data.wildCreatureId);
     this.waitingForPlayer = true;
     this.partyInstanceIndex = -1;
     this.forcedSwitch = false;
@@ -81,6 +84,9 @@ export class BattleScene extends Phaser.Scene {
     this.wandererFallbackObjects = [];
 
     const wildDef = getCreatureDefinition(data.wildCreatureId);
+    if (!wildDef.excludeFromCodex) {
+      markCreatureDiscovered(data.wildCreatureId);
+    }
     this.wild = {
       name: wildDef.name,
       maxHp: wildDef.maxHp,
@@ -725,7 +731,12 @@ export class BattleScene extends Phaser.Scene {
     this.hideWandererFallbackMenu();
     this.syncActivePartyHp();
 
-    if (playerWon) {
+    if (playerWon && this.wildCreatureId === TIDE_SOVEREIGN_ID) {
+      claimTideSovereign();
+      this.log(
+        "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
+      );
+    } else if (playerWon) {
       const reward = grantSparRewards(
         this.wildCreatureId,
         this.partyInstanceIndex,
