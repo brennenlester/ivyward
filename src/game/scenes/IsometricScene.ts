@@ -109,15 +109,18 @@ import {
 import {
   allowsSailZoneTransition,
   ARCHIPELAGO_CAMERA_FIT_HEIGHT,
+  ARCHIPELAGO_GATE_COLUMNS,
   ARCHIPELAGO_MAX_WIDTH,
-  archipelagoVisualCullBefore,
+  archipelagoVisualWindow,
   biomeAtIslandTile,
   ensureArchipelagoChunksAround,
-  getArchipelagoPropsInColumns,
+  getArchipelagoPropsInWindow,
+  isInArchipelagoVisualWindow,
   islandIndexAtTile,
   ISLAND_BIOME_FLOOR_TINT,
   prepareArchipelagoForPosition,
   resetArchipelagoStream,
+  type ArchipelagoVisualWindow,
   type ChunkEnsureResult,
 } from "../world/archipelagoStream";
 import { getItemCount } from "../inventory/playerInventory";
@@ -184,7 +187,12 @@ export class IsometricScene extends Phaser.Scene {
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
   /** Westmost column still holding archipelago stream sprites (exclusive cull). */
-  private archipelagoCullBefore = 3;
+  private archipelagoVisualWin: ArchipelagoVisualWindow = {
+    xMin: ARCHIPELAGO_GATE_COLUMNS,
+    xMax: ARCHIPELAGO_MAX_WIDTH,
+    yMin: 0,
+    yMax: 100,
+  };
   /** Above all tiles/props for the current zone size (grows with archipelago). */
   private playerDepth = playerDepthAboveGrid(1, 1);
   // ponytail: temporary god-encounter cheat
@@ -533,78 +541,175 @@ export class IsometricScene extends Phaser.Scene {
     }
   }
 
-  /** Extend / unload archipelago water columns and refresh floor sprites + camera. */
+  /** Refresh archipelago floor/prop sprites inside the XY camera window. */
   private syncArchipelagoStream(): void {
     const result = ensureArchipelagoChunksAround(this.playerGridX);
-    const cullBefore = archipelagoVisualCullBefore(this.playerGridX);
+    const zone = getZone("archipelago");
+    const next = archipelagoVisualWindow(
+      this.playerGridX,
+      this.playerGridY,
+      zone.width,
+      zone.height,
+    );
+    const prev = this.archipelagoVisualWin;
     const grew = result.grew;
-    const cullChanged = cullBefore !== this.archipelagoCullBefore;
-    if (!grew && !cullChanged) {
+    const windowChanged =
+      next.xMin !== prev.xMin ||
+      next.xMax !== prev.xMax ||
+      next.yMin !== prev.yMin ||
+      next.yMax !== prev.yMax;
+    if (!grew && !windowChanged) {
       return;
     }
-    this.applyArchipelagoStreamVisuals(result, cullBefore);
-    this.archipelagoCullBefore = cullBefore;
+    this.applyArchipelagoStreamVisuals(result, prev, next);
+    this.archipelagoVisualWin = next;
     if (grew) {
-      this.layoutPlayfield(getZone("archipelago"));
+      this.layoutPlayfield(zone);
+    }
+  }
+
+  private destroyArchipelagoSpritesOutside(win: ArchipelagoVisualWindow): void {
+    for (const child of this.children.list.slice()) {
+      if (
+        !("getData" in child) ||
+        typeof (child as Phaser.GameObjects.Image).getData !== "function"
+      ) {
+        continue;
+      }
+      const img = child as Phaser.GameObjects.Image;
+      const gx = img.getData("streamX");
+      const gy = img.getData("streamY");
+      if (typeof gx !== "number" || typeof gy !== "number") {
+        continue;
+      }
+      if (!isInArchipelagoVisualWindow(gx, gy, win)) {
+        img.destroy();
+      }
+    }
+  }
+
+  private drawArchipelagoVisualWindow(
+    zone: ZoneDefinition,
+    win: ArchipelagoVisualWindow,
+  ): void {
+    // Harbor return gate columns stay fully tall.
+    this.drawZoneTileColumns(zone, 0, ARCHIPELAGO_GATE_COLUMNS);
+    this.drawWallsInColumns(zone, 0, ARCHIPELAGO_GATE_COLUMNS);
+    this.drawZoneTileColumns(zone, win.xMin, win.xMax, win.yMin, win.yMax);
+    this.drawWallsInColumns(zone, win.xMin, win.xMax, win.yMin, win.yMax);
+    this.drawArchipelagoPropsInWindow(win);
+  }
+
+  private drawArchipelagoLiveRect(
+    zone: ZoneDefinition,
+    xStart: number,
+    xEnd: number,
+    yStart: number,
+    yEnd: number,
+  ): void {
+    if (xStart >= xEnd || yStart >= yEnd) {
+      return;
+    }
+    this.drawZoneTileColumns(zone, xStart, xEnd, yStart, yEnd);
+    this.drawWallsInColumns(zone, xStart, xEnd, yStart, yEnd);
+    for (const prop of getArchipelagoPropsInWindow({
+      xMin: xStart,
+      xMax: xEnd,
+      yMin: yStart,
+      yMax: yEnd,
+    })) {
+      // Gate props are owned by the full-height gate draw on load; skip here.
+      if (prop.x < ARCHIPELAGO_GATE_COLUMNS) {
+        continue;
+      }
+      this.spawnPropSprite(prop.x, prop.y, prop.kind, true, "archipelago");
     }
   }
 
   private applyArchipelagoStreamVisuals(
     result: ChunkEnsureResult,
-    cullBefore: number,
+    prev: ArchipelagoVisualWindow,
+    next: ArchipelagoVisualWindow,
   ): void {
     const zone = getZone("archipelago");
-    const prevCull = this.archipelagoCullBefore;
+    // Drop sprites that left the window (tiles stay full 100×100).
+    this.destroyArchipelagoSpritesOutside(next);
 
-    // Visual unload: drop sprites far west of the player (tiles stay Water).
-    if (cullBefore > prevCull) {
-      for (const child of this.children.list.slice()) {
-        if (
-          "getData" in child &&
-          typeof (child as Phaser.GameObjects.Image).getData === "function"
-        ) {
-          const img = child as Phaser.GameObjects.Image;
-          const gx = img.getData("streamX");
-          if (typeof gx === "number" && gx >= 3 && gx < cullBefore) {
-            img.destroy();
-          }
-        }
-      }
+    // Incremental enter strips — avoid redrawing the prev∩next overlap.
+    if (next.xMin < prev.xMin) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        next.xMin,
+        Math.min(prev.xMin, next.xMax),
+        next.yMin,
+        next.yMax,
+      );
+    }
+    if (next.xMax > prev.xMax) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        Math.max(prev.xMax, next.xMin),
+        next.xMax,
+        next.yMin,
+        next.yMax,
+      );
+    }
+    const xOverlapStart = Math.max(next.xMin, prev.xMin);
+    const xOverlapEnd = Math.min(next.xMax, prev.xMax);
+    if (next.yMin < prev.yMin) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        xOverlapStart,
+        xOverlapEnd,
+        next.yMin,
+        prev.yMin,
+      );
+    }
+    if (next.yMax > prev.yMax) {
+      this.drawArchipelagoLiveRect(
+        zone,
+        xOverlapStart,
+        xOverlapEnd,
+        prev.yMax,
+        next.yMax,
+      );
     }
 
-    // Sailing west: restore sprites that re-enter the lookbehind window.
-    if (cullBefore < prevCull) {
-      this.drawZoneTileColumns(zone, cullBefore, prevCull);
-      this.drawWallsInColumns(zone, cullBefore, prevCull);
-      this.drawArchipelagoPropsInColumns(cullBefore, prevCull);
-    }
+    // Docked boat may have been culled if its pad left the window.
+    this.drawPlacedBoat(zone);
 
     if (result.grew) {
-      const from = result.redrawFrom;
       this.playerDepth = playerDepthAboveGrid(result.width, zone.height);
-      // Delayed island stamps may rewrite columns west of previousWidth;
-      // drop stale water sprites before redrawing Floor/Dock/props.
+      // Delayed island stamps may rewrite overlap columns — refresh live window cells.
+      const from = result.redrawFrom;
       if (from < result.previousWidth) {
-        for (const child of this.children.list.slice()) {
-          if (
-            "getData" in child &&
-            typeof (child as Phaser.GameObjects.Image).getData === "function"
-          ) {
+        const xStart = Math.max(next.xMin, from);
+        const xEnd = Math.min(next.xMax, result.previousWidth);
+        if (xStart < xEnd) {
+          for (const child of this.children.list.slice()) {
+            if (
+              !("getData" in child) ||
+              typeof (child as Phaser.GameObjects.Image).getData !== "function"
+            ) {
+              continue;
+            }
             const img = child as Phaser.GameObjects.Image;
             const gx = img.getData("streamX");
+            const gy = img.getData("streamY");
             if (
               typeof gx === "number" &&
-              gx >= from &&
-              gx < result.previousWidth
+              typeof gy === "number" &&
+              gx >= xStart &&
+              gx < xEnd &&
+              gy >= next.yMin &&
+              gy < next.yMax
             ) {
               img.destroy();
             }
           }
+          this.drawArchipelagoLiveRect(zone, xStart, xEnd, next.yMin, next.yMax);
         }
       }
-      this.drawZoneTileColumns(zone, from, result.width);
-      this.drawWallsInColumns(zone, from, result.width);
-      this.drawArchipelagoPropsInColumns(from, result.width);
     }
   }
 
@@ -624,9 +729,12 @@ export class IsometricScene extends Phaser.Scene {
 
     if (zoneId === "archipelago") {
       prepareArchipelagoForPosition(this.playerGridX);
-      this.archipelagoCullBefore = archipelagoVisualCullBefore(this.playerGridX);
-    } else {
-      this.archipelagoCullBefore = 3;
+      this.archipelagoVisualWin = archipelagoVisualWindow(
+        this.playerGridX,
+        this.playerGridY,
+        zone.width,
+        zone.height,
+      );
     }
 
     ensureWorldTextures(this, zoneId);
@@ -635,33 +743,11 @@ export class IsometricScene extends Phaser.Scene {
     this.cameras.main.setBackgroundColor(ZONE_CAMERA_COLORS[zoneId]);
 
     this.drawBackdrop(zone);
-    this.drawZoneTiles(zone);
-    if (zoneId === "archipelago" && this.archipelagoCullBefore > 3) {
-      // Mid-stream load: only keep sprites near the player (+ west gate cols 0–2).
-      for (const child of this.children.list.slice()) {
-        if (
-          "getData" in child &&
-          typeof (child as Phaser.GameObjects.Image).getData === "function"
-        ) {
-          const img = child as Phaser.GameObjects.Image;
-          const gx = img.getData("streamX");
-          if (
-            typeof gx === "number" &&
-            gx >= 3 &&
-            gx < this.archipelagoCullBefore
-          ) {
-            img.destroy();
-          }
-        }
-      }
-      // Props must match the cull window (full getZoneProps would reintroduce
-      // far-west sprites and later duplicate when sailing west restores columns).
-      this.drawArchipelagoPropsInColumns(0, 3);
-      this.drawArchipelagoPropsInColumns(
-        this.archipelagoCullBefore,
-        zone.width,
-      );
+    if (zoneId === "archipelago") {
+      // Only instantiate the local camera window (+ west gate columns).
+      this.drawArchipelagoVisualWindow(zone, this.archipelagoVisualWin);
     } else {
+      this.drawZoneTiles(zone);
       this.drawProps(zone);
     }
     this.drawNpcs(zone);
@@ -836,12 +922,14 @@ export class IsometricScene extends Phaser.Scene {
     zone: ZoneDefinition,
     xStart: number,
     xEnd: number,
+    yStart = 0,
+    yEnd = zone.height,
   ): void {
     const transitionSet = new Set(
       zone.transitions.map((t) => `${t.x},${t.y}`),
     );
 
-    for (let y = 0; y < zone.height; y++) {
+    for (let y = yStart; y < yEnd; y++) {
       for (let x = xStart; x < xEnd; x++) {
         const tileType = zone.tiles[y][x];
         if (tileType === TileType.Wall) {
@@ -931,8 +1019,10 @@ export class IsometricScene extends Phaser.Scene {
     zone: ZoneDefinition,
     xStart: number,
     xEnd: number,
+    yStart = 0,
+    yEnd = zone.height,
   ): void {
-    for (let y = 0; y < zone.height; y++) {
+    for (let y = yStart; y < yEnd; y++) {
       for (let x = xStart; x < xEnd; x++) {
         if (zone.tiles[y][x] !== TileType.Wall) {
           continue;
@@ -970,8 +1060,8 @@ export class IsometricScene extends Phaser.Scene {
     }
   }
 
-  private drawArchipelagoPropsInColumns(xStart: number, xEnd: number): void {
-    for (const prop of getArchipelagoPropsInColumns(xStart, xEnd)) {
+  private drawArchipelagoPropsInWindow(win: ArchipelagoVisualWindow): void {
+    for (const prop of getArchipelagoPropsInWindow(win)) {
       this.spawnPropSprite(prop.x, prop.y, prop.kind, true, "archipelago");
     }
   }
