@@ -177,7 +177,7 @@ const OVERWORLD: ZoneDefinition = {
 
 /**
  * Harbor — dock-area shell north of Folklore Fields.
- * Horizontal water corridor is the side-scroll sail path ending at East Landing (#90).
+ * Horizontal water corridor is the side-scroll sail path; East Landing is an optional dock (#94).
  */
 const harborTiles = borderedFloor(18, 9, [{ x: 0, y: 4 }]);
 for (const y of [6, 7]) {

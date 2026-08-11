@@ -19,19 +19,26 @@ export const HARBOR_PIER = { x: 3, y: 6 };
 /** Water tile beside the Harbor dock used as the embark stand point. */
 export const HARBOR_EMBARK_WATER = { x: 2, y: 7 };
 
-/** Named sail destination — on-foot pad after side-scroll arrival. */
+/** East Landing on-foot pad (optional dock stop). */
 export const EAST_LANDING = { x: 15, y: 5 };
 
 export const EAST_LANDING_NAME = "East Landing";
 
-/** Water tiles immediately south of the East Landing pads (sail approach). */
+/** Water tiles immediately south of the East Landing pads (dock approach). */
 export const EAST_LANDING_APPROACH = [
   { x: 15, y: 6 },
   { x: 16, y: 6 },
 ] as const;
 
+/** Embark water beside East Landing (first approach tile). */
+export const EAST_LANDING_EMBARK_WATER = EAST_LANDING_APPROACH[0];
+
+/** Which Harbor dock currently holds the moored boat. */
+export type HarborDockId = "west" | "east";
+
 let placedBoat = false;
 let sailing = false;
+let mooredDock: HarborDockId | null = null;
 
 export function isBoatPlaced(): boolean {
   return placedBoat;
@@ -39,6 +46,12 @@ export function isBoatPlaced(): boolean {
 
 export function setPlacedBoat(value: boolean): void {
   placedBoat = value;
+  if (!value) {
+    mooredDock = null;
+  } else if (mooredDock === null) {
+    // Older tests/saves that only set placedBoat default to the west dock.
+    mooredDock = "west";
+  }
 }
 
 export function isSailing(): boolean {
@@ -49,11 +62,21 @@ export function setSailing(value: boolean): void {
   sailing = value;
 }
 
+export function getMooredDock(): HarborDockId | null {
+  return mooredDock;
+}
+
+export function setMooredDock(value: HarborDockId | null): void {
+  mooredDock = value;
+}
+
 export function resetPlacedBoatForTest(): void {
   placedBoat = false;
   sailing = false;
+  mooredDock = null;
 }
 
+/** True on/near the west Harbor dock pad (place / west embark-disembark). */
 export function isNearHarborDock(
   zoneId: ZoneId,
   tileX: number,
@@ -77,6 +100,64 @@ export function isOnEastLandingApproach(
     return false;
   }
   return EAST_LANDING_APPROACH.some((t) => t.x === tileX && t.y === tileY);
+}
+
+/** True on/near East Landing pad or its approach water (E disembark/reboard). */
+export function isNearEastLandingDock(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): boolean {
+  if (zoneId !== HARBOR_DOCK.zoneId) {
+    return false;
+  }
+  if (
+    Math.abs(tileX - EAST_LANDING.x) + Math.abs(tileY - EAST_LANDING.y) <= 1
+  ) {
+    return true;
+  }
+  return isOnEastLandingApproach(zoneId, tileX, tileY);
+}
+
+/** True near the west Harbor dock or East Landing dock interact range. */
+export function isNearAnyDock(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): boolean {
+  return (
+    isNearHarborDock(zoneId, tileX, tileY) ||
+    isNearEastLandingDock(zoneId, tileX, tileY)
+  );
+}
+
+type DockStand = {
+  id: HarborDockId;
+  pier: { x: number; y: number };
+  embarkWater: { x: number; y: number };
+};
+
+function resolveDockStand(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): DockStand | undefined {
+  // Prefer west dock when both could match (they do not overlap today).
+  if (isNearHarborDock(zoneId, tileX, tileY)) {
+    return {
+      id: "west",
+      pier: HARBOR_PIER,
+      embarkWater: HARBOR_EMBARK_WATER,
+    };
+  }
+  if (isNearEastLandingDock(zoneId, tileX, tileY)) {
+    return {
+      id: "east",
+      pier: EAST_LANDING,
+      embarkWater: EAST_LANDING_EMBARK_WATER,
+    };
+  }
+  return undefined;
 }
 
 export type PlaceBoatResult = {
@@ -140,6 +221,7 @@ export function tryPlaceBoat(
     };
   }
   placedBoat = true;
+  mooredDock = "west";
   notifyWorldChanged();
   return {
     ok: true,
@@ -160,7 +242,8 @@ export function tryEmbark(
       message: "Only the host can board the boat.",
     };
   }
-  if (!isNearHarborDock(zoneId, tileX, tileY)) {
+  const dock = resolveDockStand(zoneId, tileX, tileY);
+  if (!dock) {
     return {
       ok: false,
       message: "Stand by the dock to board your boat.",
@@ -170,6 +253,12 @@ export function tryEmbark(
     return {
       ok: false,
       message: "No boat is moored here.",
+    };
+  }
+  if (mooredDock !== dock.id) {
+    return {
+      ok: false,
+      message: "Your boat is moored at another dock.",
     };
   }
   if (sailing) {
@@ -183,14 +272,14 @@ export function tryEmbark(
   notifyWorldChanged();
   return {
     ok: true,
-    message: `You sail toward ${EAST_LANDING_NAME}.`,
+    message: "You set sail.",
     embarked: true,
-    playerX: HARBOR_EMBARK_WATER.x,
-    playerY: HARBOR_EMBARK_WATER.y,
+    playerX: dock.embarkWater.x,
+    playerY: dock.embarkWater.y,
   };
 }
 
-/** Leave the boat at the dock and stand on the pier. */
+/** Leave the boat at a dock and stand on that dock's pier / landing pad. */
 export function tryDisembark(
   zoneId: ZoneId,
   tileX: number,
@@ -202,10 +291,11 @@ export function tryDisembark(
       message: "Only the host can disembark.",
     };
   }
-  if (!isNearHarborDock(zoneId, tileX, tileY)) {
+  const dock = resolveDockStand(zoneId, tileX, tileY);
+  if (!dock) {
     return {
       ok: false,
-      message: "Sail back to the dock to disembark.",
+      message: "Sail to a dock to disembark.",
     };
   }
   if (!sailing) {
@@ -215,50 +305,13 @@ export function tryDisembark(
     };
   }
   sailing = false;
+  mooredDock = dock.id;
   notifyWorldChanged();
   return {
     ok: true,
     message: "You step onto the pier.",
     disembarked: true,
-    playerX: HARBOR_PIER.x,
-    playerY: HARBOR_PIER.y,
-  };
-}
-
-/**
- * End Harbor side-scroll sail at East Landing.
- * Call when the player occupies an approach water tile while sailing.
- */
-export function tryArriveEastLanding(
-  zoneId: ZoneId,
-  tileX: number,
-  tileY: number,
-): SailActionResult {
-  if (isVisitorMode()) {
-    return {
-      ok: false,
-      message: "Only the host can finish the voyage.",
-    };
-  }
-  if (!sailing) {
-    return {
-      ok: false,
-      message: "You are not sailing.",
-    };
-  }
-  if (!isOnEastLandingApproach(zoneId, tileX, tileY)) {
-    return {
-      ok: false,
-      message: `Keep sailing to ${EAST_LANDING_NAME}.`,
-    };
-  }
-  sailing = false;
-  notifyWorldChanged();
-  return {
-    ok: true,
-    message: `You reach ${EAST_LANDING_NAME}.`,
-    disembarked: true,
-    playerX: EAST_LANDING.x,
-    playerY: EAST_LANDING.y,
+    playerX: dock.pier.x,
+    playerY: dock.pier.y,
   };
 }

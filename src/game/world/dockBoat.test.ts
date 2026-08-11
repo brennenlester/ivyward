@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   isBoatPlaced,
+  isNearAnyDock,
+  isNearEastLandingDock,
   isNearHarborDock,
   isSailing,
+  getMooredDock,
   HARBOR_DOCK,
   HARBOR_EMBARK_WATER,
   HARBOR_PIER,
@@ -11,10 +14,9 @@ import {
   setSailing,
   tryDisembark,
   tryEmbark,
-  tryArriveEastLanding,
   tryPlaceBoat,
   EAST_LANDING,
-  EAST_LANDING_NAME,
+  EAST_LANDING_EMBARK_WATER,
   isOnEastLandingApproach,
 } from "./dockBoat";
 import { canOccupy, isTileWalkable } from "./collision";
@@ -94,6 +96,18 @@ describe("Harbor dock proximity", () => {
     );
     expect(isNearHarborDock("harbor", 10, 7)).toBe(false);
   });
+
+  it("treats East Landing pad and approach as dock-interact near range", () => {
+    expect(isNearEastLandingDock("harbor", EAST_LANDING.x, EAST_LANDING.y)).toBe(
+      true,
+    );
+    expect(isNearEastLandingDock("harbor", 15, 6)).toBe(true);
+    expect(isNearEastLandingDock("harbor", 16, 6)).toBe(true);
+    expect(isNearEastLandingDock("harbor", 8, 7)).toBe(false);
+    expect(isNearAnyDock("harbor", 15, 6)).toBe(true);
+    expect(isNearAnyDock("harbor", HARBOR_DOCK.x, HARBOR_DOCK.y)).toBe(true);
+    expect(isNearAnyDock("harbor", 8, 7)).toBe(false);
+  });
 });
 
 describe("tryPlaceBoat", () => {
@@ -152,7 +166,7 @@ describe("embark and disembark", () => {
       playerX: HARBOR_EMBARK_WATER.x,
       playerY: HARBOR_EMBARK_WATER.y,
     });
-    expect(result.message).toContain(EAST_LANDING_NAME);
+    expect(result.message).toBe("You set sail.");
     expect(isSailing()).toBe(true);
   });
 
@@ -228,6 +242,7 @@ describe("placedBoat snapshot", () => {
       y: HARBOR_PIER.y,
     });
     expect(snapshot.placedBoat).toBe(true);
+    expect(snapshot.mooredDock).toBe("west");
     expect(isValidWorldSnapshot(snapshot)).toBe(true);
 
     resetPlacedBoatForTest();
@@ -240,6 +255,49 @@ describe("placedBoat snapshot", () => {
       items: {},
     });
     expect(isBoatPlaced()).toBe(true);
+    expect(getMooredDock()).toBe("west");
+  });
+
+  it("round-trips east mooredDock after East Landing disembark", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(tryDisembark("harbor", 15, 6).ok).toBe(true);
+    const snapshot = exportWorldSnapshot({
+      zoneId: "harbor",
+      x: EAST_LANDING.x,
+      y: EAST_LANDING.y,
+    });
+    expect(snapshot.mooredDock).toBe("east");
+    resetPlacedBoatForTest();
+    applyWorldSnapshot({
+      ...snapshot,
+      questProgress: questProgress(),
+      party: [],
+      nextInstanceId: 1,
+      materials: {},
+      items: {},
+    });
+    expect(isBoatPlaced()).toBe(true);
+    expect(getMooredDock()).toBe("east");
+  });
+
+  it("infers east mooredDock for legacy East Landing auto-arrive saves", () => {
+    applyWorldSnapshot({
+      version: 1,
+      hostLabel: "test",
+      overworldUnlocked: true,
+      questProgress: questProgress(),
+      party: [],
+      nextInstanceId: 1,
+      materials: {},
+      items: {},
+      placedBoat: true,
+      sailing: false,
+      // no mooredDock — pre-#94
+      position: { zoneId: "harbor", x: EAST_LANDING.x, y: EAST_LANDING.y },
+    });
+    expect(isBoatPlaced()).toBe(true);
+    expect(getMooredDock()).toBe("east");
   });
 
   it("treats missing placedBoat as false for older saves", () => {
@@ -320,41 +378,93 @@ describe("sailing snapshot", () => {
   });
 });
 
-describe("East Landing side-scroll destination", () => {
-  it("ends sail mode on approach and places the player on East Landing", () => {
+describe("East Landing dock-only (no auto sail-end)", () => {
+  it("keeps sailing when occupying East Landing approach water", () => {
     setPlacedBoat(true);
     setSailing(true);
     expect(isOnEastLandingApproach("harbor", 15, 6)).toBe(true);
-    const result = tryArriveEastLanding("harbor", 15, 6);
+    expect(isNearEastLandingDock("harbor", 15, 6)).toBe(true);
+    // No auto-arrive: sailing stays true until E-disembark.
+    expect(isSailing()).toBe(true);
+    setSailing(false);
+    expect(isTileWalkable(getZone("harbor"), EAST_LANDING.x, EAST_LANDING.y)).toBe(
+      true,
+    );
+  });
+
+  it("E-disembarks onto East Landing and clears sailing", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    const result = tryDisembark("harbor", 15, 6);
     expect(result).toMatchObject({
       ok: true,
       disembarked: true,
       playerX: EAST_LANDING.x,
       playerY: EAST_LANDING.y,
     });
-    expect(result.message).toContain(EAST_LANDING_NAME);
+    expect(result.message).toBe("You step onto the pier.");
     expect(isSailing()).toBe(false);
-    expect(isTileWalkable(getZone("harbor"), EAST_LANDING.x, EAST_LANDING.y)).toBe(
-      true,
-    );
   });
 
-  it("does not end sail mode away from East Landing", () => {
+  it("reboards from East Landing onto approach water", () => {
     setPlacedBoat(true);
     setSailing(true);
-    const midBay = tryArriveEastLanding("harbor", 8, 7);
-    expect(midBay.ok).toBe(false);
+    expect(tryDisembark("harbor", 15, 6).ok).toBe(true);
+    expect(getMooredDock()).toBe("east");
+    const result = tryEmbark("harbor", EAST_LANDING.x, EAST_LANDING.y);
+    expect(result).toMatchObject({
+      ok: true,
+      embarked: true,
+      playerX: EAST_LANDING_EMBARK_WATER.x,
+      playerY: EAST_LANDING_EMBARK_WATER.y,
+    });
     expect(isSailing()).toBe(true);
-    expect(isOnEastLandingApproach("harbor", 8, 7)).toBe(false);
   });
 
-  it("blocks visitors from completing the voyage", () => {
+  it("refuses boarding at East Landing while the boat is moored west", () => {
+    setPlacedBoat(true);
+    expect(getMooredDock()).toBe("west");
+    const result = tryEmbark("harbor", EAST_LANDING.x, EAST_LANDING.y);
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("another dock");
+    expect(isSailing()).toBe(false);
+  });
+
+  it("refuses boarding at the west dock while the boat is moored east", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(tryDisembark("harbor", 15, 6).ok).toBe(true);
+    expect(getMooredDock()).toBe("east");
+    const result = tryEmbark("harbor", HARBOR_PIER.x, HARBOR_PIER.y);
+    expect(result.ok).toBe(false);
+    expect(isSailing()).toBe(false);
+  });
+
+  it("keeps sailing mid-bay away from either dock", () => {
+    setPlacedBoat(true);
+    setSailing(true);
+    expect(isNearAnyDock("harbor", 8, 7)).toBe(false);
+    expect(isOnEastLandingApproach("harbor", 8, 7)).toBe(false);
+    const midBay = tryDisembark("harbor", 8, 7);
+    expect(midBay.ok).toBe(false);
+    expect(isSailing()).toBe(true);
+  });
+
+  it("blocks visitors from disembarking at East Landing", () => {
     setPlacedBoat(true);
     setSailing(true);
     setVisitorMode(true);
-    const result = tryArriveEastLanding("harbor", 16, 6);
+    const result = tryDisembark("harbor", 16, 6);
     expect(result.ok).toBe(false);
     expect(isSailing()).toBe(true);
+  });
+
+  it("refuses placing a boat at East Landing", () => {
+    setInventoryFromSnapshot({}, { boat: 1 });
+    const result = tryPlaceBoat("harbor", EAST_LANDING.x, EAST_LANDING.y);
+    expect(result.ok).toBe(false);
+    expect(isBoatPlaced()).toBe(false);
+    expect(getItemCount("boat")).toBe(1);
   });
 });
 

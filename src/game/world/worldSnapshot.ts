@@ -33,12 +33,16 @@ import {
 import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQuests";
 import {
   isBoatPlaced,
+  isNearEastLandingDock,
   isSailing,
+  getMooredDock,
+  setMooredDock,
   setPlacedBoat,
   setSailing,
   HARBOR_DOCK,
   HARBOR_PIER,
   HARBOR_EMBARK_WATER,
+  type HarborDockId,
 } from "./dockBoat";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
@@ -60,6 +64,8 @@ export type WorldSnapshot = {
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
   /** Boat moored at the Harbor dock. Optional for older saves. */
   placedBoat?: boolean;
+  /** Which Harbor dock holds the moored boat. Optional for older saves. */
+  mooredDock?: "west" | "east";
   /** Player is sailing in Harbor. Optional for older saves. */
   sailing?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
@@ -371,6 +377,14 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
 
+  if (
+    s.mooredDock !== undefined &&
+    s.mooredDock !== "west" &&
+    s.mooredDock !== "east"
+  ) {
+    return false;
+  }
+
   if (s.sailing !== undefined && typeof s.sailing !== "boolean") {
     return false;
   }
@@ -415,6 +429,29 @@ export function takePendingWorldPosition(): PendingWorldPosition | null {
   return position;
 }
 
+/** Resolve west/east moored dock, including legacy East Landing auto-arrive saves. */
+function inferMooredDock(snapshot: WorldSnapshot): HarborDockId {
+  if (snapshot.mooredDock === "west" || snapshot.mooredDock === "east") {
+    return snapshot.mooredDock;
+  }
+  // Pre-#94 auto-arrive left players on East Landing pads with the boat "placed"
+  // and sailing cleared, but no mooredDock field. Defaulting those to west strands
+  // the player on the east pads with the boat only boardable at the west dock.
+  if (
+    snapshot.placedBoat === true &&
+    snapshot.sailing !== true &&
+    snapshot.position.zoneId === "harbor" &&
+    isNearEastLandingDock(
+      "harbor",
+      Math.round(snapshot.position.x),
+      Math.round(snapshot.position.y),
+    )
+  ) {
+    return "east";
+  }
+  return "west";
+}
+
 export function exportWorldSnapshot(
   position: PendingWorldPosition,
   hostLabel = "Your world",
@@ -429,6 +466,7 @@ export function exportWorldSnapshot(
     claimedNpcGifts: getClaimedNpcGifts(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
+    mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
@@ -460,6 +498,11 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setPlacedBoat(snapshot.placedBoat === true);
+  if (snapshot.placedBoat === true) {
+    setMooredDock(inferMooredDock(snapshot));
+  } else {
+    setMooredDock(null);
+  }
   setSailing(snapshot.sailing === true);
   // Sailing only makes sense on Harbor Water/Dock; otherwise clear it.
   if (isSailing()) {
