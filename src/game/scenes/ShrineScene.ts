@@ -17,6 +17,7 @@ import {
   applyConsumable,
   CONSUMABLE_ITEM_IDS,
   FUSION_ITEM_IDS,
+  type ConsumableEffectType,
   getConsumable,
   getEligibleCreaturesForConsumable,
   isConsumableItem,
@@ -33,6 +34,21 @@ const MOON_TEXT = "#fff8dc";
 const MOON_MUTED = "#c9eee1";
 const PANEL_WIDTH = 480;
 const PANEL_HEIGHT = 420;
+
+function getUseEffectLabel(
+  effectType: ConsumableEffectType,
+  detailed = false,
+): string {
+  if (effectType === "heal") {
+    return detailed ? "Heals injured creatures by 50% max HP" : "heals 50% HP";
+  }
+  if (effectType === "revive") {
+    return detailed
+      ? "Revives fainted creatures to 50% max HP"
+      : "revives fainted";
+  }
+  return detailed ? "Spend 2 to grant +1 level" : "2 grant +1 level";
+}
 
 type Tab = "craft" | "fusion" | "use";
 
@@ -568,7 +584,7 @@ export class ShrineScene extends Phaser.Scene {
 
     if (consumableIds.length === 0) {
       const empty = this.add
-        .text(cx, contentTop + 24, "Craft Brook Tonic or Moonwake Draught first.", {
+        .text(cx, contentTop + 24, "Craft a shrine consumable first.", {
           color: MOON_MUTED,
           fontFamily: "system-ui, sans-serif",
           fontSize: "15px",
@@ -591,8 +607,7 @@ export class ShrineScene extends Phaser.Scene {
       let y = contentTop + 40;
       for (const itemId of consumableIds) {
         const consumable = getConsumable(itemId)!;
-        const effectLabel =
-          consumable.effectType === "heal" ? "heals 50% HP" : "revives fainted";
+        const effectLabel = getUseEffectLabel(consumable.effectType);
         const btn = this.add
           .text(
             cx,
@@ -621,10 +636,7 @@ export class ShrineScene extends Phaser.Scene {
 
     const itemId = this.selectedItemId;
     const consumable = getConsumable(itemId)!;
-    const effectLabel =
-      consumable.effectType === "heal"
-        ? "Heals injured creatures by 50% max HP"
-        : "Revives fainted creatures to 50% max HP";
+    const effectLabel = getUseEffectLabel(consumable.effectType, true);
 
     const header = this.add
       .text(cx, contentTop + 8, `${getItemName(itemId)} — ${effectLabel}`, {
@@ -658,7 +670,9 @@ export class ShrineScene extends Phaser.Scene {
       const message =
         consumable.effectType === "heal"
           ? "No injured creatures to heal."
-          : "No fainted creatures to revive.";
+          : consumable.effectType === "revive"
+            ? "No fainted creatures to revive."
+            : "All party members are already at max level 50.";
       const none = this.add
         .text(cx, contentTop + 56, message, {
           color: MOON_MUTED,
