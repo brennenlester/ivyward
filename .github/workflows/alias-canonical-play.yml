@@ -54,7 +54,7 @@ jobs:
           # cannot leave the canonical hostname on an older build.
           ./scripts/alias-canonical-play.sh
           resolved="$(
-            npx vercel@latest ls ivyward --prod --scope brennen1 2>/dev/null \
+            npx vercel@latest ls ivyward --prod --status READY --scope brennen1 2>/dev/null \
               | grep -oE 'https://ivyward-[a-z0-9]+-brennen1\.vercel\.app' \
               | head -1
           )"

@@ -12,9 +12,9 @@ CANONICAL_HOST="${CANONICAL_PLAY_HOST:-ivyward-brennen1.vercel.app}"
 if [[ $# -ge 1 ]]; then
   DEPLOYMENT_URL="$1"
 else
-  # `vercel ls --prod` prints a table; extract the first ivyward deployment URL.
+  # `vercel ls --prod` prints a table; extract the first READY ivyward deployment URL.
   DEPLOYMENT_URL="$(
-    npx vercel@latest ls "$PROJECT" --prod --scope "$SCOPE" 2>/dev/null \
+    npx vercel@latest ls "$PROJECT" --prod --status READY --scope "$SCOPE" 2>/dev/null \
       | grep -oE 'https://ivyward-[a-z0-9]+-brennen1\.vercel\.app' \
       | head -1
   )"
