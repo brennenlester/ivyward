@@ -9,7 +9,7 @@ import {
 
 export const TIDE_SOVEREIGN_ID = "tide-sovereign";
 export const TIDE_CLEAVER_ID = "tide-cleaver";
-export const GOD_SAIL_ENCOUNTER_CHANCE = 1e-6;
+export const GOD_SAIL_ENCOUNTER_CHANCE = 0.001;
 export const GOD_SAIL_ENCOUNTER_DELAY_MS = 10_000;
 export const GOD_BEFRIEND_CHANCE = 0.08;
 export const NORMAL_BEFRIEND_CHANCE = 0.55;
