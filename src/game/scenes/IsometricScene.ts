@@ -861,6 +861,10 @@ export class IsometricScene extends Phaser.Scene {
             playfield.style.width = `${boardDisplaySize}px`;
           }
         }
+        if (gameEl) {
+          gameEl.style.width = `${boardDisplaySize}px`;
+          gameEl.style.height = `${boardDisplaySize}px`;
+        }
         updateStatusPanel(zone);
         const statusHeight = measureStatusPanelHeight();
         const statusWidth = measureStatusPanelWidth();
