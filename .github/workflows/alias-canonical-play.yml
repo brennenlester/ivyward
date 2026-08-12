@@ -6,6 +6,10 @@ name: Alias canonical play URL
 on:
   deployment_status:
 
+concurrency:
+  group: alias-canonical-play
+  cancel-in-progress: false
+
 jobs:
   alias-canonical:
     # Note: do not reference `secrets` in job-level `if` (unavailable there).
@@ -27,43 +31,40 @@ jobs:
             exit 1
           fi
 
-      - name: Checkout
+      # Always use trusted main branch code — never run scripts from a deployment ref.
+      - name: Checkout main
         uses: actions/checkout@v4
+        with:
+          ref: main
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: "20"
 
-      - name: Alias ivyward-brennen1.vercel.app to this production deployment
+      - name: Alias ivyward-brennen1.vercel.app to latest production
         id: alias
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_SCOPE: brennen1
-          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
         run: |
           set -euo pipefail
           chmod +x scripts/alias-canonical-play.sh
-          if [ -n "${DEPLOYMENT_URL:-}" ]; then
-            ./scripts/alias-canonical-play.sh "$DEPLOYMENT_URL"
-            echo "target_url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
-          else
-            echo "No environment_url on deployment_status; resolving via vercel ls"
-            ./scripts/alias-canonical-play.sh
-            resolved="$(
-              npx vercel@latest ls ivyward --prod --scope brennen1 2>/dev/null \
-                | grep -oE 'https://ivyward-[a-z0-9]+-brennen1\.vercel\.app' \
-                | head -1
-            )"
-            echo "target_url=$resolved" >> "$GITHUB_OUTPUT"
-          fi
+          # Always re-resolve latest production so overlapping deploy events
+          # cannot leave the canonical hostname on an older build.
+          ./scripts/alias-canonical-play.sh
+          resolved="$(
+            npx vercel@latest ls ivyward --prod --scope brennen1 2>/dev/null \
+              | grep -oE 'https://ivyward-[a-z0-9]+-brennen1\.vercel\.app' \
+              | head -1
+          )"
+          echo "target_url=$resolved" >> "$GITHUB_OUTPUT"
 
-      - name: Verify canonical matches deployment
+      - name: Verify canonical matches latest production
         env:
           TARGET_URL: ${{ steps.alias.outputs.target_url }}
         run: |
           set -euo pipefail
-          # Brief pause for alias propagation
           sleep 3
           canon_js="$(curl -fsSL https://ivyward-brennen1.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
           if [ -z "${TARGET_URL:-}" ]; then
