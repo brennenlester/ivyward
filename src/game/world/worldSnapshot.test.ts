@@ -81,6 +81,34 @@ describe("isValidWorldSnapshot", () => {
     expect(isValidWorldSnapshot(validSnapshot())).toBe(true);
   });
 
+  it("accepts and rejects activePartyIds against the party roster", () => {
+    const member = partyMember({ instanceId: "c-1" });
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          party: [member],
+          activePartyIds: ["c-1"],
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          party: [member],
+          activePartyIds: ["missing"],
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          party: [member],
+          activePartyIds: ["c-1", "c-1"],
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it("soft-adds and validates the god sail claim flag", () => {
     expect(
       isValidWorldSnapshot(validSnapshot({ godSailEncounterClaimed: true })),

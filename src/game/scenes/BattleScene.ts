@@ -1,9 +1,9 @@
 import Phaser from "phaser";
 import { getCreatureDefinition } from "../creatures/catalog";
 import {
+  getActiveCreatures,
   getEffectiveAttack,
   getEffectiveMaxHp,
-  playerParty,
 } from "../creatures/party";
 import { ensureCreatureTextures } from "../creatures/sprites";
 import { resolveCreaturePoseTexture } from "../creatures/creaturePoses";
@@ -126,9 +126,10 @@ export class BattleScene extends Phaser.Scene {
       folkloreType: wildDef.folkloreType,
     };
 
-    const activeIndex = playerParty.creatures.findIndex((c) => c.currentHp > 0);
+    const actives = getActiveCreatures();
+    const activeIndex = actives.findIndex((c) => c.currentHp > 0);
     const partyCreature =
-      activeIndex >= 0 ? playerParty.creatures[activeIndex] : undefined;
+      activeIndex >= 0 ? actives[activeIndex] : undefined;
 
     if (partyCreature) {
       this.partyInstanceIndex = activeIndex;
@@ -273,7 +274,7 @@ export class BattleScene extends Phaser.Scene {
       return "player-south-0";
     }
     const spriteKey = getCreatureDefinition(
-      playerParty.creatures[this.partyInstanceIndex].definitionId,
+      getActiveCreatures()[this.partyInstanceIndex].definitionId,
     ).spriteKey;
     return resolveCreaturePoseTexture(this, spriteKey, "battle");
   }
@@ -293,7 +294,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private combatantFromPartyIndex(index: number): BattleCombatant {
-    const partyCreature = playerParty.creatures[index];
+    const partyCreature = getActiveCreatures()[index];
     const def = getCreatureDefinition(partyCreature.definitionId);
     // Normal kit 3–4 moves; shrine dual may be a one-time 5th slot.
     const moves = [...def.moves];
@@ -321,14 +322,14 @@ export class BattleScene extends Phaser.Scene {
     if (this.partyInstanceIndex < 0) {
       return;
     }
-    const partyCreature = playerParty.creatures[this.partyInstanceIndex];
+    const partyCreature = getActiveCreatures()[this.partyInstanceIndex];
     if (partyCreature) {
       partyCreature.currentHp = this.player.currentHp;
     }
   }
 
   private hasSwitchablePartyMembers(): boolean {
-    return playerParty.creatures.some(
+    return getActiveCreatures().some(
       (creature, index) =>
         index !== this.partyInstanceIndex && creature.currentHp > 0,
     );
@@ -427,12 +428,12 @@ export class BattleScene extends Phaser.Scene {
     const panelY = DESIGN_SIZE / 2;
 
     const panel = this.add
-      .rectangle(cx, panelY, 320, 220, 0xfff8ec, 0.98)
+      .rectangle(cx, panelY, 320, 280, 0xfff8ec, 0.98)
       .setStrokeStyle(3, 0x6eb8a8);
     this.switchMenuObjects.push(panel);
 
     const title = this.add
-      .text(cx, panelY - 90, "Choose a creature", {
+      .text(cx, panelY - 120, "Choose a creature", {
         color: "#2a4050",
         fontFamily: "Source Sans 3, system-ui, sans-serif",
         fontSize: "16px",
@@ -441,9 +442,10 @@ export class BattleScene extends Phaser.Scene {
       .setOrigin(0.5);
     this.switchMenuObjects.push(title);
 
-    let rowY = panelY - 50;
-    for (let index = 0; index < playerParty.creatures.length; index++) {
-      const creature = playerParty.creatures[index];
+    let rowY = panelY - 85;
+    const actives = getActiveCreatures();
+    for (let index = 0; index < actives.length; index++) {
+      const creature = actives[index];
       const def = getCreatureDefinition(creature.definitionId);
       const isActive = index === this.partyInstanceIndex;
       const fainted = creature.currentHp <= 0;
@@ -459,8 +461,8 @@ export class BattleScene extends Phaser.Scene {
           color: fainted || isActive ? "#7a8890" : "#1a3040",
           backgroundColor: fainted || isActive ? "#d8e0e4" : "#c8efe0",
           fontFamily: "Source Sans 3, system-ui, sans-serif",
-          fontSize: "14px",
-          padding: { x: 10, y: 6 },
+          fontSize: "13px",
+          padding: { x: 10, y: 4 },
         })
         .setOrigin(0.5);
 
@@ -470,11 +472,11 @@ export class BattleScene extends Phaser.Scene {
       }
 
       this.switchMenuObjects.push(btn);
-      rowY += 36;
+      rowY += 30;
     }
 
     const cancel = this.add
-      .text(cx, panelY + 80, "Cancel", {
+      .text(cx, panelY + 120, "Cancel", {
         color: "#1a3040",
         backgroundColor: "#f0d8a8",
         fontFamily: "Source Sans 3, system-ui, sans-serif",
@@ -604,7 +606,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private switchToPartyIndex(index: number): void {
-    const creature = playerParty.creatures[index];
+    const creature = getActiveCreatures()[index];
     if (
       !creature ||
       index === this.partyInstanceIndex ||

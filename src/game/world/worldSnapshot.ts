@@ -2,6 +2,7 @@ import {
   getNextInstanceId,
   playerParty,
   setPartyFromSnapshot,
+  ACTIVE_PARTY_LIMIT,
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import {
@@ -82,6 +83,8 @@ export type WorldSnapshot = {
   godSailEncounterClaimed?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
+  /** Active battle party instance ids (max 7). Optional for older saves. */
+  activePartyIds?: string[];
   nextInstanceId: number;
   materials: Record<string, number>;
   items: Record<string, number>;
@@ -499,8 +502,23 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   }
 
   if (!Array.isArray(s.party)) return false;
+  const partyInstanceIds = new Set<string>();
   for (const member of s.party) {
     if (!isValidPartyMember(member)) return false;
+    const instanceId = (member as CreatureInstance).instanceId;
+    if (partyInstanceIds.has(instanceId)) return false;
+    partyInstanceIds.add(instanceId);
+  }
+
+  if (s.activePartyIds !== undefined) {
+    if (!Array.isArray(s.activePartyIds)) return false;
+    if (s.activePartyIds.length > ACTIVE_PARTY_LIMIT) return false;
+    const seenActive = new Set<string>();
+    for (const id of s.activePartyIds) {
+      if (typeof id !== "string" || !partyInstanceIds.has(id)) return false;
+      if (seenActive.has(id)) return false;
+      seenActive.add(id);
+    }
   }
 
   if (!isFiniteNumber(s.nextInstanceId) || s.nextInstanceId < 0) return false;
@@ -559,6 +577,7 @@ export function exportWorldSnapshot(
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
+    activePartyIds: [...playerParty.activeInstanceIds],
     nextInstanceId: getNextInstanceId(),
     materials: { ...playerInventory.materials },
     items: { ...playerInventory.items },
@@ -584,7 +603,11 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     ...(snapshot.discoveredCreatures ?? []),
     ...fromParty,
   ]);
-  setPartyFromSnapshot(snapshot.party, snapshot.nextInstanceId);
+  setPartyFromSnapshot(
+    snapshot.party,
+    snapshot.nextInstanceId,
+    snapshot.activePartyIds,
+  );
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});

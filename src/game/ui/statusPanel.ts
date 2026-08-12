@@ -6,6 +6,7 @@ import { getHostLabel, isVisitorMode } from "../world/worldSession";
 import { resetHostGame } from "../world/worldSave";
 import type { ZoneDefinition } from "../world/zoneTypes";
 import { openCodex } from "./codex";
+import { openParty } from "./partyPanel";
 
 let inviteFeedbackActive = false;
 
@@ -55,6 +56,13 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
   if (sessionEl && !inviteFeedbackActive) {
     sessionEl.textContent = defaultSessionText();
     sessionEl.style.color = defaultSessionColor();
+  }
+}
+
+export function refreshPartyStatusLine(): void {
+  const partyEl = document.getElementById("status-party");
+  if (partyEl) {
+    partyEl.textContent = getPartySummary();
   }
 }
 
@@ -108,5 +116,10 @@ export function initStatusPanelControls(): void {
   const codexBtn = document.getElementById("codex-btn");
   if (codexBtn) {
     codexBtn.addEventListener("click", () => openCodex());
+  }
+
+  const partyBtn = document.getElementById("party-btn");
+  if (partyBtn) {
+    partyBtn.addEventListener("click", () => openParty());
   }
 }

@@ -15,6 +15,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
 | **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, talk to a villager, or moor / board / disembark a boat at Harbor or Archipelago docks |
 | **I** | Copy a friend invite link (host only) |
+| **Party** (status panel) | Manage the active party (max 7) and scroll/swap reserve creatures |
 | **Codex** (status panel) | Open the habitat codex — what lives where (fills in as you encounter creatures) |
 | **Reset game** (status panel) | Wipe local host save and start fresh |
 

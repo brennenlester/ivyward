@@ -22,6 +22,7 @@ function partyMember(overrides: Partial<CreatureInstance> = {}): CreatureInstanc
 
 beforeEach(() => {
   playerParty.creatures.length = 0;
+  playerParty.activeInstanceIds.length = 0;
   setInventoryFromSnapshot({}, {});
 });
 
@@ -29,6 +30,7 @@ describe("Brook Crystal use", () => {
   it("spends two crystals to grant one flat level and threshold XP", () => {
     const creature = partyMember();
     playerParty.creatures.push(creature);
+    playerParty.activeInstanceIds.push(creature.instanceId);
     setInventoryFromSnapshot({}, { "brook-crystal": 2 });
 
     expect(applyConsumable(creature.instanceId, "brook-crystal")).toEqual({
@@ -46,6 +48,7 @@ describe("Brook Crystal use", () => {
       xp: LEVEL_XP_THRESHOLDS[MAX_LEVEL],
     });
     playerParty.creatures.push(creature);
+    playerParty.activeInstanceIds.push(creature.instanceId);
     setInventoryFromSnapshot({}, { "brook-crystal": 2 });
 
     expect(applyConsumable(creature.instanceId, "brook-crystal")).toEqual({
@@ -58,6 +61,7 @@ describe("Brook Crystal use", () => {
   it("refuses when only one crystal is held", () => {
     const creature = partyMember();
     playerParty.creatures.push(creature);
+    playerParty.activeInstanceIds.push(creature.instanceId);
     setInventoryFromSnapshot({}, { "brook-crystal": 1 });
 
     expect(applyConsumable(creature.instanceId, "brook-crystal")).toEqual({
@@ -71,6 +75,7 @@ describe("Brook Crystal use", () => {
   it("allows a fainted party member to gain a level", () => {
     const creature = partyMember({ currentHp: 0 });
     playerParty.creatures.push(creature);
+    playerParty.activeInstanceIds.push(creature.instanceId);
     setInventoryFromSnapshot({}, { "brook-crystal": 2 });
 
     expect(

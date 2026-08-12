@@ -1,5 +1,5 @@
 import { getCreatureDefinition } from "../creatures/catalog";
-import { playerParty } from "../creatures/party";
+import { getActiveCreatures } from "../creatures/party";
 import { getMaterialForCreature, getMaterialName } from "../inventory/materials";
 import { addMaterial } from "../inventory/playerInventory";
 import { grantSparXp, XP_PER_SPAR_WIN } from "../progression/leveling";
@@ -33,7 +33,7 @@ export function grantSparRewards(
   }
 
   if (activePartyIndex >= 0) {
-    const creature = playerParty.creatures[activePartyIndex];
+    const creature = getActiveCreatures()[activePartyIndex];
     if (creature) {
       const prevLevel = creature.level;
       grantSparXp(creature);
