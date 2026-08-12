@@ -451,20 +451,6 @@ export class ShrineScene extends Phaser.Scene {
     const cx = this.panelCenter.x;
     const contentTop = this.contentBounds.top;
 
-    const ownedItems = FUSION_ITEM_IDS.filter((id) => getItemCount(id) > 0);
-
-    if (ownedItems.length === 0) {
-      const empty = this.add
-        .text(cx, contentTop + 24, "Craft items first, then return to fuse.", {
-          color: MOON_MUTED,
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "15px",
-        })
-        .setOrigin(0.5);
-      this.contentContainer.add(empty);
-      return;
-    }
-
     if (!this.selectedItemId) {
       const prompt = this.add
         .text(cx, contentTop + 8, "Choose an item to fuse:", {
@@ -476,25 +462,33 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(prompt);
 
       let y = contentTop + 40;
-      for (const itemId of ownedItems) {
+      for (const itemId of FUSION_ITEM_IDS) {
+        const owned = getItemCount(itemId);
+        const label =
+          owned > 0
+            ? `${getItemName(itemId)} (×${owned})`
+            : `${getItemName(itemId)} — craft first`;
         const btn = this.add
-          .text(cx, y, `${getItemName(itemId)} (×${getItemCount(itemId)})`, {
-            color: "#1a1a2e",
-            backgroundColor: "#c8b8e8",
+          .text(cx, y, label, {
+            color: owned > 0 ? "#1a1a2e" : MOON_MUTED,
+            backgroundColor: owned > 0 ? "#c8b8e8" : "#3a2a50",
             fontFamily: "system-ui, sans-serif",
             fontSize: "14px",
             padding: { x: 14, y: 8 },
           })
-          .setOrigin(0.5)
-          .setInteractive({ useHandCursor: true });
+          .setOrigin(0.5);
 
-        this.onContentTap(btn, () => {
-          this.selectedItemId = itemId;
-          this.renderTabContent();
-        });
+        if (owned > 0) {
+          btn.setInteractive({ useHandCursor: true });
+          this.onContentTap(btn, () => {
+            this.selectedItemId = itemId;
+            this.renderTabContent();
+          });
+        }
         this.contentContainer.add(btn);
         y += 44;
       }
+      this.contentHeight = y - contentTop;
       return;
     }
 

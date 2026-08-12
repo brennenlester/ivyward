@@ -16,6 +16,17 @@ export type CraftRecipe = {
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
   {
+    id: "sovereign-seal",
+    name: "Sovereign Seal",
+    outputItemId: "sovereign-seal",
+    materials: [
+      { materialId: "brook-pearl", count: 3 },
+      { materialId: "stone-chip", count: 3 },
+      { materialId: "folklore-dust", count: 2 },
+      { materialId: "root-bark", count: 1 },
+    ],
+  },
+  {
     id: "wood-cudgel",
     name: "Wood Cudgel",
     outputItemId: "wood-cudgel",
@@ -83,17 +94,6 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
       { materialId: "wood", count: 6 },
       { materialId: "wild-fiber", count: 3 },
       { materialId: "folklore-dust", count: 1 },
-    ],
-  },
-  {
-    id: "sovereign-seal",
-    name: "Sovereign Seal",
-    outputItemId: "sovereign-seal",
-    materials: [
-      { materialId: "brook-pearl", count: 3 },
-      { materialId: "stone-chip", count: 3 },
-      { materialId: "folklore-dust", count: 2 },
-      { materialId: "root-bark", count: 1 },
     ],
   },
 ];
