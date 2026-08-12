@@ -21,9 +21,9 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     outputItemId: "sovereign-seal",
     materials: [
       { materialId: "brook-pearl", count: 3 },
-      { materialId: "stone-chip", count: 3 },
+      { materialId: "pebble", count: 3 },
       { materialId: "folklore-dust", count: 2 },
-      { materialId: "root-bark", count: 1 },
+      { materialId: "wild-fiber", count: 2 },
     ],
   },
   {

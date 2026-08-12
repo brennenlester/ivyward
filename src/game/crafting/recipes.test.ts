@@ -125,17 +125,17 @@ describe("sovereign seal recipe", () => {
       outputItemId: "sovereign-seal",
       materials: [
         { materialId: "brook-pearl", count: 3 },
-        { materialId: "stone-chip", count: 3 },
+        { materialId: "pebble", count: 3 },
         { materialId: "folklore-dust", count: 2 },
-        { materialId: "root-bark", count: 1 },
+        { materialId: "wild-fiber", count: 2 },
       ],
     });
     setInventoryFromSnapshot(
       {
         "brook-pearl": 3,
-        "stone-chip": 3,
+        pebble: 3,
         "folklore-dust": 2,
-        "root-bark": 1,
+        "wild-fiber": 2,
       },
       {},
     );
@@ -148,9 +148,9 @@ describe("sovereign seal recipe", () => {
     setInventoryFromSnapshot(
       {
         "brook-pearl": 3,
-        "stone-chip": 3,
+        pebble: 3,
         "folklore-dust": 2,
-        "root-bark": 1,
+        "wild-fiber": 2,
       },
       { "sovereign-seal": 1 },
     );
@@ -170,9 +170,9 @@ describe("sovereign seal recipe", () => {
     setInventoryFromSnapshot(
       {
         "brook-pearl": 3,
-        "stone-chip": 3,
+        pebble: 3,
         "folklore-dust": 2,
-        "root-bark": 1,
+        "wild-fiber": 2,
       },
       {},
     );
