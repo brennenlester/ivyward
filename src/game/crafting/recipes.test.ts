@@ -250,6 +250,26 @@ describe("matchGrid", () => {
     }
   });
 
+  it("crafts every locked pattern from a translated grid", () => {
+    for (const recipe of CRAFT_RECIPES) {
+      setInventoryFromSnapshot({}, {});
+      const row = recipe.id === "boat" ? 1 : 0;
+      const grid = placePattern(emptyGrid(), recipe.pattern, row, 0);
+      const context = recipe.altarOnly ? "altar" : "inventory";
+      const result = craftFromGrid(grid, context);
+      expect(result.ok, recipe.id).toBe(true);
+      if (result.ok) {
+        expect(getItemCount(recipe.outputItemId), recipe.id).toBe(
+          recipe.outputCount,
+        );
+      }
+    }
+  });
+
+  it("refuses craftFromGrid when the grid is empty", () => {
+    expect(craftFromGrid(emptyGrid(), "altar").ok).toBe(false);
+  });
+
   it("blocks visitors from craftFromGrid", () => {
     setVisitorMode(true);
     const grid = placePattern(emptyGrid(), cudgelRecipe.pattern, 0, 0);

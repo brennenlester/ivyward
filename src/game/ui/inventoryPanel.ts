@@ -153,8 +153,7 @@ function renderInventoryBody(): void {
           useBtn.className = "inventory-use";
           useBtn.textContent = "Use";
           useBtn.addEventListener("click", () => {
-            closeInventory();
-            window.dispatchEvent(new CustomEvent(OPEN_PORTABLE_SHRINE_EVENT));
+            usePortableMoonshrine();
           });
           li.appendChild(useBtn);
         }
@@ -181,6 +180,7 @@ export function openInventory(): void {
     inventoryCraftHud = mountCraftingHud(craftHost, {
       context: "inventory",
       interactive: !isVisitorMode(),
+      onCrafted: () => renderInventoryBody(),
     });
   } else {
     inventoryCraftHud?.refresh();
@@ -221,4 +221,13 @@ export function toggleInventory(): void {
 
 export function isInventoryOpen(): boolean {
   return inventoryOpen;
+}
+
+/** Opens the portable shrine UI without consuming the item. */
+export function usePortableMoonshrine(): void {
+  if (isVisitorMode()) {
+    return;
+  }
+  closeInventory();
+  window.dispatchEvent(new CustomEvent(OPEN_PORTABLE_SHRINE_EVENT));
 }
