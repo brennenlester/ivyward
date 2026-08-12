@@ -43,6 +43,9 @@ export function applyGodFusion(
   if (isVisitorMode()) {
     return { ok: false, message: "Only the host can fuse here." };
   }
+  if (isGodFusionCompleted()) {
+    return { ok: false, message: "The sovereigns have already been fused." };
+  }
   if (itemId !== SOVEREIGN_SEAL_ID) {
     return { ok: false, message: "That item cannot fuse the sovereigns." };
   }

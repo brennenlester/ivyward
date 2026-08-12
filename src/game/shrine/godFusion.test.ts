@@ -64,6 +64,7 @@ describe("dual-god fusion", () => {
     expect(applyGodFusion("t", "c", "ember-charm").ok).toBe(false);
     expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(true);
 
+    setGodFusionCompleted(false, false);
     setInventoryFromSnapshot({}, {});
     setPartyFromSnapshot(
       [
@@ -84,6 +85,24 @@ describe("dual-god fusion", () => {
     expect(applyGodFusion("t", "missing", SOVEREIGN_SEAL_ID).message).toMatch(
       /Requires Tide Sovereign and Cairn Sovereign/,
     );
+  });
+
+  it("refuses a second fusion after completion", () => {
+    setGodFusionCompleted(true, false);
+    setPartyFromSnapshot(
+      [
+        member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID }),
+        member({ instanceId: "c", definitionId: CAIRN_SOVEREIGN_ID }),
+      ],
+      3,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID)).toEqual({
+      ok: false,
+      message: "The sovereigns have already been fused.",
+    });
+    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(1);
+    expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(true);
   });
 
   it("consumes both parents and the seal, then adds Horizon Sovereign", () => {

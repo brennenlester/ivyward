@@ -17,6 +17,7 @@ import {
   findGodFusionParents,
   SOVEREIGN_SEAL_ID,
 } from "../shrine/godFusion";
+import { isGodFusionCompleted } from "../world/worldState";
 import { getEffectsForItem } from "../shrine/shrineEffects";
 import {
   applyConsumable,
@@ -613,6 +614,20 @@ export class ShrineScene extends Phaser.Scene {
       this.renderTabContent();
     });
     this.contentContainer.add(back);
+
+    if (isGodFusionCompleted()) {
+      const done = this.add
+        .text(cx, contentTop + 56, "The sovereigns have already been fused.", {
+          color: MOON_MUTED,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          align: "center",
+          wordWrap: { width: 400 },
+        })
+        .setOrigin(0.5);
+      this.contentContainer.add(done);
+      return;
+    }
 
     const { tide, cairn } = findGodFusionParents();
     if (!tide || !cairn) {
