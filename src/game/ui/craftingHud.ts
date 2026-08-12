@@ -6,6 +6,11 @@ import {
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import {
+  notifyWorldChanged,
+  resumeHostPersist,
+  suspendHostPersist,
+} from "../world/worldSaveSchedule";
+import {
   GRID_SIZE,
   cloneGrid,
   craftFromGrid,
@@ -71,6 +76,7 @@ type HudOptions = {
   context: CraftContext;
   interactive: boolean;
   onCrafted?: (name: string, count: number) => void;
+  onInventoryChange?: () => void;
 };
 
 function ownedMaterials(): { id: string; name: string; count: number }[] {
@@ -97,6 +103,11 @@ export function mountCraftingHud(
   parent.appendChild(root);
 
   const interactive = options.interactive && !isVisitorMode();
+  suspendHostPersist();
+
+  function inventoryChanged(): void {
+    options.onInventoryChange?.();
+  }
 
   function statusMessage(): string {
     if (!interactive) {
@@ -131,6 +142,7 @@ export function mountCraftingHud(
     dragStart = null;
     ghost?.remove();
     ghost = null;
+    inventoryChanged();
   }
 
   function takeResult(): void {
@@ -144,6 +156,7 @@ export function mountCraftingHud(
     }
     grid = result.grid;
     options.onCrafted?.(result.recipe.name, result.recipe.outputCount);
+    inventoryChanged();
     render();
   }
 
@@ -168,6 +181,7 @@ export function mountCraftingHud(
     }
     grid[row][col] = pickup.materialId;
     pickup = null;
+    inventoryChanged();
     render();
   }
 
@@ -177,6 +191,7 @@ export function mountCraftingHud(
     }
     addMaterial(pickup.materialId, 1);
     pickup = null;
+    inventoryChanged();
     render();
   }
 
@@ -202,6 +217,7 @@ export function mountCraftingHud(
       grid[next.from.row][next.from.col] = null;
     }
     render();
+    inventoryChanged();
   }
 
   function ensureGhost(materialId: string): HTMLElement {
@@ -426,6 +442,7 @@ export function mountCraftingHud(
       clearPickup(true);
       grid = returnGridToInventory(grid);
       render();
+      inventoryChanged();
     },
     destroy: () => {
       clearPickup(true);
@@ -434,6 +451,8 @@ export function mountCraftingHud(
       window.removeEventListener("pointerup", upListener);
       ghost?.remove();
       root.remove();
+      resumeHostPersist();
+      notifyWorldChanged();
     },
   };
 }

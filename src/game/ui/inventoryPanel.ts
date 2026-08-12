@@ -181,6 +181,7 @@ export function openInventory(): void {
       context: "inventory",
       interactive: !isVisitorMode(),
       onCrafted: () => renderInventoryBody(),
+      onInventoryChange: () => renderInventoryBody(),
     });
   } else {
     inventoryCraftHud?.refresh();
