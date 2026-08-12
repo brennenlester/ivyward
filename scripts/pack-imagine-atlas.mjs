@@ -20,6 +20,8 @@ const MAX_SIDE = 4096;
 const SKIP_ATLAS_KEYS = new Set([
   // Loaded separately in PreloadScene; packing the 1024² sheet bloats the atlas.
   "creature-tide-sovereign",
+  "creature-cairn-sovereign",
+  "creature-horizon-sovereign",
 ]);
 
 function collectPngs() {
