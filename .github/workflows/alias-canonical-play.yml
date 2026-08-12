@@ -8,15 +8,25 @@ on:
 
 jobs:
   alias-canonical:
+    # Note: do not reference `secrets` in job-level `if` (unavailable there).
     if: >
       github.event.deployment_status.state == 'success' &&
       (
         github.event.deployment.environment == 'Production' ||
         github.event.deployment.environment == 'production'
-      ) &&
-      secrets.VERCEL_TOKEN != ''
+      )
     runs-on: ubuntu-latest
     steps:
+      - name: Require VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set; cannot alias canonical play URL."
+            echo "Add a Vercel token at repo Settings → Secrets, or run ./scripts/alias-canonical-play.sh locally."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
