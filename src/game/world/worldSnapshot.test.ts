@@ -22,6 +22,7 @@ import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import {
   applyWorldSnapshot,
+  exportWorldSnapshot,
   isValidWorldSnapshot,
   migrateBoatStateToHarbor,
   repairLegacyArchipelagoLayoutPosition,
@@ -35,6 +36,7 @@ import {
   setGodSailEncounterClaimed,
   worldState,
 } from "./worldState";
+import { playerParty } from "../creatures/party";
 
 function questProgress(
   overrides: Partial<Record<QuestId, QuestStatus>> = {},
@@ -79,6 +81,34 @@ function validSnapshot(
 describe("isValidWorldSnapshot", () => {
   it("accepts a well-formed host snapshot", () => {
     expect(isValidWorldSnapshot(validSnapshot())).toBe(true);
+  });
+
+  it("accepts and rejects activePartyIds against the party roster", () => {
+    const member = partyMember({ instanceId: "c-1" });
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          party: [member],
+          activePartyIds: ["c-1"],
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          party: [member],
+          activePartyIds: ["missing"],
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          party: [member],
+          activePartyIds: ["c-1", "c-1"],
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("soft-adds and validates the god sail claim flag", () => {
@@ -349,6 +379,27 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(isGodSailEncounterClaimed()).toBe(false);
+  });
+
+  it("round-trips activePartyIds through apply and export", () => {
+    const a = partyMember({ instanceId: "c-a", definitionId: "mossling" });
+    const b = partyMember({ instanceId: "c-b", definitionId: "ember-wisp" });
+    const c = partyMember({ instanceId: "c-c", definitionId: "brook-nymph" });
+    applyWorldSnapshot(
+      validSnapshot({
+        party: [a, b, c],
+        activePartyIds: ["c-c", "c-a"],
+        nextInstanceId: 10,
+      }),
+    );
+    expect(playerParty.activeInstanceIds).toEqual(["c-c", "c-a"]);
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 });
+    expect(exported.activePartyIds).toEqual(["c-c", "c-a"]);
+    expect(exported.party.map((m) => m.instanceId)).toEqual([
+      "c-a",
+      "c-b",
+      "c-c",
+    ]);
   });
 
   it("does not infer codex discovery from a saved Tide Sovereign", () => {
