@@ -71,8 +71,8 @@ describe("grantSparRewards XP share", () => {
     const reward = grantSparRewards("mossling", 0);
     expect(reward.xpGained).toBe(XP_PER_SPAR_WIN);
     expect(reward.xpShares).toHaveLength(2);
-    expect(playerParty.creatures.find((x) => x.instanceId === "a")?.xp).toBe(5);
-    expect(playerParty.creatures.find((x) => x.instanceId === "b")?.xp).toBe(5);
+    expect(playerParty.creatures.find((x) => x.instanceId === "a")?.xp).toBe(35);
+    expect(playerParty.creatures.find((x) => x.instanceId === "b")?.xp).toBe(35);
     expect(playerParty.creatures.find((x) => x.instanceId === "c")?.xp).toBe(0);
   });
 
@@ -88,7 +88,7 @@ describe("grantSparRewards XP share", () => {
     ];
     setPartyFromSnapshot(creatures, 4, ["a", "b", "c"]);
     grantSparRewards("mossling", 1);
-    expect(playerParty.creatures.map((x) => x.xp)).toEqual([3, 4, 3]);
+    expect(playerParty.creatures.map((x) => x.xp)).toEqual([23, 24, 23]);
   });
 
   it("formats shared XP without understating totals", () => {

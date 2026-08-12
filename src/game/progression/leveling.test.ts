@@ -6,6 +6,7 @@ import {
   grantSparXp,
   LEVEL_XP_THRESHOLDS,
   MAX_LEVEL,
+  XP_PER_LEVEL_STEP,
   XP_PER_SPAR_WIN,
 } from "./leveling";
 
@@ -21,8 +22,10 @@ function creatureAt(level: number, xp: number): CreatureInstance {
 }
 
 describe("leveling", () => {
-  it("caps at level 50 with linear (n-1)*10 thresholds", () => {
+  it("keeps a fixed (n-1)*10 level curve separate from the spar XP pool", () => {
     expect(MAX_LEVEL).toBe(50);
+    expect(XP_PER_LEVEL_STEP).toBe(10);
+    expect(XP_PER_SPAR_WIN).toBe(70);
     expect(LEVEL_XP_THRESHOLDS[1]).toBe(0);
     expect(LEVEL_XP_THRESHOLDS[5]).toBe(40);
     expect(LEVEL_XP_THRESHOLDS[50]).toBe(490);
@@ -40,7 +43,7 @@ describe("leveling", () => {
 
   it("grants spar xp and levels past 5", () => {
     const creature = creatureAt(5, 40);
-    const gained = grantSparXp(creature);
+    const gained = grantSparXp(creature, XP_PER_LEVEL_STEP);
     expect(gained).toBe(1);
     expect(creature.xp).toBe(50);
     expect(creature.level).toBe(6);
