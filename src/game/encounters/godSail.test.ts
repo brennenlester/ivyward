@@ -50,12 +50,12 @@ describe("god sail encounter", () => {
     setGodSailEncounterClaimed(false, false);
   });
 
-  it("uses a deterministic 1/1000 roll boundary without Monte Carlo", () => {
+  it("uses a deterministic 1/100 roll boundary without Monte Carlo", () => {
     expect(ENCOUNTER_TRAVEL_THRESHOLD).toBe(0.75);
-    expect(GOD_SAIL_ENCOUNTER_CHANCE).toBe(0.001);
+    expect(GOD_SAIL_ENCOUNTER_CHANCE).toBe(0.01);
     expect(rollGodSailEncounter(() => 0)).toBe(true);
-    expect(rollGodSailEncounter(() => 0.000999)).toBe(true);
-    expect(rollGodSailEncounter(() => 0.001)).toBe(false);
+    expect(rollGodSailEncounter(() => 0.009999)).toBe(true);
+    expect(rollGodSailEncounter(() => 0.01)).toBe(false);
   });
 
   it("only allows natural rolls for solo open-water Archipelago sailing", () => {
