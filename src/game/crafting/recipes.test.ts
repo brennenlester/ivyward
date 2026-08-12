@@ -11,6 +11,7 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "../world/worldSession";
+import { setGodFusionCompleted } from "../world/worldState";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
@@ -18,6 +19,7 @@ const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
 beforeEach(() => {
   setInventoryFromSnapshot({}, {});
   setVisitorMode(false);
+  setGodFusionCompleted(false, false);
 });
 
 describe("boat recipe", () => {
@@ -161,5 +163,22 @@ describe("sovereign seal recipe", () => {
   it("clamps seal count on snapshot restore", () => {
     setInventoryFromSnapshot({}, { "sovereign-seal": 4 });
     expect(getItemCount("sovereign-seal")).toBe(1);
+  });
+
+  it("blocks crafting a seal after dual-god fusion is complete", () => {
+    setGodFusionCompleted(true, false);
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        "stone-chip": 3,
+        "folklore-dust": 2,
+        "root-bark": 1,
+      },
+      {},
+    );
+    expect(canCraft(sealRecipe)).toBe(false);
+    expect(craftItem(sealRecipe)).toBe(false);
+    expect(getItemCount("sovereign-seal")).toBe(0);
+    setGodFusionCompleted(false, false);
   });
 });

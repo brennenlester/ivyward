@@ -5,6 +5,7 @@ import {
   getMaterialCount,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
+import { isGodFusionCompleted } from "../world/worldState";
 
 export type CraftRecipe = {
   id: string;
@@ -99,6 +100,9 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
 
 export function canCraft(recipe: CraftRecipe): boolean {
   if (isVisitorMode()) {
+    return false;
+  }
+  if (recipe.outputItemId === "sovereign-seal" && isGodFusionCompleted()) {
     return false;
   }
   return (
