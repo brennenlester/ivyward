@@ -139,7 +139,7 @@ const PROP_LAYER = 0.45;
 const HUD_GAP = 8;
 const SCREEN_MARGIN = 12;
 const MOVE_SPEED = 6;
-const ENCOUNTER_CHANCE = 0.10;
+const ENCOUNTER_CHANCE = 0.05;
 const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
   grove: 0x83c5a0,
   shrine: 0x6c629e,
