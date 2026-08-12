@@ -67,9 +67,15 @@ import { consumeAchievementToast } from "../progression/achievements";
 import {
   flashInviteStatus,
   measureStatusPanelHeight,
+  measureStatusPanelWidth,
   setCopyInviteHandler,
   updateStatusPanel,
 } from "../ui/statusPanel";
+import {
+  computeBoardDisplaySize,
+  playfieldLayoutMode,
+  PLAYFIELD_SCREEN_MARGIN,
+} from "../ui/playfieldLayout";
 import {
   consumeTouchInteract,
   getTouchAxes,
@@ -136,8 +142,7 @@ import { getItemCount } from "../inventory/playerInventory";
 
 const FLOOR_LAYER = 0;
 const PROP_LAYER = 0.45;
-const HUD_GAP = 8;
-const SCREEN_MARGIN = 12;
+const SCREEN_MARGIN = PLAYFIELD_SCREEN_MARGIN;
 const MOVE_SPEED = 6;
 const ENCOUNTER_CHANCE = 0.05;
 const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
@@ -833,50 +838,67 @@ export class IsometricScene extends Phaser.Scene {
     this.layoutLocked = true;
     try {
       const bounds = this.getZoneWorldBounds(zone);
-    const viewportW = window.innerWidth - SCREEN_MARGIN * 2;
-    const viewportH = window.innerHeight - SCREEN_MARGIN * 2;
+      const viewportW = window.innerWidth - SCREEN_MARGIN * 2;
+      const viewportH = window.innerHeight - SCREEN_MARGIN * 2;
+      const mode = playfieldLayoutMode(viewportW, viewportH);
 
-    const playfield = document.getElementById("playfield");
-    const gameEl = document.getElementById("game");
+      const playfield = document.getElementById("playfield");
+      const gameEl = document.getElementById("game");
 
-    let boardDisplaySize = Math.max(
-      1,
-      Math.floor(Math.min(viewportW, viewportH - HUD_GAP - 96)),
-    );
+      let boardDisplaySize = computeBoardDisplaySize({
+        viewportW,
+        viewportH,
+        statusHeight: 96,
+        statusWidth: 240,
+        mode,
+      });
 
-    for (let pass = 0; pass < 3; pass += 1) {
+      for (let pass = 0; pass < 3; pass += 1) {
+        if (playfield) {
+          if (mode === "landscape") {
+            playfield.style.width = `${viewportW}px`;
+          } else {
+            playfield.style.width = `${boardDisplaySize}px`;
+          }
+        }
+        updateStatusPanel(zone);
+        const statusHeight = measureStatusPanelHeight();
+        const statusWidth = measureStatusPanelWidth();
+        const nextSize = computeBoardDisplaySize({
+          viewportW,
+          viewportH,
+          statusHeight,
+          statusWidth,
+          mode,
+        });
+        if (nextSize === boardDisplaySize) {
+          break;
+        }
+        boardDisplaySize = nextSize;
+      }
+
       if (playfield) {
-        playfield.style.width = `${boardDisplaySize}px`;
+        if (mode === "landscape") {
+          playfield.style.width = `${viewportW}px`;
+        } else {
+          playfield.style.width = `${boardDisplaySize}px`;
+        }
+      }
+      if (gameEl) {
+        gameEl.style.width = `${boardDisplaySize}px`;
+        gameEl.style.height = `${boardDisplaySize}px`;
       }
       updateStatusPanel(zone);
-      const statusHeight = measureStatusPanelHeight();
-      const nextSize = Math.max(
-        1,
-        Math.floor(Math.min(viewportW, viewportH - HUD_GAP - statusHeight)),
-      );
-      if (nextSize === boardDisplaySize) {
-        break;
-      }
-      boardDisplaySize = nextSize;
-    }
+      resizeGameForDisplay(this, boardDisplaySize);
+      this.scale.refresh();
 
-    if (playfield) {
-      playfield.style.width = `${boardDisplaySize}px`;
-    }
-    if (gameEl) {
-      gameEl.style.height = `${boardDisplaySize}px`;
-    }
-    updateStatusPanel(zone);
-    resizeGameForDisplay(this, boardDisplaySize);
-    this.scale.refresh();
-
-    const cam = this.cameras.main;
-    cam.setBounds(bounds.minX, bounds.minY, bounds.width, bounds.height);
-    // Archipelago map is larger than the view: fit a local vertical tile count
-    // so startFollow pans N/S/E/W at a playable scale (not a full-map overview).
-    const archipelagoFitBoundsHeight =
-      ARCHIPELAGO_CAMERA_FIT_HEIGHT * TILE_HEIGHT + 160;
-    const zoom =
+      const cam = this.cameras.main;
+      cam.setBounds(bounds.minX, bounds.minY, bounds.width, bounds.height);
+      // Archipelago map is larger than the view: fit a local vertical tile count
+      // so startFollow pans N/S/E/W at a playable scale (not a full-map overview).
+      const archipelagoFitBoundsHeight =
+        ARCHIPELAGO_CAMERA_FIT_HEIGHT * TILE_HEIGHT + 160;
+      const zoom =
       zone.id === "archipelago"
         ? this.scale.height / archipelagoFitBoundsHeight
         : Math.min(

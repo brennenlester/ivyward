@@ -122,6 +122,11 @@ export function measureStatusPanelHeight(): number {
   return panel?.offsetHeight ?? 96;
 }
 
+export function measureStatusPanelWidth(): number {
+  const panel = document.getElementById("status-panel");
+  return panel?.offsetWidth ?? 240;
+}
+
 let statusControlsInitialized = false;
 
 export function initStatusPanelControls(): void {
