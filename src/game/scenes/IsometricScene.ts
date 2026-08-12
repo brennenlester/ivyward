@@ -65,9 +65,9 @@ import {
 } from "../story/questProgress";
 import { consumeAchievementToast } from "../progression/achievements";
 import {
+  flashInviteStatus,
   measureStatusPanelHeight,
-  resetInviteStatus,
-  setInviteStatus,
+  setCopyInviteHandler,
   updateStatusPanel,
 } from "../ui/statusPanel";
 import {
@@ -241,6 +241,7 @@ export class IsometricScene extends Phaser.Scene {
     this.input.keyboard!.on("keydown", this.onGodSailCheatKeyDown);
     initTouchControls();
     initMuteControl(this);
+    setCopyInviteHandler(() => this.tryCopyInvite());
     ensureGroveMusic(this);
     this.input.on("pointerdown", () => unlockAudioFromGesture(this));
 
@@ -1589,16 +1590,14 @@ export class IsometricScene extends Phaser.Scene {
         this.playerGridY,
       );
       if (hasClipboard) {
-        setInviteStatus("Invite link copied!", "#d8f0c0");
+        flashInviteStatus("Invite link copied!", "#d8f0c0");
       } else {
-        setInviteStatus("Invite ready (copy from console)", "#d8f0c0");
+        flashInviteStatus("Invite ready (copy from console)", "#d8f0c0");
         console.info("Ivyward invite link:", url);
       }
-      this.time.delayedCall(2500, () => resetInviteStatus());
     } catch (error) {
       console.error(error);
-      setInviteStatus("Failed to copy invite", "#f08080");
-      this.time.delayedCall(2500, () => resetInviteStatus());
+      flashInviteStatus("Failed to copy invite", "#f08080");
     }
   }
 }
