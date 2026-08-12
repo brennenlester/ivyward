@@ -1,14 +1,18 @@
 import type { CreatureInstance } from "../creatures/types";
 
-export const XP_PER_SPAR_WIN = 10;
+/** Fixed XP between consecutive levels: threshold for level N is (N - 1) * this. */
+export const XP_PER_LEVEL_STEP = 10;
+
+/** Total XP pool granted on a spar win (shared across active party). */
+export const XP_PER_SPAR_WIN = 70;
 
 export const MAX_LEVEL = 50;
 
-/** Cumulative XP required to reach each level: (level - 1) * 10. */
+/** Cumulative XP required to reach each level: (level - 1) * XP_PER_LEVEL_STEP. */
 export const LEVEL_XP_THRESHOLDS: Record<number, number> = Object.fromEntries(
   Array.from({ length: MAX_LEVEL }, (_, i) => {
     const level = i + 1;
-    return [level, (level - 1) * XP_PER_SPAR_WIN];
+    return [level, (level - 1) * XP_PER_LEVEL_STEP];
   }),
 );
 
@@ -23,7 +27,10 @@ export function getLevelForXp(xp: number): number {
   return level;
 }
 
-export function grantSparXp(creature: CreatureInstance, amount = XP_PER_SPAR_WIN): number {
+export function grantSparXp(
+  creature: CreatureInstance,
+  amount = XP_PER_SPAR_WIN,
+): number {
   const prevLevel = creature.level;
   creature.xp += amount;
   creature.level = getLevelForXp(creature.xp);
