@@ -17,6 +17,17 @@ let selectedActiveId: string | null = null;
 let selectedReserveId: string | null = null;
 /** Set while BattleScene (or other combat) is active — blocks party edits. */
 let partyEditLocked = false;
+let previouslyFocused: HTMLElement | null = null;
+
+function onPartyKeyDown(event: KeyboardEvent): void {
+  if (!partyOpen) {
+    return;
+  }
+  if (event.key === "Escape") {
+    event.preventDefault();
+    closeParty();
+  }
+}
 
 export function setPartyEditLocked(locked: boolean): void {
   partyEditLocked = locked;
@@ -27,6 +38,17 @@ export function setPartyEditLocked(locked: boolean): void {
 
 export function isPartyEditLocked(): boolean {
   return partyEditLocked;
+}
+
+function setBackgroundInert(inert: boolean): void {
+  const playfield = document.getElementById("playfield");
+  if (playfield) {
+    if (inert) {
+      playfield.setAttribute("inert", "");
+    } else {
+      playfield.removeAttribute("inert");
+    }
+  }
 }
 
 function ensurePartyRoot(): HTMLElement {
@@ -198,8 +220,14 @@ export function openParty(): void {
   selectedActiveId = null;
   selectedReserveId = null;
   refreshPartyUi();
+  previouslyFocused =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
   root.hidden = false;
   partyOpen = true;
+  setBackgroundInert(true);
+  document.addEventListener("keydown", onPartyKeyDown);
+  const closeBtn = root.querySelector("#party-close") as HTMLButtonElement | null;
+  closeBtn?.focus();
 }
 
 export function closeParty(): void {
@@ -208,6 +236,10 @@ export function closeParty(): void {
     root.hidden = true;
   }
   partyOpen = false;
+  setBackgroundInert(false);
+  document.removeEventListener("keydown", onPartyKeyDown);
+  previouslyFocused?.focus();
+  previouslyFocused = null;
 }
 
 export function toggleParty(): void {
