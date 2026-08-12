@@ -1,0 +1,55 @@
+name: Alias canonical play URL
+
+# Keep https://ivyward-brennen1.vercel.app pointed at the latest Production deploy.
+# Requires repo secret VERCEL_TOKEN (Vercel → Account → Tokens).
+
+on:
+  deployment_status:
+
+jobs:
+  alias-canonical:
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      github.event.deployment.environment == 'Production' &&
+      secrets.VERCEL_TOKEN != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Alias ivyward-brennen1.vercel.app to this production deployment
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_SCOPE: brennen1
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DEPLOYMENT_URL:-}" ]; then
+            echo "No environment_url on deployment_status; resolving via vercel ls"
+            chmod +x scripts/alias-canonical-play.sh
+            ./scripts/alias-canonical-play.sh
+          else
+            chmod +x scripts/alias-canonical-play.sh
+            ./scripts/alias-canonical-play.sh "$DEPLOYMENT_URL"
+          fi
+
+      - name: Verify canonical matches deployment
+        env:
+          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
+        run: |
+          set -euo pipefail
+          canon_js="$(curl -fsSL https://ivyward-brennen1.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          if [ -n "${DEPLOYMENT_URL:-}" ]; then
+            prod_js="$(curl -fsSL "$DEPLOYMENT_URL/" | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          else
+            prod_js="$(curl -fsSL https://poke-wine-kappa.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          fi
+          echo "canonical=$canon_js"
+          echo "production=$prod_js"
+          test -n "$canon_js"
+          test "$canon_js" = "$prod_js"
