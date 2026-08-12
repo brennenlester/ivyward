@@ -10,7 +10,10 @@ jobs:
   alias-canonical:
     if: >
       github.event.deployment_status.state == 'success' &&
-      github.event.deployment.environment == 'Production' &&
+      (
+        github.event.deployment.environment == 'Production' ||
+        github.event.deployment.environment == 'production'
+      ) &&
       secrets.VERCEL_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
@@ -23,33 +26,42 @@ jobs:
           node-version: "20"
 
       - name: Alias ivyward-brennen1.vercel.app to this production deployment
+        id: alias
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
           VERCEL_SCOPE: brennen1
           DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
         run: |
           set -euo pipefail
-          if [ -z "${DEPLOYMENT_URL:-}" ]; then
-            echo "No environment_url on deployment_status; resolving via vercel ls"
-            chmod +x scripts/alias-canonical-play.sh
-            ./scripts/alias-canonical-play.sh
-          else
-            chmod +x scripts/alias-canonical-play.sh
+          chmod +x scripts/alias-canonical-play.sh
+          if [ -n "${DEPLOYMENT_URL:-}" ]; then
             ./scripts/alias-canonical-play.sh "$DEPLOYMENT_URL"
+            echo "target_url=$DEPLOYMENT_URL" >> "$GITHUB_OUTPUT"
+          else
+            echo "No environment_url on deployment_status; resolving via vercel ls"
+            ./scripts/alias-canonical-play.sh
+            resolved="$(
+              npx vercel@latest ls ivyward --prod --scope brennen1 2>/dev/null \
+                | grep -oE 'https://ivyward-[a-z0-9]+-brennen1\.vercel\.app' \
+                | head -1
+            )"
+            echo "target_url=$resolved" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Verify canonical matches deployment
         env:
-          DEPLOYMENT_URL: ${{ github.event.deployment_status.environment_url }}
+          TARGET_URL: ${{ steps.alias.outputs.target_url }}
         run: |
           set -euo pipefail
+          # Brief pause for alias propagation
+          sleep 3
           canon_js="$(curl -fsSL https://ivyward-brennen1.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
-          if [ -n "${DEPLOYMENT_URL:-}" ]; then
-            prod_js="$(curl -fsSL "$DEPLOYMENT_URL/" | grep -oE 'assets/index-[^"]+\.js' | head -1)"
-          else
-            prod_js="$(curl -fsSL https://poke-wine-kappa.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          if [ -z "${TARGET_URL:-}" ]; then
+            echo "Missing target_url from alias step" >&2
+            exit 1
           fi
+          prod_js="$(curl -fsSL "${TARGET_URL}/" | grep -oE 'assets/index-[^"]+\.js' | head -1)"
           echo "canonical=$canon_js"
-          echo "production=$prod_js"
+          echo "production=$prod_js (from $TARGET_URL)"
           test -n "$canon_js"
           test "$canon_js" = "$prod_js"
