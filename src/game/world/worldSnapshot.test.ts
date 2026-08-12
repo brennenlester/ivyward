@@ -22,6 +22,7 @@ import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import {
   applyWorldSnapshot,
+  exportWorldSnapshot,
   isValidWorldSnapshot,
   migrateBoatStateToHarbor,
   repairLegacyArchipelagoLayoutPosition,
@@ -35,6 +36,7 @@ import {
   setGodSailEncounterClaimed,
   worldState,
 } from "./worldState";
+import { playerParty } from "../creatures/party";
 
 function questProgress(
   overrides: Partial<Record<QuestId, QuestStatus>> = {},
