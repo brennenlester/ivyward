@@ -9,11 +9,27 @@ import { openParty } from "./partyPanel";
 import { openInventory } from "./inventoryPanel";
 
 let inviteFeedbackActive = false;
+let copyInviteHandler: (() => void | Promise<void>) | null = null;
+let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 function defaultSessionText(): string {
   return isVisitorMode()
     ? "Visitor mode — explore only"
-    : "Press I to copy invite link";
+    : "Use Copy invite link to share your world";
+}
+
+/** Scene registers live-position invite copy (keyboard I + panel button). */
+export function setCopyInviteHandler(
+  handler: (() => void | Promise<void>) | null,
+): void {
+  copyInviteHandler = handler;
+  const copyInviteBtn = document.getElementById(
+    "copy-invite-btn",
+  ) as HTMLButtonElement | null;
+  if (!copyInviteBtn || isVisitorMode()) {
+    return;
+  }
+  copyInviteBtn.disabled = handler === null;
 }
 
 function defaultSessionColor(): string {
@@ -64,6 +80,10 @@ export function refreshPartyStatusLine(): void {
 
 export function setInviteStatus(message: string, color: string): void {
   inviteFeedbackActive = true;
+  if (inviteFeedbackTimer !== null) {
+    clearTimeout(inviteFeedbackTimer);
+    inviteFeedbackTimer = null;
+  }
   const sessionEl = document.getElementById("status-session");
   if (sessionEl) {
     sessionEl.textContent = message;
@@ -73,11 +93,28 @@ export function setInviteStatus(message: string, color: string): void {
 
 export function resetInviteStatus(): void {
   inviteFeedbackActive = false;
+  if (inviteFeedbackTimer !== null) {
+    clearTimeout(inviteFeedbackTimer);
+    inviteFeedbackTimer = null;
+  }
   const sessionEl = document.getElementById("status-session");
   if (sessionEl) {
     sessionEl.textContent = defaultSessionText();
     sessionEl.style.color = defaultSessionColor();
   }
+}
+
+/** Flash invite feedback, then restore the default session line. */
+export function flashInviteStatus(
+  message: string,
+  color: string,
+  durationMs = 2500,
+): void {
+  setInviteStatus(message, color);
+  inviteFeedbackTimer = setTimeout(() => {
+    inviteFeedbackTimer = null;
+    resetInviteStatus();
+  }, durationMs);
 }
 
 export function measureStatusPanelHeight(): number {
@@ -92,6 +129,19 @@ export function initStatusPanelControls(): void {
     return;
   }
   statusControlsInitialized = true;
+
+  const copyInviteBtn = document.getElementById("copy-invite-btn");
+  if (copyInviteBtn instanceof HTMLButtonElement) {
+    copyInviteBtn.hidden = isVisitorMode();
+    // Disabled until IsometricScene registers the live-position handler.
+    copyInviteBtn.disabled = isVisitorMode() || copyInviteHandler === null;
+    copyInviteBtn.addEventListener("click", () => {
+      if (isVisitorMode() || copyInviteBtn.disabled) {
+        return;
+      }
+      void copyInviteHandler?.();
+    });
+  }
 
   const resetBtn = document.getElementById("reset-game-btn");
   if (resetBtn) {

@@ -14,7 +14,8 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | --- | --- |
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
 | **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, talk to a villager, or moor / board / disembark a boat at Harbor or Archipelago docks |
-| **I** | Copy a friend invite link (host only) |
+| **I** | Shortcut: copy a friend invite link (host only) |
+| **Copy invite link** (status panel) | Copy a friend invite link (host only; works on touch) |
 | **Party** (status panel) | Manage the active party (max 7) and scroll/swap reserve creatures |
 | **Inventory** (status panel) | Browse materials and items you are carrying |
 | **Codex** (status panel) | Open the habitat codex — what lives where (fills in as you encounter creatures) |
@@ -80,7 +81,7 @@ Filling every codex page (all 27 creatures that appear in habitat encounter tabl
 
 ### Friend invites
 
-1. As **host**, press **I** to copy an invite URL (party, inventory, quests, and position).
+1. As **host**, tap **Copy invite link** in the status panel (or press **I**) to copy an invite URL (party, inventory, quests, and position).
 2. Open the link in another browser/tab to join as a **visitor**.
 3. Visitors can explore the host snapshot but **cannot** trigger encounters, craft, or advance quests.
 4. Broken or tampered `?join=` links show an error screen and do not change your local save.
