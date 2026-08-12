@@ -381,6 +381,27 @@ describe("applyWorldSnapshot codex achievement", () => {
     expect(isGodSailEncounterClaimed()).toBe(false);
   });
 
+  it("round-trips activePartyIds through apply and export", () => {
+    const a = partyMember({ instanceId: "c-a", definitionId: "mossling" });
+    const b = partyMember({ instanceId: "c-b", definitionId: "ember-wisp" });
+    const c = partyMember({ instanceId: "c-c", definitionId: "brook-nymph" });
+    applyWorldSnapshot(
+      validSnapshot({
+        party: [a, b, c],
+        activePartyIds: ["c-c", "c-a"],
+        nextInstanceId: 10,
+      }),
+    );
+    expect(playerParty.activeInstanceIds).toEqual(["c-c", "c-a"]);
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 });
+    expect(exported.activePartyIds).toEqual(["c-c", "c-a"]);
+    expect(exported.party.map((m) => m.instanceId)).toEqual([
+      "c-a",
+      "c-b",
+      "c-c",
+    ]);
+  });
+
   it("does not infer codex discovery from a saved Tide Sovereign", () => {
     applyWorldSnapshot(
       validSnapshot({
