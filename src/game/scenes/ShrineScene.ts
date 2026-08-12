@@ -1,15 +1,9 @@
 import Phaser from "phaser";
 import { playCraftSfx } from "../audio/gameAudio";
-import {
-  canCraft,
-  craftItem,
-  CRAFT_RECIPES,
-  type CraftRecipe,
-} from "../crafting/recipes";
-import { getMaterialName, getItemName } from "../inventory/materials";
+import { type CraftContext } from "../crafting/recipes";
+import { getItemName } from "../inventory/materials";
 import {
   getItemCount,
-  getMaterialCount,
 } from "../inventory/playerInventory";
 import { applyShrineFusion, getEligibleCreaturesForItem } from "../shrine/fusion";
 import {
@@ -32,6 +26,10 @@ import { recordQuestEvent } from "../story/questProgress";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { isVisitorMode } from "../world/worldSession";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
+import {
+  hideShrineCraftingHud,
+  showShrineCraftingHud,
+} from "../ui/craftingHud";
 
 const MOON_PANEL = 0x354d78;
 const MOON_STROKE = 0xffedb0;
@@ -67,6 +65,7 @@ type ContentBounds = {
 export class ShrineScene extends Phaser.Scene {
   private activeTab: Tab = "craft";
   private selectedItemId: string | null = null;
+  private shrineMode: CraftContext = "altar";
   private statusText!: Phaser.GameObjects.Text;
   private contentContainer!: Phaser.GameObjects.Container;
   private tabButtons: Phaser.GameObjects.Text[] = [];
@@ -84,6 +83,12 @@ export class ShrineScene extends Phaser.Scene {
 
   constructor() {
     super({ key: "ShrineScene" });
+  }
+
+  init(data?: { mode?: CraftContext }): void {
+    this.shrineMode = data?.mode === "portable" ? "portable" : "altar";
+    this.activeTab = "craft";
+    this.selectedItemId = null;
   }
 
   create(): void {
@@ -117,7 +122,13 @@ export class ShrineScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, cy - 138, "Craft relics, use tonics, or fuse with companions", {
+      .text(
+        cx,
+        cy - 138,
+        this.shrineMode === "portable"
+          ? "Craft relics or use tonics — fusion stays at the altar"
+          : "Craft relics, use tonics, or fuse with companions",
+        {
         color: MOON_MUTED,
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
@@ -165,6 +176,10 @@ export class ShrineScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.setupCloseControls(cx, cy + 190);
+
+    this.events.once("shutdown", () => {
+      hideShrineCraftingHud(true);
+    });
 
     this.renderTabContent();
   }
@@ -329,13 +344,19 @@ export class ShrineScene extends Phaser.Scene {
 
   private buildTabs(cx: number, y: number): void {
     this.tabButtons = [];
-    const tabs: { id: Tab; label: string }[] = [
-      { id: "craft", label: "Craft" },
-      { id: "use", label: "Use" },
-      { id: "fusion", label: "Fusion" },
-    ];
+    const tabs: { id: Tab; label: string }[] =
+      this.shrineMode === "portable"
+        ? [
+            { id: "craft", label: "Craft" },
+            { id: "use", label: "Use" },
+          ]
+        : [
+            { id: "craft", label: "Craft" },
+            { id: "use", label: "Use" },
+            { id: "fusion", label: "Fusion" },
+          ];
 
-    let x = cx - 120;
+    let x = cx - (tabs.length === 2 ? 70 : 120);
     for (const tab of tabs) {
       const btn = this.add
         .text(x, y, tab.label, {
@@ -361,8 +382,14 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private refreshTabs(): void {
-    const labels = ["Craft", "Use", "Fusion"];
-    const ids: Tab[] = ["craft", "use", "fusion"];
+    const labels =
+      this.shrineMode === "portable"
+        ? ["Craft", "Use"]
+        : ["Craft", "Use", "Fusion"];
+    const ids: Tab[] =
+      this.shrineMode === "portable"
+        ? ["craft", "use"]
+        : ["craft", "use", "fusion"];
     this.tabButtons.forEach((btn, i) => {
       const active = this.activeTab === ids[i];
       btn.setColor(active ? "#1a1a2e" : MOON_TEXT);
@@ -376,75 +403,39 @@ export class ShrineScene extends Phaser.Scene {
     this.resetContentScroll();
     if (this.activeTab === "craft") {
       this.renderCraftTab();
-    } else if (this.activeTab === "use") {
-      this.renderUseTab();
     } else {
-      this.renderFusionTab();
+      hideShrineCraftingHud(false);
+      if (this.activeTab === "use") {
+        this.renderUseTab();
+      } else {
+        this.renderFusionTab();
+      }
     }
   }
 
   private renderCraftTab(): void {
     const cx = this.panelCenter.x;
-    let y = this.contentBounds.top;
-
-    for (const recipe of CRAFT_RECIPES) {
-      const row = this.buildRecipeRow(cx, y, recipe);
-      this.contentContainer.add(row);
-      const label = row[0] as Phaser.GameObjects.Text;
-      const rowHeight = Math.max(label.height + 4, 34);
-      const button = row[1] as Phaser.GameObjects.Text;
-      button.setY(y + rowHeight / 2);
-      y += rowHeight;
-    }
-
-    this.contentHeight = y - this.contentBounds.top;
-  }
-
-  private buildRecipeRow(
-    cx: number,
-    y: number,
-    recipe: CraftRecipe,
-  ): Phaser.GameObjects.GameObject[] {
-    const objects: Phaser.GameObjects.GameObject[] = [];
-
-    const costParts = recipe.materials.map(
-      (m) => `${getMaterialName(m.materialId)}×${m.count} (${getMaterialCount(m.materialId)})`,
-    );
-    const label = this.add
-      .text(cx - 190, y, `${recipe.name}\n${costParts.join(" + ")}`, {
-        color: MOON_TEXT,
+    const hint = this.add
+      .text(cx, this.contentBounds.top + 8, "Place materials in the grid.", {
+        color: MOON_MUTED,
         fontFamily: "system-ui, sans-serif",
         fontSize: "13px",
-        lineSpacing: 2,
-        wordWrap: { width: 260, useAdvancedWrap: true },
-      })
-      .setOrigin(0, 0);
-    objects.push(label);
-
-    const craftable = canCraft(recipe);
-    const btn = this.add
-      .text(cx + 140, y, craftable ? "Craft" : "Need mats", {
-        color: craftable ? "#1a1a2e" : "#888888",
-        backgroundColor: craftable ? "#e0d4f0" : "#3a2a50",
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "14px",
-        padding: { x: 12, y: 6 },
       })
       .setOrigin(0.5);
-
-    if (craftable) {
-      btn.setInteractive({ useHandCursor: true });
-      this.onContentTap(btn, () => {
-        if (craftItem(recipe)) {
+    this.contentContainer.add(hint);
+    this.contentHeight = 24;
+    showShrineCraftingHud({
+      context: this.shrineMode,
+      onCrafted: (name, count) => {
+        playCraftSfx(this);
+        if (this.shrineMode === "altar") {
           recordQuestEvent({ type: "craft_item" });
-          playCraftSfx(this);
-          this.setStatus(`Crafted ${recipe.name}!`);
-          this.renderTabContent();
         }
-      });
-    }
-    objects.push(btn);
-    return objects;
+        const suffix = count > 1 ? ` ×${count}` : "";
+        this.setStatus(`Crafted ${name}${suffix}!`);
+        notifyWorldChanged();
+      },
+    });
   }
 
   private renderFusionTab(): void {
@@ -829,6 +820,7 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private closeShrine(): void {
+    hideShrineCraftingHud(true);
     this.scene.stop("ShrineScene");
     this.scene.resume("IsometricScene");
   }

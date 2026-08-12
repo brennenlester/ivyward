@@ -6,6 +6,12 @@ import {
   playerInventory,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
+import {
+  mountCraftingHud,
+  OPEN_PORTABLE_SHRINE_EVENT,
+  PORTABLE_MOONSHRINE_ID,
+  type CraftingHudHandle,
+} from "./craftingHud";
 
 export type InventoryLine = {
   kind: "material" | "item";
@@ -45,6 +51,7 @@ export function listInventoryLines(
 
 let inventoryOpen = false;
 let previouslyFocused: HTMLElement | null = null;
+let inventoryCraftHud: CraftingHudHandle | null = null;
 
 function onInventoryKeyDown(event: KeyboardEvent): void {
   if (!inventoryOpen) {
@@ -84,7 +91,8 @@ function ensureInventoryRoot(): HTMLElement {
         <h2 id="inventory-title">Inventory</h2>
         <button type="button" id="inventory-close" class="inventory-close">Close</button>
       </div>
-      <p class="inventory-intro">Materials and items you are carrying. Use them at Moon Shrine or in the field.</p>
+      <p class="inventory-intro">Drag materials onto the 4×4 to craft. Use a Portable Moonshrine for Craft and Use away from the altar.</p>
+      <div id="inventory-craft" class="inventory-craft"></div>
       <div id="inventory-body" class="inventory-body"></div>
       <p id="inventory-hint" class="inventory-hint"></p>
     </div>
@@ -135,6 +143,21 @@ function renderInventoryBody(): void {
         count.className = "inventory-count";
         count.textContent = `×${line.count}`;
         li.append(name, count);
+        if (
+          line.kind === "item" &&
+          line.id === PORTABLE_MOONSHRINE_ID &&
+          !isVisitorMode()
+        ) {
+          const useBtn = document.createElement("button");
+          useBtn.type = "button";
+          useBtn.className = "inventory-use";
+          useBtn.textContent = "Use";
+          useBtn.addEventListener("click", () => {
+            closeInventory();
+            window.dispatchEvent(new CustomEvent(OPEN_PORTABLE_SHRINE_EVENT));
+          });
+          li.appendChild(useBtn);
+        }
         list.appendChild(li);
       }
       section.appendChild(list);
@@ -153,6 +176,15 @@ function renderInventoryBody(): void {
 export function openInventory(): void {
   const root = ensureInventoryRoot();
   renderInventoryBody();
+  const craftHost = root.querySelector("#inventory-craft");
+  if (craftHost instanceof HTMLElement && !inventoryCraftHud) {
+    inventoryCraftHud = mountCraftingHud(craftHost, {
+      context: "inventory",
+      interactive: !isVisitorMode(),
+    });
+  } else {
+    inventoryCraftHud?.refresh();
+  }
   previouslyFocused =
     document.activeElement instanceof HTMLElement ? document.activeElement : null;
   root.hidden = false;
@@ -166,6 +198,8 @@ export function openInventory(): void {
 }
 
 export function closeInventory(): void {
+  inventoryCraftHud?.destroy();
+  inventoryCraftHud = null;
   const root = document.getElementById("inventory-overlay");
   if (root) {
     root.hidden = true;

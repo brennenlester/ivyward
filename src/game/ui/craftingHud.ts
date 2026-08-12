@@ -1,0 +1,439 @@
+import { getItemName, getMaterialName } from "../inventory/materials";
+import {
+  addMaterial,
+  consumeMaterial,
+  playerInventory,
+} from "../inventory/playerInventory";
+import { isVisitorMode } from "../world/worldSession";
+import {
+  GRID_SIZE,
+  cloneGrid,
+  craftFromGrid,
+  emptyGrid,
+  matchGrid,
+  returnGridToInventory,
+  type CraftContext,
+  type CraftGrid,
+} from "../crafting/recipes";
+
+const DRAG_THRESHOLD = 8;
+
+export type CraftingHudHandle = {
+  refresh: () => void;
+  returnMaterials: () => void;
+  destroy: () => void;
+};
+
+export const PORTABLE_MOONSHRINE_ID = "portable-moonshrine";
+export const OPEN_PORTABLE_SHRINE_EVENT = "ivyward-open-portable-shrine";
+
+let shrineHud: CraftingHudHandle | null = null;
+let shrineHost: HTMLElement | null = null;
+
+export function showShrineCraftingHud(options: {
+  context: CraftContext;
+  onCrafted?: (name: string, count: number) => void;
+}): void {
+  if (!shrineHost) {
+    shrineHost = document.createElement("div");
+    shrineHost.id = "shrine-craft-overlay";
+    shrineHost.className = "shrine-craft-overlay";
+    document.getElementById("app")?.appendChild(shrineHost);
+    shrineHud = mountCraftingHud(shrineHost, {
+      context: options.context,
+      interactive: !isVisitorMode(),
+      onCrafted: options.onCrafted,
+    });
+  }
+  shrineHost.hidden = false;
+}
+
+export function hideShrineCraftingHud(destroy = false): void {
+  if (destroy) {
+    shrineHud?.destroy();
+    shrineHud = null;
+    shrineHost?.remove();
+    shrineHost = null;
+    return;
+  }
+  if (shrineHost) {
+    shrineHost.hidden = true;
+  }
+}
+
+
+type Pickup = {
+  materialId: string;
+  from: "list" | { row: number; col: number };
+};
+
+type HudOptions = {
+  context: CraftContext;
+  interactive: boolean;
+  onCrafted?: (name: string, count: number) => void;
+};
+
+function ownedMaterials(): { id: string; name: string; count: number }[] {
+  return Object.entries(playerInventory.materials)
+    .filter(([, count]) => count > 0)
+    .map(([id, count]) => ({ id, name: getMaterialName(id), count }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
+export function mountCraftingHud(
+  parent: HTMLElement,
+  options: HudOptions,
+): CraftingHudHandle {
+  let grid: CraftGrid = emptyGrid();
+  let pickup: Pickup | null = null;
+  let tapSelect: Pickup | null = null;
+  let dragStart: { x: number; y: number } | null = null;
+  let dragging = false;
+  let suppressPlace = false;
+  let ghost: HTMLElement | null = null;
+
+  const root = document.createElement("div");
+  root.className = "crafting-hud";
+  parent.appendChild(root);
+
+  const interactive = options.interactive && !isVisitorMode();
+
+  function statusMessage(): string {
+    if (!interactive) {
+      return "Visitors can view, but only the host can craft.";
+    }
+    const match = matchGrid(grid, options.context);
+    if (match.status === "blocked") {
+      return match.message;
+    }
+    if (match.status === "match") {
+      const count =
+        match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
+      return `${match.recipe.name}${count}`;
+    }
+    return "Drag materials onto the 4×4, then tap the result.";
+  }
+
+  function clearPickup(returnToSource: boolean): void {
+    if (!pickup) {
+      return;
+    }
+    if (returnToSource) {
+      if (pickup.from === "list") {
+        addMaterial(pickup.materialId, 1);
+      } else {
+        grid = cloneGrid(grid);
+        grid[pickup.from.row][pickup.from.col] = pickup.materialId;
+      }
+    }
+    pickup = null;
+    dragging = false;
+    dragStart = null;
+    ghost?.remove();
+    ghost = null;
+  }
+
+  function takeResult(): void {
+    if (!interactive || pickup) {
+      return;
+    }
+    const result = craftFromGrid(grid, options.context);
+    if (!result.ok) {
+      render();
+      return;
+    }
+    grid = result.grid;
+    options.onCrafted?.(result.recipe.name, result.recipe.outputCount);
+    render();
+  }
+
+  function placePickupOnCell(row: number, col: number): void {
+    if (!pickup || !interactive) {
+      return;
+    }
+    grid = cloneGrid(grid);
+    const existing = grid[row][col];
+    if (pickup.from !== "list" && pickup.from.row === row && pickup.from.col === col) {
+      grid[row][col] = pickup.materialId;
+      pickup = null;
+      render();
+      return;
+    }
+    if (existing) {
+      if (pickup.from === "list") {
+        addMaterial(existing, 1);
+      } else {
+        grid[pickup.from.row][pickup.from.col] = existing;
+      }
+    }
+    grid[row][col] = pickup.materialId;
+    pickup = null;
+    render();
+  }
+
+  function returnPickupToList(): void {
+    if (!pickup || !interactive) {
+      return;
+    }
+    addMaterial(pickup.materialId, 1);
+    pickup = null;
+    render();
+  }
+
+  function startPickup(next: Pickup, event: PointerEvent): void {
+    if (!interactive) {
+      return;
+    }
+    clearPickup(true);
+    pickup = next;
+    tapSelect = next;
+    dragStart = { x: event.clientX, y: event.clientY };
+    dragging = false;
+    suppressPlace = true;
+    if (next.from === "list") {
+      if (!consumeMaterial(next.materialId, 1)) {
+        pickup = null;
+        tapSelect = null;
+        dragStart = null;
+        return;
+      }
+    } else {
+      grid = cloneGrid(grid);
+      grid[next.from.row][next.from.col] = null;
+    }
+    render();
+  }
+
+  function ensureGhost(materialId: string): HTMLElement {
+    if (!ghost) {
+      ghost = document.createElement("div");
+      ghost.className = "crafting-ghost";
+      ghost.setAttribute("aria-hidden", "true");
+      document.body.appendChild(ghost);
+    }
+    ghost.textContent = getMaterialName(materialId);
+    return ghost;
+  }
+
+  function onPointerMove(event: PointerEvent): void {
+    if (!pickup || !dragStart) {
+      return;
+    }
+    const dx = event.clientX - dragStart.x;
+    const dy = event.clientY - dragStart.y;
+    if (!dragging && Math.hypot(dx, dy) >= DRAG_THRESHOLD) {
+      dragging = true;
+      tapSelect = null;
+    }
+    if (dragging) {
+      const g = ensureGhost(pickup.materialId);
+      g.style.left = `${event.clientX + 8}px`;
+      g.style.top = `${event.clientY + 8}px`;
+    }
+  }
+
+  function onPointerUp(event: PointerEvent): void {
+    if (suppressPlace) {
+      suppressPlace = false;
+      dragStart = dragging ? dragStart : null;
+      if (!dragging) {
+        return;
+      }
+    }
+    if (!pickup) {
+      dragStart = null;
+      dragging = false;
+      return;
+    }
+    const target = document.elementFromPoint(event.clientX, event.clientY);
+    const cell = target?.closest("[data-craft-cell]") as HTMLElement | null;
+    const list = target?.closest("[data-craft-list]") as HTMLElement | null;
+
+    if (dragging) {
+      if (cell) {
+        const row = Number(cell.dataset.row);
+        const col = Number(cell.dataset.col);
+        placePickupOnCell(row, col);
+      } else if (list) {
+        returnPickupToList();
+      } else {
+        clearPickup(true);
+        render();
+      }
+      ghost?.remove();
+      ghost = null;
+      dragging = false;
+      dragStart = null;
+      tapSelect = null;
+      return;
+    }
+
+    dragStart = null;
+  }
+
+  function onRootPointerUp(event: PointerEvent): void {
+    if (dragging || suppressPlace) {
+      return;
+    }
+    const target = event.target as HTMLElement | null;
+    const result = target?.closest("[data-craft-result]");
+    if (result && !pickup) {
+      takeResult();
+      return;
+    }
+    if (!pickup || !tapSelect) {
+      return;
+    }
+    const cell = target?.closest("[data-craft-cell]") as HTMLElement | null;
+    const list = target?.closest("[data-craft-list]");
+    if (cell) {
+      const row = Number(cell.dataset.row);
+      const col = Number(cell.dataset.col);
+      if (
+        tapSelect.from !== "list" &&
+        tapSelect.from.row === row &&
+        tapSelect.from.col === col
+      ) {
+        // Second tap on same cell cancels.
+        clearPickup(true);
+        tapSelect = null;
+        render();
+        return;
+      }
+      placePickupOnCell(row, col);
+      tapSelect = null;
+      return;
+    }
+    if (list && tapSelect.from !== "list") {
+      returnPickupToList();
+      tapSelect = null;
+    }
+  }
+
+  function render(): void {
+    root.replaceChildren();
+    const layout = document.createElement("div");
+    layout.className = "crafting-hud-layout";
+
+    const list = document.createElement("div");
+    list.className = "crafting-list";
+    list.dataset.craftList = "1";
+    const listTitle = document.createElement("h3");
+    listTitle.textContent = "Materials";
+    list.appendChild(listTitle);
+    const mats = ownedMaterials();
+    if (mats.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "crafting-empty";
+      empty.textContent = "No materials in your pack.";
+      list.appendChild(empty);
+    } else {
+      for (const mat of mats) {
+        const row = document.createElement("button");
+        row.type = "button";
+        row.className = "crafting-list-row";
+        row.disabled = !interactive;
+        const name = document.createElement("span");
+        name.textContent = mat.name;
+        const count = document.createElement("span");
+        count.className = "crafting-count";
+        count.textContent = `×${mat.count}`;
+        row.append(name, count);
+        if (interactive) {
+          row.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            startPickup({ materialId: mat.id, from: "list" }, event);
+          });
+        }
+        list.appendChild(row);
+      }
+    }
+
+    const board = document.createElement("div");
+    board.className = "crafting-board";
+    const gridEl = document.createElement("div");
+    gridEl.className = "crafting-grid";
+    gridEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, 1fr)`;
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const cell = document.createElement("button");
+        cell.type = "button";
+        cell.className = "crafting-cell";
+        cell.dataset.craftCell = "1";
+        cell.dataset.row = String(r);
+        cell.dataset.col = String(c);
+        cell.disabled = !interactive;
+        const id = grid[r][c];
+        cell.textContent = id ? getMaterialName(id) : "";
+        if (id) {
+          cell.title = getMaterialName(id);
+        }
+        if (interactive) {
+          cell.addEventListener("pointerdown", (event) => {
+            if (!grid[r][c]) {
+              return;
+            }
+            event.preventDefault();
+            startPickup(
+              { materialId: grid[r][c]!, from: { row: r, col: c } },
+              event,
+            );
+          });
+        }
+        gridEl.appendChild(cell);
+      }
+    }
+    board.appendChild(gridEl);
+
+    const result = document.createElement("button");
+    result.type = "button";
+    result.className = "crafting-result";
+    result.dataset.craftResult = "1";
+    const match = matchGrid(grid, options.context);
+    if (match.status === "match") {
+      const countLabel =
+        match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
+      result.textContent = `${getItemName(match.recipe.outputItemId)}${countLabel}`;
+      result.disabled = !interactive;
+    } else if (match.status === "blocked") {
+      result.textContent = match.message;
+      result.disabled = true;
+    } else {
+      result.textContent = "Result";
+      result.disabled = true;
+    }
+    board.appendChild(result);
+
+    const status = document.createElement("p");
+    status.className = "crafting-status";
+    status.textContent = statusMessage();
+
+    layout.append(list, board);
+    root.append(layout, status);
+  }
+
+  const moveListener = (event: PointerEvent) => onPointerMove(event);
+  const upListener = (event: PointerEvent) => onPointerUp(event);
+  window.addEventListener("pointermove", moveListener);
+  window.addEventListener("pointerup", upListener);
+  root.addEventListener("pointerup", onRootPointerUp);
+
+  render();
+
+  return {
+    refresh: () => render(),
+    returnMaterials: () => {
+      clearPickup(true);
+      grid = returnGridToInventory(grid);
+      render();
+    },
+    destroy: () => {
+      clearPickup(true);
+      grid = returnGridToInventory(grid);
+      window.removeEventListener("pointermove", moveListener);
+      window.removeEventListener("pointerup", upListener);
+      ghost?.remove();
+      root.remove();
+    },
+  };
+}

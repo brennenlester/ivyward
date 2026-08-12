@@ -75,6 +75,7 @@ export const ITEM_NAMES: Record<string, string> = {
   "brook-tonic": "Brook Tonic",
   "brook-crystal": "Brook Crystal",
   "moonwake-draught": "Moonwake Draught",
+  "portable-moonshrine": "Portable Moonshrine",
   boat: "Boat",
 };
 

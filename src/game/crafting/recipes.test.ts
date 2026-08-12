@@ -1,8 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   canCraft,
+  craftFromGrid,
   craftItem,
   CRAFT_RECIPES,
+  emptyGrid,
+  getRecipeMaterials,
+  matchGrid,
+  placePattern,
+  returnGridToInventory,
 } from "./recipes";
 import {
   addItem,
@@ -15,6 +21,10 @@ import { setGodFusionCompleted } from "../world/worldState";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
+const tonicRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-tonic")!;
+const draughtRecipe = CRAFT_RECIPES.find((r) => r.id === "moonwake-draught")!;
+const cudgelRecipe = CRAFT_RECIPES.find((r) => r.id === "wood-cudgel")!;
+const portableRecipe = CRAFT_RECIPES.find((r) => r.id === "portable-moonshrine")!;
 
 beforeEach(() => {
   setInventoryFromSnapshot({}, {});
@@ -22,18 +32,42 @@ beforeEach(() => {
   setGodFusionCompleted(false, false);
 });
 
-describe("boat recipe", () => {
-  it("is registered in Moon Shrine craft recipes", () => {
-    expect(boatRecipe).toBeDefined();
-    expect(boatRecipe.name).toBe("Boat");
-    expect(boatRecipe.outputItemId).toBe("boat");
-    expect(boatRecipe.materials).toEqual([
+describe("shaped patterns", () => {
+  it("keeps existing material costs", () => {
+    expect(getRecipeMaterials(boatRecipe)).toEqual([
       { materialId: "wood", count: 6 },
       { materialId: "wild-fiber", count: 3 },
       { materialId: "folklore-dust", count: 1 },
     ]);
+    expect(getRecipeMaterials(tonicRecipe)).toEqual([
+      { materialId: "brook-pearl", count: 2 },
+      { materialId: "folklore-dust", count: 1 },
+    ]);
+    expect(getRecipeMaterials(draughtRecipe)).toEqual([
+      { materialId: "moss-fiber", count: 1 },
+      { materialId: "brook-pearl", count: 1 },
+      { materialId: "folklore-dust", count: 1 },
+    ]);
+    expect(getRecipeMaterials(brookCrystalRecipe)).toEqual([
+      { materialId: "brook-pearl", count: 1 },
+    ]);
+    expect(getRecipeMaterials(portableRecipe)).toEqual([
+      { materialId: "folklore-dust", count: 1 },
+      { materialId: "stone", count: 5 },
+      { materialId: "brook-pearl", count: 1 },
+      { materialId: "wild-fiber", count: 2 },
+    ]);
   });
 
+  it("yields 3 tonics and draughts, 1 for other recipes", () => {
+    expect(tonicRecipe.outputCount).toBe(3);
+    expect(draughtRecipe.outputCount).toBe(3);
+    expect(boatRecipe.outputCount).toBe(1);
+    expect(cudgelRecipe.outputCount).toBe(1);
+  });
+});
+
+describe("boat recipe", () => {
   it("cannot craft without enough materials", () => {
     setInventoryFromSnapshot(
       { wood: 5, "wild-fiber": 3, "folklore-dust": 1 },
@@ -70,15 +104,31 @@ describe("boat recipe", () => {
   });
 });
 
+describe("brook tonic and moonwake draught yield", () => {
+  it("crafts 3 Brook Tonic at the original cost", () => {
+    setInventoryFromSnapshot(
+      { "brook-pearl": 2, "folklore-dust": 1 },
+      {},
+    );
+    expect(craftItem(tonicRecipe)).toBe(true);
+    expect(getMaterialCount("brook-pearl")).toBe(0);
+    expect(getMaterialCount("folklore-dust")).toBe(0);
+    expect(getItemCount("brook-tonic")).toBe(3);
+  });
+
+  it("crafts 3 Moonwake Draught at the original cost", () => {
+    setInventoryFromSnapshot(
+      { "moss-fiber": 1, "brook-pearl": 1, "folklore-dust": 1 },
+      {},
+    );
+    expect(craftItem(draughtRecipe)).toBe(true);
+    expect(getItemCount("moonwake-draught")).toBe(3);
+  });
+});
+
 describe("brook crystal recipe", () => {
   it("crafts one Brook Crystal from one Brook Pearl", () => {
-    expect(brookCrystalRecipe).toMatchObject({
-      name: "Brook Crystal",
-      outputItemId: "brook-crystal",
-      materials: [{ materialId: "brook-pearl", count: 1 }],
-    });
     setInventoryFromSnapshot({ "brook-pearl": 1 }, {});
-
     expect(craftItem(brookCrystalRecipe)).toBe(true);
     expect(getMaterialCount("brook-pearl")).toBe(0);
     expect(getItemCount("brook-crystal")).toBe(1);
@@ -86,26 +136,11 @@ describe("brook crystal recipe", () => {
 
   it("enforces the 20-crystal hold cap on add and craft", () => {
     setInventoryFromSnapshot({ "brook-pearl": 1 }, { "brook-crystal": 20 });
-
     expect(addItem("brook-crystal")).toBe(false);
     expect(canCraft(brookCrystalRecipe)).toBe(false);
     expect(craftItem(brookCrystalRecipe)).toBe(false);
     expect(getMaterialCount("brook-pearl")).toBe(1);
     expect(getItemCount("brook-crystal")).toBe(20);
-  });
-
-  it("leaves the existing Brook Pearl recipes unchanged", () => {
-    expect(CRAFT_RECIPES.find((r) => r.id === "brook-tonic")?.materials).toEqual([
-      { materialId: "brook-pearl", count: 2 },
-      { materialId: "folklore-dust", count: 1 },
-    ]);
-    expect(
-      CRAFT_RECIPES.find((r) => r.id === "moonwake-draught")?.materials,
-    ).toEqual([
-      { materialId: "moss-fiber", count: 1 },
-      { materialId: "brook-pearl", count: 1 },
-      { materialId: "folklore-dust", count: 1 },
-    ]);
   });
 });
 
@@ -123,13 +158,13 @@ describe("sovereign seal recipe", () => {
     expect(sealRecipe).toMatchObject({
       name: "Sovereign Seal",
       outputItemId: "sovereign-seal",
-      materials: [
-        { materialId: "brook-pearl", count: 3 },
-        { materialId: "pebble", count: 3 },
-        { materialId: "folklore-dust", count: 2 },
-        { materialId: "wild-fiber", count: 2 },
-      ],
     });
+    expect(getRecipeMaterials(sealRecipe)).toEqual([
+      { materialId: "brook-pearl", count: 3 },
+      { materialId: "pebble", count: 3 },
+      { materialId: "folklore-dust", count: 2 },
+      { materialId: "wild-fiber", count: 2 },
+    ]);
     setInventoryFromSnapshot(
       {
         "brook-pearl": 3,
@@ -180,5 +215,75 @@ describe("sovereign seal recipe", () => {
     expect(craftItem(sealRecipe)).toBe(false);
     expect(getItemCount("sovereign-seal")).toBe(0);
     setGodFusionCompleted(false, false);
+  });
+});
+
+describe("matchGrid", () => {
+  it("matches a pattern translated on the 4×4", () => {
+    const grid = placePattern(emptyGrid(), cudgelRecipe.pattern, 1, 2);
+    const match = matchGrid(grid, "inventory");
+    expect(match.status).toBe("match");
+    if (match.status === "match") {
+      expect(match.recipe.id).toBe("wood-cudgel");
+      expect(match.box).toEqual({ row: 1, col: 2, height: 3, width: 1 });
+    }
+  });
+
+  it("refuses a filled hole in a pattern", () => {
+    const grid = placePattern(emptyGrid(), ["AD", "AW"], 0, 0);
+    expect(matchGrid(grid, "altar").status).toBe("none");
+  });
+
+  it("refuses a rotated cudgel (horizontal wood)", () => {
+    const grid = placePattern(emptyGrid(), ["WWW"], 0, 0);
+    expect(matchGrid(grid, "altar").status).toBe("none");
+  });
+
+  it("matches tonic and crafts 3 from the grid", () => {
+    const grid = placePattern(emptyGrid(), tonicRecipe.pattern, 2, 2);
+    const result = craftFromGrid(grid, "inventory");
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.recipe.id).toBe("brook-tonic");
+      expect(getItemCount("brook-tonic")).toBe(3);
+      expect(result.grid).toEqual(emptyGrid());
+    }
+  });
+
+  it("blocks visitors from craftFromGrid", () => {
+    setVisitorMode(true);
+    const grid = placePattern(emptyGrid(), cudgelRecipe.pattern, 0, 0);
+    const result = craftFromGrid(grid, "altar");
+    expect(result.ok).toBe(false);
+    expect(getItemCount("wood-cudgel")).toBe(0);
+  });
+
+  it("matches portable moonshrine only at the altar", () => {
+    const grid = placePattern(emptyGrid(), portableRecipe.pattern, 0, 0);
+    expect(matchGrid(grid, "inventory").status).toBe("none");
+    expect(matchGrid(grid, "portable").status).toBe("none");
+    const altar = matchGrid(grid, "altar");
+    expect(altar.status).toBe("match");
+  });
+
+  it("blocks a second portable moonshrine", () => {
+    setInventoryFromSnapshot({}, { "portable-moonshrine": 1 });
+    const grid = placePattern(emptyGrid(), portableRecipe.pattern, 0, 0);
+    const match = matchGrid(grid, "altar");
+    expect(match.status).toBe("blocked");
+    const result = craftFromGrid(grid, "altar");
+    expect(result.ok).toBe(false);
+    expect(getItemCount("portable-moonshrine")).toBe(1);
+  });
+});
+
+describe("returnGridToInventory", () => {
+  it("puts leftover cells back into counts and clears the grid", () => {
+    const grid = placePattern(emptyGrid(), ["W"], 1, 1);
+    grid[2][2] = "stone";
+    const cleared = returnGridToInventory(grid);
+    expect(getMaterialCount("wood")).toBe(1);
+    expect(getMaterialCount("stone")).toBe(1);
+    expect(cleared).toEqual(emptyGrid());
   });
 });
