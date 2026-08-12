@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Point the branded canonical play URL at the latest production deployment.
+# Point the branded canonical play URL at the latest READY production deployment.
 # Usage:
 #   ./scripts/alias-canonical-play.sh
 #   ./scripts/alias-canonical-play.sh <deployment-url>
@@ -9,19 +9,27 @@ SCOPE="${VERCEL_SCOPE:-brennen1}"
 PROJECT="${VERCEL_PROJECT:-ivyward}"
 CANONICAL_HOST="${CANONICAL_PLAY_HOST:-ivyward-brennen1.vercel.app}"
 
+resolve_latest_ready_production_url() {
+  npx vercel@latest ls "$PROJECT" --prod --status READY --scope "$SCOPE" --format json 2>/dev/null \
+    | node -e '
+      const fs = require("fs");
+      const raw = fs.readFileSync(0, "utf8");
+      const data = JSON.parse(raw);
+      const deployments = Array.isArray(data) ? data : data.deployments || [];
+      const first = deployments.find((d) => d && d.url) || deployments[0];
+      if (!first || !first.url) process.exit(2);
+      process.stdout.write(String(first.url).replace(/^https?:\/\//, ""));
+    '
+}
+
 if [[ $# -ge 1 ]]; then
   DEPLOYMENT_URL="$1"
 else
-  # `vercel ls --prod` prints a table; extract the first READY ivyward deployment URL.
-  DEPLOYMENT_URL="$(
-    npx vercel@latest ls "$PROJECT" --prod --status READY --scope "$SCOPE" 2>/dev/null \
-      | grep -oE 'https://ivyward-[a-z0-9]+-brennen1\.vercel\.app' \
-      | head -1
-  )"
+  DEPLOYMENT_URL="$(resolve_latest_ready_production_url || true)"
 fi
 
 if [[ -z "${DEPLOYMENT_URL:-}" ]]; then
-  echo "alias-canonical-play: could not resolve latest production deployment URL" >&2
+  echo "alias-canonical-play: could not resolve latest READY production deployment URL" >&2
   exit 1
 fi
 
