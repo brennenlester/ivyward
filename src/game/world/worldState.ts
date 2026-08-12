@@ -11,6 +11,8 @@ export const worldState = {
   discoveredCreatures: [] as string[],
   /** Tide Sovereign was obtained; natural god-sail rolls stop permanently. */
   godSailEncounterClaimed: false,
+  /** Cairn Sovereign was obtained; natural god-land rolls stop permanently. */
+  godLandEncounterClaimed: false,
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -34,6 +36,20 @@ export function setGodSailEncounterClaimed(
   notify = true,
 ): void {
   worldState.godSailEncounterClaimed = claimed;
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function isGodLandEncounterClaimed(): boolean {
+  return worldState.godLandEncounterClaimed;
+}
+
+export function setGodLandEncounterClaimed(
+  claimed: boolean,
+  notify = true,
+): void {
+  worldState.godLandEncounterClaimed = claimed;
   if (notify) {
     notifyWorldChanged();
   }

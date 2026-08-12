@@ -20,6 +20,10 @@ export class PreloadScene extends Phaser.Scene {
       "creature-tide-sovereign",
       "assets/creatures/creature-tide-sovereign.png",
     );
+    this.load.image(
+      "creature-cairn-sovereign",
+      "assets/creatures/creature-cairn-sovereign.png",
+    );
     preloadGameAudio(this);
   }
 

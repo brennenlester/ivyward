@@ -6,6 +6,7 @@ import {
   isGodSailEncounterClaimed,
   setGodSailEncounterClaimed,
 } from "../world/worldState";
+import { CAIRN_SOVEREIGN_ID } from "./godLand";
 
 export const TIDE_SOVEREIGN_ID = "tide-sovereign";
 export const TIDE_CLEAVER_ID = "tide-cleaver";
@@ -147,8 +148,14 @@ export function appendGodSparKillCheatKey(
   return { buffer: next, triggered: next.endsWith(GOD_SPAR_KILL_CHEAT) };
 }
 
+export function isGodCreature(creatureId: string): boolean {
+  return (
+    creatureId === TIDE_SOVEREIGN_ID || creatureId === CAIRN_SOVEREIGN_ID
+  );
+}
+
 export function getBefriendChance(creatureId: string): number {
-  return creatureId === TIDE_SOVEREIGN_ID
+  return isGodCreature(creatureId)
     ? GOD_BEFRIEND_CHANCE
     : NORMAL_BEFRIEND_CHANCE;
 }

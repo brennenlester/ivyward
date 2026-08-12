@@ -15,6 +15,7 @@ import { QUEST_ORDER } from "../story/quests";
 import {
   setDiscoveredCreatures,
   setDiscoveredZones,
+  setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   setOverworldUnlocked,
   worldState,
@@ -81,6 +82,8 @@ export type WorldSnapshot = {
   sailing?: boolean;
   /** Tide Sovereign has been obtained. Optional for older saves. */
   godSailEncounterClaimed?: boolean;
+  /** Cairn Sovereign has been obtained. Optional for older saves. */
+  godLandEncounterClaimed?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   /** Active battle party instance ids (max 7). Optional for older saves. */
@@ -479,6 +482,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   ) {
     return false;
   }
+  if (
+    s.godLandEncounterClaimed !== undefined &&
+    typeof s.godLandEncounterClaimed !== "boolean"
+  ) {
+    return false;
+  }
 
   const pos = s.position as Record<string, unknown> | undefined;
   if (
@@ -575,6 +584,7 @@ export function exportWorldSnapshot(
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
+    godLandEncounterClaimed: worldState.godLandEncounterClaimed,
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     activePartyIds: [...playerParty.activeInstanceIds],
@@ -612,6 +622,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
+  setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
   setPlacedBoat(snapshot.placedBoat === true);
   if (snapshot.placedBoat === true) {
     setMooredDock(inferMooredDock(snapshot));
