@@ -32,8 +32,10 @@ import {
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
 import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
 import {
+  isGodFusionCompleted,
   isGodLandEncounterClaimed,
   isGodSailEncounterClaimed,
+  setGodFusionCompleted,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   worldState,
@@ -133,6 +135,18 @@ describe("isValidWorldSnapshot", () => {
       isValidWorldSnapshot({
         ...validSnapshot(),
         godLandEncounterClaimed: "yes",
+      }),
+    ).toBe(false);
+  });
+
+  it("soft-adds and validates the god fusion flag", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ godFusionCompleted: true })),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        godFusionCompleted: "yes",
       }),
     ).toBe(false);
   });
@@ -386,6 +400,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     resetNpcStateForTest();
     setGodSailEncounterClaimed(false, false);
     setGodLandEncounterClaimed(false, false);
+    setGodFusionCompleted(false, false);
   });
 
   it("restores the god sail claim and defaults older saves to unclaimed", () => {
@@ -402,6 +417,14 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(isGodLandEncounterClaimed()).toBe(false);
+  });
+
+  it("restores the god fusion flag and defaults older saves to incomplete", () => {
+    applyWorldSnapshot(validSnapshot({ godFusionCompleted: true }));
+    expect(isGodFusionCompleted()).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(isGodFusionCompleted()).toBe(false);
   });
 
   it("round-trips activePartyIds through apply and export", () => {

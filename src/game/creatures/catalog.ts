@@ -480,6 +480,24 @@ export const CREATURES: CreatureDefinition[] = [
       { id: "ridge-fall", name: "Ridge Fall", power: 20, type: "earth", accuracy: 100 },
     ],
   },
+  {
+    id: "horizon-sovereign",
+    name: "Horizon Sovereign",
+    folkloreType: "mist",
+    maxHp: 120,
+    attack: 20,
+    defense: 18,
+    spriteKey: "creature-horizon-sovereign",
+    spriteColor: 0x7a6a98,
+    early: false,
+    excludeFromCodex: true,
+    moves: [
+      { id: "horizon-pulse", name: "Horizon Pulse", power: 12, type: "mist", accuracy: 100 },
+      { id: "sovereign-crash", name: "Sovereign Crash", power: 18, type: "earth", accuracy: 90 },
+      { id: "abyssal-ridge", name: "Abyssal Ridge", power: 18, type: "water", accuracy: 90 },
+      { id: "still-crown", name: "Still Crown", power: 10, type: "mist", accuracy: 100 },
+    ],
+  },
 ];
 
 const byId = new Map(CREATURES.map((c) => [c.id, c]));

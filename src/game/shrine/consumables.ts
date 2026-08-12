@@ -32,7 +32,11 @@ export const CONSUMABLE_ITEMS: ConsumableDefinition[] = [
   { itemId: "brook-crystal", effectType: "level", itemCost: 2 },
 ];
 
-export const FUSION_ITEM_IDS = ["ember-charm", "moss-salve"] as const;
+export const FUSION_ITEM_IDS = [
+  "ember-charm",
+  "moss-salve",
+  "sovereign-seal",
+] as const;
 
 export const CONSUMABLE_ITEM_IDS = CONSUMABLE_ITEMS.map((c) => c.itemId);
 

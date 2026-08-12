@@ -84,6 +84,17 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
       { materialId: "folklore-dust", count: 1 },
     ],
   },
+  {
+    id: "sovereign-seal",
+    name: "Sovereign Seal",
+    outputItemId: "sovereign-seal",
+    materials: [
+      { materialId: "brook-pearl", count: 3 },
+      { materialId: "stone-chip", count: 3 },
+      { materialId: "folklore-dust", count: 2 },
+      { materialId: "root-bark", count: 1 },
+    ],
+  },
 ];
 
 export function canCraft(recipe: CraftRecipe): boolean {

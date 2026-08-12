@@ -15,6 +15,7 @@ import { QUEST_ORDER } from "../story/quests";
 import {
   setDiscoveredCreatures,
   setDiscoveredZones,
+  setGodFusionCompleted,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   setOverworldUnlocked,
@@ -84,6 +85,8 @@ export type WorldSnapshot = {
   godSailEncounterClaimed?: boolean;
   /** Cairn Sovereign has been obtained. Optional for older saves. */
   godLandEncounterClaimed?: boolean;
+  /** Dual-god fusion completed. Optional for older saves. */
+  godFusionCompleted?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   /** Active battle party instance ids (max 7). Optional for older saves. */
@@ -488,6 +491,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   ) {
     return false;
   }
+  if (
+    s.godFusionCompleted !== undefined &&
+    typeof s.godFusionCompleted !== "boolean"
+  ) {
+    return false;
+  }
 
   const pos = s.position as Record<string, unknown> | undefined;
   if (
@@ -585,6 +594,7 @@ export function exportWorldSnapshot(
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
+    godFusionCompleted: worldState.godFusionCompleted,
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     activePartyIds: [...playerParty.activeInstanceIds],
@@ -623,6 +633,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
+  setGodFusionCompleted(snapshot.godFusionCompleted === true, false);
   setPlacedBoat(snapshot.placedBoat === true);
   if (snapshot.placedBoat === true) {
     setMooredDock(inferMooredDock(snapshot));

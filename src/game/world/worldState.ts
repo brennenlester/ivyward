@@ -13,6 +13,8 @@ export const worldState = {
   godSailEncounterClaimed: false,
   /** Cairn Sovereign was obtained; natural god-land rolls stop permanently. */
   godLandEncounterClaimed: false,
+  /** Dual-god fusion into Horizon Sovereign has been completed. */
+  godFusionCompleted: false,
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -50,6 +52,20 @@ export function setGodLandEncounterClaimed(
   notify = true,
 ): void {
   worldState.godLandEncounterClaimed = claimed;
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function isGodFusionCompleted(): boolean {
+  return worldState.godFusionCompleted;
+}
+
+export function setGodFusionCompleted(
+  completed: boolean,
+  notify = true,
+): void {
+  worldState.godFusionCompleted = completed;
   if (notify) {
     notifyWorldChanged();
   }

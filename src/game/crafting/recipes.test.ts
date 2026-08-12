@@ -113,3 +113,53 @@ describe("brook crystal hold cap on snapshot restore", () => {
     expect(getItemCount("brook-crystal")).toBe(20);
   });
 });
+
+describe("sovereign seal recipe", () => {
+  const sealRecipe = CRAFT_RECIPES.find((r) => r.id === "sovereign-seal")!;
+
+  it("crafts one Sovereign Seal from the locked materials", () => {
+    expect(sealRecipe).toMatchObject({
+      name: "Sovereign Seal",
+      outputItemId: "sovereign-seal",
+      materials: [
+        { materialId: "brook-pearl", count: 3 },
+        { materialId: "stone-chip", count: 3 },
+        { materialId: "folklore-dust", count: 2 },
+        { materialId: "root-bark", count: 1 },
+      ],
+    });
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        "stone-chip": 3,
+        "folklore-dust": 2,
+        "root-bark": 1,
+      },
+      {},
+    );
+    expect(craftItem(sealRecipe)).toBe(true);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+    expect(getMaterialCount("brook-pearl")).toBe(0);
+  });
+
+  it("enforces a hold cap of 1", () => {
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        "stone-chip": 3,
+        "folklore-dust": 2,
+        "root-bark": 1,
+      },
+      { "sovereign-seal": 1 },
+    );
+    expect(canCraft(sealRecipe)).toBe(false);
+    expect(craftItem(sealRecipe)).toBe(false);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+    expect(getMaterialCount("brook-pearl")).toBe(3);
+  });
+
+  it("clamps seal count on snapshot restore", () => {
+    setInventoryFromSnapshot({}, { "sovereign-seal": 4 });
+    expect(getItemCount("sovereign-seal")).toBe(1);
+  });
+});
