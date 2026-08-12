@@ -50,6 +50,8 @@ function onInventoryKeyDown(event: KeyboardEvent): void {
   if (!inventoryOpen) {
     return;
   }
+  // Capture-phase: block Phaser / world hotkeys while the modal is open.
+  event.stopImmediatePropagation();
   if (event.key === "Escape") {
     event.preventDefault();
     closeInventory();
@@ -103,37 +105,43 @@ function renderInventoryBody(): void {
   if (!body) {
     return;
   }
+  body.replaceChildren();
   const lines = listInventoryLines();
   if (lines.length === 0) {
-    body.innerHTML =
-      '<p class="inventory-empty">Nothing in your packs yet — gather, spar, or craft to fill them.</p>';
+    const empty = document.createElement("p");
+    empty.className = "inventory-empty";
+    empty.textContent =
+      "Nothing in your packs yet — gather, spar, or craft to fill them.";
+    body.appendChild(empty);
   } else {
     const materials = lines.filter((l) => l.kind === "material");
     const items = lines.filter((l) => l.kind === "item");
-    const sections: string[] = [];
-    if (materials.length > 0) {
-      sections.push(`<section class="inventory-section">
-        <h3>Materials</h3>
-        <ul>${materials
-          .map(
-            (l) =>
-              `<li><span class="inventory-name">${l.name}</span> <span class="inventory-count">×${l.count}</span></li>`,
-          )
-          .join("")}</ul>
-      </section>`);
-    }
-    if (items.length > 0) {
-      sections.push(`<section class="inventory-section">
-        <h3>Items</h3>
-        <ul>${items
-          .map(
-            (l) =>
-              `<li><span class="inventory-name">${l.name}</span> <span class="inventory-count">×${l.count}</span></li>`,
-          )
-          .join("")}</ul>
-      </section>`);
-    }
-    body.innerHTML = sections.join("");
+    const appendSection = (title: string, sectionLines: InventoryLine[]) => {
+      if (sectionLines.length === 0) {
+        return;
+      }
+      const section = document.createElement("section");
+      section.className = "inventory-section";
+      const heading = document.createElement("h3");
+      heading.textContent = title;
+      section.appendChild(heading);
+      const list = document.createElement("ul");
+      for (const line of sectionLines) {
+        const li = document.createElement("li");
+        const name = document.createElement("span");
+        name.className = "inventory-name";
+        name.textContent = line.name;
+        const count = document.createElement("span");
+        count.className = "inventory-count";
+        count.textContent = `×${line.count}`;
+        li.append(name, count);
+        list.appendChild(li);
+      }
+      section.appendChild(list);
+      body.appendChild(section);
+    };
+    appendSection("Materials", materials);
+    appendSection("Items", items);
   }
   if (hint) {
     hint.textContent = isVisitorMode()
@@ -150,7 +158,7 @@ export function openInventory(): void {
   root.hidden = false;
   inventoryOpen = true;
   setBackgroundInert(true);
-  document.addEventListener("keydown", onInventoryKeyDown);
+  window.addEventListener("keydown", onInventoryKeyDown, true);
   const closeBtn = root.querySelector(
     "#inventory-close",
   ) as HTMLButtonElement | null;
@@ -164,7 +172,7 @@ export function closeInventory(): void {
   }
   inventoryOpen = false;
   setBackgroundInert(false);
-  document.removeEventListener("keydown", onInventoryKeyDown);
+  window.removeEventListener("keydown", onInventoryKeyDown, true);
   previouslyFocused?.focus();
   previouslyFocused = null;
 }
