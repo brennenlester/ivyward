@@ -15,6 +15,19 @@ import { isVisitorMode } from "../world/worldSession";
 let partyOpen = false;
 let selectedActiveId: string | null = null;
 let selectedReserveId: string | null = null;
+/** Set while BattleScene (or other combat) is active — blocks party edits. */
+let partyEditLocked = false;
+
+export function setPartyEditLocked(locked: boolean): void {
+  partyEditLocked = locked;
+  if (locked && partyOpen) {
+    closeParty();
+  }
+}
+
+export function isPartyEditLocked(): boolean {
+  return partyEditLocked;
+}
 
 function ensurePartyRoot(): HTMLElement {
   let root = document.getElementById("party-overlay");
@@ -58,7 +71,7 @@ function ensurePartyRoot(): HTMLElement {
     }
   });
   root.querySelector("#party-swap")?.addEventListener("click", () => {
-    if (isVisitorMode() || !selectedActiveId || !selectedReserveId) {
+    if (partyEditLocked || isVisitorMode() || !selectedActiveId || !selectedReserveId) {
       return;
     }
     if (swapActiveWithReserve(selectedActiveId, selectedReserveId)) {
@@ -69,7 +82,7 @@ function ensurePartyRoot(): HTMLElement {
     }
   });
   root.querySelector("#party-promote")?.addEventListener("click", () => {
-    if (isVisitorMode() || !selectedReserveId) {
+    if (partyEditLocked || isVisitorMode() || !selectedReserveId) {
       return;
     }
     if (moveReserveToActive(selectedReserveId)) {
@@ -79,7 +92,7 @@ function ensurePartyRoot(): HTMLElement {
     }
   });
   root.querySelector("#party-demote")?.addEventListener("click", () => {
-    if (isVisitorMode() || !selectedActiveId) {
+    if (partyEditLocked || isVisitorMode() || !selectedActiveId) {
       return;
     }
     if (moveActiveToReserve(selectedActiveId)) {
@@ -155,27 +168,32 @@ function refreshPartyUi(): void {
     refreshPartyUi();
   });
 
-  const visitor = isVisitorMode();
+  const locked = isVisitorMode() || partyEditLocked;
   if (swapBtn) {
-    swapBtn.disabled = visitor || !selectedActiveId || !selectedReserveId;
+    swapBtn.disabled = locked || !selectedActiveId || !selectedReserveId;
   }
   if (promoteBtn) {
     promoteBtn.disabled =
-      visitor ||
+      locked ||
       !selectedReserveId ||
       actives.length >= ACTIVE_PARTY_LIMIT;
   }
   if (demoteBtn) {
-    demoteBtn.disabled = visitor || !selectedActiveId;
+    demoteBtn.disabled = locked || !selectedActiveId;
   }
   if (hint) {
-    hint.textContent = visitor
-      ? "Visitor mode — party edits are host-only."
-      : "";
+    hint.textContent = partyEditLocked
+      ? "Party edits are locked during battle."
+      : isVisitorMode()
+        ? "Visitor mode — party edits are host-only."
+        : "";
   }
 }
 
 export function openParty(): void {
+  if (partyEditLocked) {
+    return;
+  }
   const root = ensurePartyRoot();
   selectedActiveId = null;
   selectedReserveId = null;

@@ -63,6 +63,16 @@ describe("active party / reserve", () => {
     expect(getReserveCreatures().map((c) => c.instanceId)).toEqual(["b"]);
   });
 
+  it("restores an explicitly empty active party from snapshot", () => {
+    const creatures = [
+      member({ instanceId: "a", definitionId: "mossling" }),
+      member({ instanceId: "b", definitionId: "ember-wisp" }),
+    ];
+    setPartyFromSnapshot(creatures, 3, []);
+    expect(playerParty.activeInstanceIds).toEqual([]);
+    expect(getReserveCreatures()).toHaveLength(2);
+  });
+
   it("swaps an active creature with a reserve creature", () => {
     const creatures = [
       member({ instanceId: "a", definitionId: "mossling" }),

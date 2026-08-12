@@ -27,12 +27,10 @@ function resolveActiveIds(
 ): string[] {
   const known = new Set(creatures.map((c) => c.instanceId));
   if (preferred !== undefined) {
-    const ids = preferred
+    // Explicit list (including empty) is authoritative; only unknown ids are dropped.
+    return preferred
       .filter((id) => known.has(id))
       .slice(0, ACTIVE_PARTY_LIMIT);
-    if (ids.length > 0 || creatures.length === 0) {
-      return ids;
-    }
   }
   return creatures.slice(0, ACTIVE_PARTY_LIMIT).map((c) => c.instanceId);
 }

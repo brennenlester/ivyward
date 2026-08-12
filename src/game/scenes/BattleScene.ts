@@ -42,6 +42,7 @@ import {
 } from "../encounters/godSail";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { markCreatureDiscovered } from "../world/worldState";
+import { setPartyEditLocked } from "../ui/partyPanel";
 
 type WandererPartnerData = WandererPartner;
 
@@ -50,6 +51,8 @@ export class BattleScene extends Phaser.Scene {
   private wild!: BattleCombatant;
   private player!: BattleCombatant;
   private partyInstanceIndex = -1;
+  /** Stable id for the active combatant; survives party UI reorders. */
+  private partyInstanceId: string | null = null;
   private logText!: Phaser.GameObjects.Text;
   private playerHpText!: Phaser.GameObjects.Text;
   private wildHpText!: Phaser.GameObjects.Text;
@@ -100,6 +103,7 @@ export class BattleScene extends Phaser.Scene {
     this.wildCreatureId = data.wildCreatureId;
     this.waitingForPlayer = true;
     this.partyInstanceIndex = -1;
+    this.partyInstanceId = null;
     this.forcedSwitch = false;
     this.switchMenuOpen = false;
     this.wandererFallbackOpen = false;
@@ -133,12 +137,25 @@ export class BattleScene extends Phaser.Scene {
 
     if (partyCreature) {
       this.partyInstanceIndex = activeIndex;
+      this.partyInstanceId = partyCreature.instanceId;
       this.player = this.combatantFromPartyIndex(activeIndex);
     } else {
       const wanderer = resolveWandererForBattle(data.wandererPartner);
       this.usingArmedWanderer = hasCraftedWeapon();
       this.player = this.combatantFromWanderer(wanderer);
     }
+  }
+
+  /** Resolve active-party index for the bound combatant instance. */
+  private resolvePartyIndex(): number {
+    if (!this.partyInstanceId) {
+      return -1;
+    }
+    const index = getActiveCreatures().findIndex(
+      (c) => c.instanceId === this.partyInstanceId,
+    );
+    this.partyInstanceIndex = index;
+    return index;
   }
 
   private combatantFromWanderer(wanderer: WandererPartnerData): BattleCombatant {
@@ -154,6 +171,10 @@ export class BattleScene extends Phaser.Scene {
   }
 
   create(): void {
+    setPartyEditLocked(true);
+    this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
+      setPartyEditLocked(false);
+    });
     this.scene.bringToTop();
     bindOverlayPixelRatio(this);
     ensureCreatureTextures(this);
@@ -270,7 +291,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private getPlayerSpriteKey(): string {
-    if (this.partyInstanceIndex < 0) {
+    if (this.resolvePartyIndex() < 0) {
       return "player-south-0";
     }
     const spriteKey = getCreatureDefinition(
@@ -281,14 +302,14 @@ export class BattleScene extends Phaser.Scene {
 
   /** Party creatures sit on the left; flip battle crops to face the opponent. */
   private syncPlayerBattleFacing(): void {
-    this.playerSprite.setFlipX(this.partyInstanceIndex >= 0);
+    this.playerSprite.setFlipX(this.resolvePartyIndex() >= 0);
   }
 
   private getPlayerBattleDisplay(): {
     width: number;
     height: number;
   } {
-    return this.partyInstanceIndex < 0
+    return this.resolvePartyIndex() < 0
       ? BATTLE_PLAYER_DISPLAY
       : BATTLE_CREATURE_DISPLAY;
   }
@@ -319,19 +340,21 @@ export class BattleScene extends Phaser.Scene {
   }
 
   private syncActivePartyHp(): void {
-    if (this.partyInstanceIndex < 0) {
+    const index = this.resolvePartyIndex();
+    if (index < 0) {
       return;
     }
-    const partyCreature = getActiveCreatures()[this.partyInstanceIndex];
+    const partyCreature = getActiveCreatures()[index];
     if (partyCreature) {
       partyCreature.currentHp = this.player.currentHp;
     }
   }
 
   private hasSwitchablePartyMembers(): boolean {
+    const currentIndex = this.resolvePartyIndex();
     return getActiveCreatures().some(
       (creature, index) =>
-        index !== this.partyInstanceIndex && creature.currentHp > 0,
+        index !== currentIndex && creature.currentHp > 0,
     );
   }
 
@@ -444,10 +467,11 @@ export class BattleScene extends Phaser.Scene {
 
     let rowY = panelY - 85;
     const actives = getActiveCreatures();
+    const currentIndex = this.resolvePartyIndex();
     for (let index = 0; index < actives.length; index++) {
       const creature = actives[index];
       const def = getCreatureDefinition(creature.definitionId);
-      const isActive = index === this.partyInstanceIndex;
+      const isActive = index === currentIndex;
       const fainted = creature.currentHp <= 0;
       const maxHp = getEffectiveMaxHp(creature);
       const label = fainted
@@ -592,6 +616,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.syncActivePartyHp();
     this.partyInstanceIndex = -1;
+    this.partyInstanceId = null;
     this.usingArmedWanderer = true;
     this.forcedSwitch = false;
     this.player = this.combatantFromWanderer(buildArmedWanderer(weaponId));
@@ -618,6 +643,7 @@ export class BattleScene extends Phaser.Scene {
     const voluntarySwitch = !this.forcedSwitch;
     this.syncActivePartyHp();
     this.partyInstanceIndex = index;
+    this.partyInstanceId = creature.instanceId;
     this.player = this.combatantFromPartyIndex(index);
     this.forcedSwitch = false;
     this.hideSwitchMenu();
@@ -790,7 +816,7 @@ export class BattleScene extends Phaser.Scene {
     } else if (playerWon) {
       const reward = grantSparRewards(
         this.wildCreatureId,
-        this.partyInstanceIndex,
+        this.resolvePartyIndex(),
       );
       this.log(formatRewardMessage(reward));
     } else {
