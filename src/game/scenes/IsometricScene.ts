@@ -66,9 +66,11 @@ import {
 import { consumeAchievementToast } from "../progression/achievements";
 import {
   flashInviteStatus,
+  hideManualInviteUrl,
   measureStatusPanelHeight,
   measureStatusPanelWidth,
   setCopyInviteHandler,
+  showManualInviteUrl,
   updateStatusPanel,
 } from "../ui/statusPanel";
 import {
@@ -83,7 +85,7 @@ import {
   setTouchControlsEnabled,
 } from "../ui/touchControls";
 import { canOccupy } from "../world/collision";
-import { copyInviteLink } from "../world/invite";
+import { shareOrCopyInviteLink } from "../world/invite";
 import { takePendingWorldPosition } from "../world/worldSnapshot";
 import { isVisitorMode } from "../world/worldSession";
 import {
@@ -277,11 +279,15 @@ export class IsometricScene extends Phaser.Scene {
 
     this.scale.on("resize", () => this.onResize());
     window.addEventListener("resize", this.onWindowResize);
+    window.visualViewport?.addEventListener("resize", this.onWindowResize);
+    window.visualViewport?.addEventListener("scroll", this.onWindowResize);
   }
 
   shutdown(): void {
     this.input.keyboard?.off("keydown", this.onGodSailCheatKeyDown);
     window.removeEventListener("resize", this.onWindowResize);
+    window.visualViewport?.removeEventListener("resize", this.onWindowResize);
+    window.visualViewport?.removeEventListener("scroll", this.onWindowResize);
   }
 
   update(_time: number, delta: number): void {
@@ -838,8 +844,10 @@ export class IsometricScene extends Phaser.Scene {
     this.layoutLocked = true;
     try {
       const bounds = this.getZoneWorldBounds(zone);
-      const viewportW = window.innerWidth - SCREEN_MARGIN * 2;
-      const viewportH = window.innerHeight - SCREEN_MARGIN * 2;
+      const viewportCssW = window.visualViewport?.width ?? window.innerWidth;
+      const viewportCssH = window.visualViewport?.height ?? window.innerHeight;
+      const viewportW = Math.max(1, Math.floor(viewportCssW - SCREEN_MARGIN * 2));
+      const viewportH = Math.max(1, Math.floor(viewportCssH - SCREEN_MARGIN * 2));
       const mode = playfieldLayoutMode(viewportW, viewportH);
 
       const playfield = document.getElementById("playfield");
@@ -1608,22 +1616,34 @@ export class IsometricScene extends Phaser.Scene {
       return;
     }
 
-    const hasClipboard = typeof navigator.clipboard?.writeText === "function";
+    hideManualInviteUrl();
     try {
-      const url = await copyInviteLink(
+      const result = await shareOrCopyInviteLink(
         this.currentZoneId,
         this.playerGridX,
         this.playerGridY,
       );
-      if (hasClipboard) {
+      if (result.status === "copied") {
         flashInviteStatus("Invite link copied!", "#d8f0c0");
+      } else if (result.status === "shared") {
+        flashInviteStatus("Invite shared!", "#d8f0c0");
+      } else if (result.status === "manual") {
+        showManualInviteUrl(result.url);
+        flashInviteStatus("Select the invite link to copy", "#d8f0c0");
+      } else if (result.status === "cancelled") {
+        flashInviteStatus("Share cancelled", "#a8a8c8");
       } else {
-        flashInviteStatus("Invite ready (copy from console)", "#d8f0c0");
-        console.info("Ivyward invite link:", url);
+        console.error(result.error);
+        if (result.url) {
+          showManualInviteUrl(result.url);
+          flashInviteStatus("Select the invite link to copy", "#f08080");
+        } else {
+          flashInviteStatus("Failed to share invite", "#f08080");
+        }
       }
     } catch (error) {
       console.error(error);
-      flashInviteStatus("Failed to copy invite", "#f08080");
+      flashInviteStatus("Failed to share invite", "#f08080");
     }
   }
 }

@@ -45,12 +45,6 @@
           </div>
         </div>
         <div id="status-panel" aria-label="Player status">
-          <div id="status-zone" class="status-line status-zone"></div>
-          <div id="status-quest" class="status-line status-quest"></div>
-          <div id="status-quest-hint" class="status-line status-quest-hint"></div>
-          <div id="status-gate" class="status-line status-gate"></div>
-          <div id="status-party" class="status-line status-party"></div>
-          <div id="status-session" class="status-line status-session"></div>
           <div id="status-actions" class="status-actions">
             <button id="copy-invite-btn" type="button" class="status-invite-btn">
               Copy invite link
@@ -71,6 +65,27 @@
               Reset game
             </button>
           </div>
+          <div id="invite-url-box" class="invite-url-box" hidden>
+            <label class="invite-url-label" for="invite-url-input"
+              >Invite link (select and copy)</label
+            >
+            <input
+              id="invite-url-input"
+              class="invite-url-input"
+              type="text"
+              readonly
+              spellcheck="false"
+            />
+            <button id="invite-url-dismiss" type="button" class="invite-url-dismiss">
+              Done
+            </button>
+          </div>
+          <div id="status-zone" class="status-line status-zone"></div>
+          <div id="status-quest" class="status-line status-quest"></div>
+          <div id="status-quest-hint" class="status-line status-quest-hint"></div>
+          <div id="status-gate" class="status-line status-gate"></div>
+          <div id="status-party" class="status-line status-party"></div>
+          <div id="status-session" class="status-line status-session"></div>
         </div>
       </div>
     </div>

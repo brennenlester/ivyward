@@ -9,6 +9,7 @@ body,
 #app {
   width: 100%;
   height: 100%;
+  height: 100dvh;
   overflow: hidden;
   background: #d8efe8;
 }
@@ -18,6 +19,10 @@ body,
   align-items: center;
   justify-content: center;
   padding: 12px;
+  padding: max(12px, env(safe-area-inset-top, 0px))
+    max(12px, env(safe-area-inset-right, 0px))
+    max(12px, env(safe-area-inset-bottom, 0px))
+    max(12px, env(safe-area-inset-left, 0px));
 }
 
 #playfield {
@@ -26,6 +31,7 @@ body,
   align-items: stretch;
   max-width: calc(100vw - 24px);
   max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
 }
 
 #game {
@@ -41,7 +47,7 @@ body,
 }
 
 #status-panel {
-  flex: 0 0 auto;
+  flex: 0 1 auto;
   margin-top: 8px;
   padding: 14px 16px;
   background:
@@ -52,7 +58,11 @@ body,
     inset 0 0 0 1px #ffffffaa,
     0 8px 18px #3a786633;
   font-family: "Source Sans 3", sans-serif;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  max-height: min(46vh, 360px);
+  max-height: min(46dvh, 360px);
 }
 
 .status-line {
@@ -103,11 +113,68 @@ body,
 }
 
 .status-actions {
-  margin-top: 10px;
+  margin-top: 0;
+  margin-bottom: 10px;
   display: flex;
   flex-wrap: wrap;
-  justify-content: flex-end;
+  justify-content: flex-start;
   gap: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding-bottom: 4px;
+  background:
+    linear-gradient(160deg, #fff8ec 0%, #eef8f2 62%, #dff3ea 100%);
+}
+
+.invite-url-box {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 2px solid #80b0d0;
+  border-radius: 12px;
+  background: #f7fbff;
+}
+
+.invite-url-box[hidden] {
+  display: none;
+}
+
+.invite-url-label {
+  display: block;
+  margin-bottom: 6px;
+  color: #345870;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.invite-url-input {
+  display: block;
+  width: 100%;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border: 1px solid #a0c8e0;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #2a4858;
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 12px;
+}
+
+.invite-url-dismiss {
+  border: 2px solid #80b0d0;
+  background: #eef6fc;
+  color: #345870;
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.invite-url-dismiss:focus-visible {
+  outline: 2px solid #6a9ec0;
+  outline-offset: 2px;
 }
 
 .status-invite-btn {
@@ -348,6 +415,7 @@ body,
     margin-left: 8px;
     max-width: min(320px, 42vw);
     max-height: calc(100vh - 24px);
+    max-height: calc(100dvh - 24px);
     overflow-x: hidden;
     overflow-y: auto;
     padding: 10px 12px;
