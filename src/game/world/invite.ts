@@ -108,13 +108,60 @@ export async function copyInviteLink(
   x: number,
   y: number,
 ): Promise<string> {
+  const result = await shareOrCopyInviteLink(zoneId, x, y);
+  if (result.status === "failed") {
+    throw result.error instanceof Error
+      ? result.error
+      : new Error("Failed to share invite");
+  }
+  return result.url;
+}
+
+export type InviteShareResult =
+  | { status: "copied"; url: string }
+  | { status: "shared"; url: string }
+  | { status: "manual"; url: string }
+  | { status: "cancelled"; url: string }
+  | { status: "failed"; url?: string; error: unknown };
+
+/**
+ * Host invite delivery for desktop + mobile:
+ * clipboard → native share sheet → on-screen manual URL (never console-only).
+ */
+export async function shareOrCopyInviteLink(
+  zoneId: ZoneId,
+  x: number,
+  y: number,
+): Promise<InviteShareResult> {
   if (isVisitorMode()) {
-    throw new Error("Visitors cannot create invite links");
+    return {
+      status: "failed",
+      error: new Error("Visitors cannot create invite links"),
+    };
   }
 
   const url = buildInviteUrl(zoneId, x, y);
-  if (navigator.clipboard?.writeText) {
-    await navigator.clipboard.writeText(url);
+
+  if (typeof navigator.clipboard?.writeText === "function") {
+    try {
+      await navigator.clipboard.writeText(url);
+      return { status: "copied", url };
+    } catch {
+      // Fall through to share / manual — common on mobile Safari.
+    }
   }
-  return url;
+
+  if (typeof navigator.share === "function") {
+    try {
+      await navigator.share({ title: "Ivyward invite", url, text: url });
+      return { status: "shared", url };
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return { status: "cancelled", url };
+      }
+      // Fall through to manual URL.
+    }
+  }
+
+  return { status: "manual", url };
 }

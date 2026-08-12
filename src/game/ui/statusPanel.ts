@@ -127,6 +127,37 @@ export function measureStatusPanelWidth(): number {
   return panel?.offsetWidth ?? 240;
 }
 
+export function showManualInviteUrl(url: string): void {
+  const box = document.getElementById("invite-url-box");
+  const input = document.getElementById(
+    "invite-url-input",
+  ) as HTMLInputElement | null;
+  if (!box || !input) {
+    return;
+  }
+  input.value = url;
+  box.hidden = false;
+  // Select so mobile users can use the native copy affordance.
+  input.focus();
+  input.select();
+  input.setSelectionRange(0, input.value.length);
+  const panel = document.getElementById("status-panel");
+  panel?.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+export function hideManualInviteUrl(): void {
+  const box = document.getElementById("invite-url-box");
+  const input = document.getElementById(
+    "invite-url-input",
+  ) as HTMLInputElement | null;
+  if (box) {
+    box.hidden = true;
+  }
+  if (input) {
+    input.value = "";
+  }
+}
+
 let statusControlsInitialized = false;
 
 export function initStatusPanelControls(): void {
@@ -177,5 +208,10 @@ export function initStatusPanelControls(): void {
   const inventoryBtn = document.getElementById("inventory-btn");
   if (inventoryBtn) {
     inventoryBtn.addEventListener("click", () => openInventory());
+  }
+
+  const inviteDismiss = document.getElementById("invite-url-dismiss");
+  if (inviteDismiss) {
+    inviteDismiss.addEventListener("click", () => hideManualInviteUrl());
   }
 }

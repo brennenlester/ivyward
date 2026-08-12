@@ -81,7 +81,7 @@ Filling every codex page (all 27 creatures that appear in habitat encounter tabl
 
 ### Friend invites
 
-1. As **host**, tap **Copy invite link** in the status panel (or press **I**) to copy an invite URL (party, inventory, quests, and position).
+1. As **host**, tap **Copy invite link** at the top of the status panel (or press **I**). On phones this copies when possible, otherwise opens the share sheet or shows a selectable invite URL.
 2. Open the link in another browser/tab to join as a **visitor**.
 3. Visitors can explore the host snapshot but **cannot** trigger encounters, craft, or advance quests.
 4. Broken or tampered `?join=` links show an error screen and do not change your local save.
