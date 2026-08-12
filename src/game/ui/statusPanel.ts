@@ -7,6 +7,7 @@ import { resetHostGame } from "../world/worldSave";
 import type { ZoneDefinition } from "../world/zoneTypes";
 import { openCodex } from "./codex";
 import { openParty } from "./partyPanel";
+import { openInventory } from "./inventoryPanel";
 
 let inviteFeedbackActive = false;
 
@@ -121,5 +122,10 @@ export function initStatusPanelControls(): void {
   const partyBtn = document.getElementById("party-btn");
   if (partyBtn) {
     partyBtn.addEventListener("click", () => openParty());
+  }
+
+  const inventoryBtn = document.getElementById("inventory-btn");
+  if (inventoryBtn) {
+    inventoryBtn.addEventListener("click", () => openInventory());
   }
 }
