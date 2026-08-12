@@ -23,6 +23,13 @@ export function setCopyInviteHandler(
   handler: (() => void | Promise<void>) | null,
 ): void {
   copyInviteHandler = handler;
+  const copyInviteBtn = document.getElementById(
+    "copy-invite-btn",
+  ) as HTMLButtonElement | null;
+  if (!copyInviteBtn || isVisitorMode()) {
+    return;
+  }
+  copyInviteBtn.disabled = handler === null;
 }
 
 function defaultSessionColor(): string {
@@ -124,10 +131,12 @@ export function initStatusPanelControls(): void {
   statusControlsInitialized = true;
 
   const copyInviteBtn = document.getElementById("copy-invite-btn");
-  if (copyInviteBtn) {
+  if (copyInviteBtn instanceof HTMLButtonElement) {
     copyInviteBtn.hidden = isVisitorMode();
+    // Disabled until IsometricScene registers the live-position handler.
+    copyInviteBtn.disabled = isVisitorMode() || copyInviteHandler === null;
     copyInviteBtn.addEventListener("click", () => {
-      if (isVisitorMode()) {
+      if (isVisitorMode() || copyInviteBtn.disabled) {
         return;
       }
       void copyInviteHandler?.();

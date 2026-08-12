@@ -132,6 +132,11 @@ body,
   outline-offset: 2px;
 }
 
+.status-invite-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
 .status-mute-btn {
   border: 2px solid #6eb8a8;
   background: #e8f7f2;

@@ -17,14 +17,37 @@ describe("Copy invite link status control", () => {
     const session = await import("../world/worldSession");
     const mod = await import("./statusPanel");
     session.setVisitorMode(false);
-    const handler = vi.fn();
-    mod.setCopyInviteHandler(handler);
     mod.initStatusPanelControls();
 
     const btn = document.getElementById("copy-invite-btn") as HTMLButtonElement;
     expect(btn.hidden).toBe(false);
+    expect(btn.disabled).toBe(true);
+
+    const handler = vi.fn();
+    mod.setCopyInviteHandler(handler);
+    expect(btn.disabled).toBe(false);
     btn.click();
     expect(handler).toHaveBeenCalledTimes(1);
+  });
+
+  it("stays disabled before a handler is registered", async () => {
+    document.body.innerHTML = `
+      <button id="copy-invite-btn" type="button">Copy invite link</button>
+      <button id="reset-game-btn" type="button">Reset game</button>
+      <button id="codex-btn" type="button">Codex</button>
+      <button id="party-btn" type="button">Party</button>
+      <button id="inventory-btn" type="button">Inventory</button>
+    `;
+    const session = await import("../world/worldSession");
+    const mod = await import("./statusPanel");
+    session.setVisitorMode(false);
+    const handler = vi.fn();
+    mod.initStatusPanelControls();
+
+    const btn = document.getElementById("copy-invite-btn") as HTMLButtonElement;
+    expect(btn.disabled).toBe(true);
+    btn.click();
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it("hides Copy invite link for visitors and does not call the handler", async () => {
