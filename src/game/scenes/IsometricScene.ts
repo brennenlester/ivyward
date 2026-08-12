@@ -1627,11 +1627,14 @@ export class IsometricScene extends Phaser.Scene {
         flashInviteStatus("Invite link copied!", "#d8f0c0");
       } else if (result.status === "shared") {
         flashInviteStatus("Invite shared!", "#d8f0c0");
-      } else if (result.status === "manual") {
+      } else if (result.status === "manual" || result.status === "cancelled") {
         showManualInviteUrl(result.url);
-        flashInviteStatus("Select the invite link to copy", "#d8f0c0");
-      } else if (result.status === "cancelled") {
-        flashInviteStatus("Share cancelled", "#a8a8c8");
+        flashInviteStatus(
+          result.status === "cancelled"
+            ? "Share cancelled — select the invite link to copy"
+            : "Select the invite link to copy",
+          "#d8f0c0",
+        );
       } else {
         console.error(result.error);
         if (result.url) {
