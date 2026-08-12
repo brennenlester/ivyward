@@ -1,5 +1,4 @@
 import { getPartySummary } from "../creatures/party";
-import { getInventorySummary } from "../inventory/playerInventory";
 import { getGateStatusText, getQuestHint, getQuestSummary } from "../story/questProgress";
 import { getActiveSideQuestHint } from "../world/npcState";
 import { getHostLabel, isVisitorMode } from "../world/worldSession";
@@ -27,7 +26,6 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
   const questHintEl = document.getElementById("status-quest-hint");
   const gateEl = document.getElementById("status-gate");
   const partyEl = document.getElementById("status-party");
-  const materialsEl = document.getElementById("status-materials");
   const sessionEl = document.getElementById("status-session");
 
   if (zoneEl) {
@@ -50,9 +48,6 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
   }
   if (partyEl) {
     partyEl.textContent = getPartySummary();
-  }
-  if (materialsEl) {
-    materialsEl.textContent = getInventorySummary();
   }
   if (sessionEl && !inviteFeedbackActive) {
     sessionEl.textContent = defaultSessionText();
