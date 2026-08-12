@@ -2,7 +2,7 @@
 
 A browser folklore RPG: explore isometric zones, befriend creatures, spar for materials, craft at Moon Shrine, then invite friends into your world.
 
-**Play:** [ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app)
+**Play:** [ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app) (tracks latest production). If it ever looks stale, use [ivyward-git-main-brennen1.vercel.app](https://ivyward-git-main-brennen1.vercel.app) or [poke-wine-kappa.vercel.app](https://poke-wine-kappa.vercel.app).
 
 ---
 

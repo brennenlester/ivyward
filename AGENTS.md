@@ -5,7 +5,9 @@ This repository follows the shared agent baseline supplied by the active harness
 ## Project links
 
 - **GitHub repo / issues (tracker of record):** [brennenlester/ivyward](https://github.com/brennenlester/ivyward)
-- **Play (canonical):** [https://ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app) — after merge, share only this URL (not `*-git-codex-*` or other branch preview URLs) unless the user asks for a pre-merge preview.
+- **Play (canonical):** [https://ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app) — after merge, share only this URL (not `*-git-codex-*` or other hashed preview URLs) unless the user asks for a pre-merge preview.
+  - This hostname must track latest Production. GitHub Action `Alias canonical play URL` re-aliases it when `VERCEL_TOKEN` is set; otherwise run `./scripts/alias-canonical-play.sh` after a production deploy.
+  - Auto-updating fallbacks (if the branded alias is temporarily stale): [ivyward-git-main-brennen1.vercel.app](https://ivyward-git-main-brennen1.vercel.app) or [poke-wine-kappa.vercel.app](https://poke-wine-kappa.vercel.app).
 - **Linear project (historical, read-only):** [Ivyward](https://linear.app/brennen-lester/project/ivyward-f73601c7fa30) — BRE-* history only; never create or mutate Linear work for this project
 
 ## GitHub-Issues-first workflow

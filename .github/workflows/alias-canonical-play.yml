@@ -1,0 +1,84 @@
+name: Alias canonical play URL
+
+# Keep https://ivyward-brennen1.vercel.app pointed at the latest Production deploy.
+# Requires repo secret VERCEL_TOKEN (Vercel → Account → Tokens).
+
+on:
+  deployment_status:
+
+concurrency:
+  group: alias-canonical-play
+  cancel-in-progress: false
+
+jobs:
+  alias-canonical:
+    # Note: do not reference `secrets` in job-level `if` (unavailable there).
+    if: >
+      github.event.deployment_status.state == 'success' &&
+      (
+        github.event.deployment.environment == 'Production' ||
+        github.event.deployment.environment == 'production'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require VERCEL_TOKEN
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: |
+          if [ -z "${VERCEL_TOKEN:-}" ]; then
+            echo "::error::VERCEL_TOKEN secret is not set; cannot alias canonical play URL."
+            echo "Add a Vercel token at repo Settings → Secrets, or run ./scripts/alias-canonical-play.sh locally."
+            exit 1
+          fi
+
+      # Always use trusted main branch code — never run scripts from a deployment ref.
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Alias ivyward-brennen1.vercel.app to latest production
+        id: alias
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_SCOPE: brennen1
+        run: |
+          set -euo pipefail
+          chmod +x scripts/alias-canonical-play.sh
+          # Always re-resolve latest READY production so overlapping deploy events
+          # cannot leave the canonical hostname on an older build.
+          ./scripts/alias-canonical-play.sh
+          resolved="$(
+            npx vercel@latest ls ivyward --prod --status READY --scope brennen1 --format json 2>/dev/null \
+              | node -e '
+                const fs = require("fs");
+                const data = JSON.parse(fs.readFileSync(0, "utf8"));
+                const deployments = Array.isArray(data) ? data : data.deployments || [];
+                const first = deployments.find((d) => d && d.url) || deployments[0];
+                if (!first || !first.url) process.exit(2);
+                process.stdout.write("https://" + String(first.url).replace(/^https?:\/\//, ""));
+              '
+          )"
+          echo "target_url=$resolved" >> "$GITHUB_OUTPUT"
+
+      - name: Verify canonical matches latest production
+        env:
+          TARGET_URL: ${{ steps.alias.outputs.target_url }}
+        run: |
+          set -euo pipefail
+          sleep 3
+          canon_js="$(curl -fsSL https://ivyward-brennen1.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          if [ -z "${TARGET_URL:-}" ]; then
+            echo "Missing target_url from alias step" >&2
+            exit 1
+          fi
+          prod_js="$(curl -fsSL "${TARGET_URL}/" | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          echo "canonical=$canon_js"
+          echo "production=$prod_js (from $TARGET_URL)"
+          test -n "$canon_js"
+          test "$canon_js" = "$prod_js"
