@@ -7,11 +7,17 @@ import {
 } from "../inventory/playerInventory";
 import { applyShrineFusion, getEligibleCreaturesForItem } from "../shrine/fusion";
 import {
+  applyEclipseFusion,
   applyGodFusion,
   findGodFusionParents,
+  findHorizonFusionParents,
   SOVEREIGN_SEAL_ID,
 } from "../shrine/godFusion";
-import { isGodFusionCompleted } from "../world/worldState";
+import {
+  isEclipseFusionCompleted,
+  getHorizonFusionCount,
+  MAX_HORIZON_FUSIONS,
+} from "../world/worldState";
 import { getEffectsForItem } from "../shrine/shrineEffects";
 import {
   applyConsumable,
@@ -625,9 +631,9 @@ export class ShrineScene extends Phaser.Scene {
     });
     this.contentContainer.add(back);
 
-    if (isGodFusionCompleted()) {
+    if (isEclipseFusionCompleted()) {
       const done = this.add
-        .text(cx, contentTop + 56, "The sovereigns have already been fused.", {
+        .text(cx, contentTop + 56, "Eclipse Sovereign has already been fused.", {
           color: MOON_MUTED,
           fontFamily: "system-ui, sans-serif",
           fontSize: "14px",
@@ -636,6 +642,65 @@ export class ShrineScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       this.contentContainer.add(done);
+      return;
+    }
+
+    const { first, second } = findHorizonFusionParents();
+    if (first && second) {
+      const summary = this.add
+        .text(
+          cx,
+          contentTop + 52,
+          `Horizon Sovereign Lv.${first.level} + Horizon Sovereign Lv.${second.level}`,
+          {
+            color: MOON_TEXT,
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "14px",
+            align: "center",
+          },
+        )
+        .setOrigin(0.5);
+      this.contentContainer.add(summary);
+
+      const btn = this.add
+        .text(cx, contentTop + 96, "Fuse into Eclipse Sovereign", {
+          color: "#1a1a2e",
+          backgroundColor: "#e0d4f0",
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          padding: { x: 12, y: 8 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+
+      this.onContentTap(btn, () => {
+        const result = applyEclipseFusion(
+          first.instanceId,
+          second.instanceId,
+          itemId,
+        );
+        this.setStatus(result.message);
+        if (result.ok) {
+          notifyWorldChanged();
+          this.selectedItemId = null;
+        }
+        this.renderTabContent();
+      });
+      this.contentContainer.add(btn);
+      return;
+    }
+
+    if (getHorizonFusionCount() >= MAX_HORIZON_FUSIONS) {
+      const needHorizons = this.add
+        .text(cx, contentTop + 56, "Requires two Horizon Sovereigns in your party.", {
+          color: MOON_MUTED,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          align: "center",
+          wordWrap: { width: 400 },
+        })
+        .setOrigin(0.5);
+      this.contentContainer.add(needHorizons);
       return;
     }
 

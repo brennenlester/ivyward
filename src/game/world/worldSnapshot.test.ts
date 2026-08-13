@@ -32,9 +32,12 @@ import {
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
 import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
 import {
+  getHorizonFusionCount,
+  isEclipseFusionCompleted,
   isGodFusionCompleted,
   isGodLandEncounterClaimed,
   isGodSailEncounterClaimed,
+  setEclipseFusionCompleted,
   setGodFusionCompleted,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
@@ -151,6 +154,27 @@ describe("isValidWorldSnapshot", () => {
       isValidWorldSnapshot({
         ...validSnapshot(),
         godFusionCompleted: "yes",
+      }),
+    ).toBe(false);
+  });
+
+  it("soft-adds and validates horizon fusion count and Eclipse flag", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ horizonFusionCount: 2 })),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot(validSnapshot({ eclipseFusionCompleted: true })),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        horizonFusionCount: 3,
+      }),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        eclipseFusionCompleted: "yes",
       }),
     ).toBe(false);
   });
@@ -405,6 +429,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     setGodSailEncounterClaimed(false, false);
     setGodLandEncounterClaimed(false, false);
     setGodFusionCompleted(false, false);
+    setEclipseFusionCompleted(false, false);
   });
 
   it("restores the god sail claim and defaults older saves to unclaimed", () => {
@@ -429,6 +454,48 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(isGodFusionCompleted()).toBe(false);
+  });
+
+  it("treats a legacy Horizon-complete save as one fusion and reopens parent hunts", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        godFusionCompleted: true,
+        godSailEncounterClaimed: true,
+        godLandEncounterClaimed: true,
+        party: [
+          partyMember({
+            instanceId: "h1",
+            definitionId: "horizon-sovereign",
+            speciesId: "horizon-sovereign",
+          }),
+        ],
+      }),
+    );
+    expect(isGodFusionCompleted()).toBe(true);
+    expect(getHorizonFusionCount()).toBe(1);
+    expect(isEclipseFusionCompleted()).toBe(false);
+    expect(isGodSailEncounterClaimed()).toBe(false);
+    expect(isGodLandEncounterClaimed()).toBe(false);
+
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 });
+    expect(exported.horizonFusionCount).toBe(1);
+    expect(exported.eclipseFusionCompleted).toBe(false);
+  });
+
+  it("round-trips Eclipse completion without reopening parent hunts", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        godFusionCompleted: true,
+        horizonFusionCount: 2,
+        eclipseFusionCompleted: true,
+        godSailEncounterClaimed: true,
+        godLandEncounterClaimed: true,
+      }),
+    );
+    expect(isEclipseFusionCompleted()).toBe(true);
+    expect(getHorizonFusionCount()).toBe(2);
+    expect(isGodSailEncounterClaimed()).toBe(true);
+    expect(isGodLandEncounterClaimed()).toBe(true);
   });
 
   it("round-trips activePartyIds through apply and export", () => {
