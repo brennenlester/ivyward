@@ -1,8 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
+  canShowInventoryConsumableUse,
   closeInventory,
   listInventoryLines,
   openInventory,
+  useInventoryConsumable,
   usePortableMoonshrine,
 } from "./inventoryPanel";
 import { closeRecipes, isRecipesOpen } from "./recipePanel";
@@ -64,6 +66,66 @@ describe("openInventory", () => {
     expect(isRecipesOpen()).toBe(true);
     expect(document.getElementById("recipes-overlay")?.hidden).toBe(false);
   });
+
+  it("shows Use on shrine consumables only when a Portable Moonshrine is owned", () => {
+    setInventoryFromSnapshot({ wood: 1 }, { "brook-tonic": 1 });
+    openInventory();
+    expect(
+      document.querySelector('[data-inventory-use="brook-tonic"]'),
+    ).toBeNull();
+    closeInventory();
+    setInventoryFromSnapshot(
+      { wood: 1 },
+      { "brook-tonic": 1, "portable-moonshrine": 1 },
+    );
+    openInventory();
+    expect(
+      document.querySelector('[data-inventory-use="brook-tonic"]'),
+    ).toBeTruthy();
+    setVisitorMode(true);
+    closeInventory();
+    openInventory();
+    expect(
+      document.querySelector('[data-inventory-use="brook-tonic"]'),
+    ).toBeNull();
+  });
+});
+
+describe("canShowInventoryConsumableUse", () => {
+  beforeEach(() => {
+    setVisitorMode(false);
+    setInventoryFromSnapshot({}, {});
+  });
+
+  it("is false without a Portable Moonshrine", () => {
+    setInventoryFromSnapshot({}, { "brook-tonic": 1 });
+    expect(canShowInventoryConsumableUse("brook-tonic")).toBe(false);
+  });
+
+  it("is true for shrine consumables when the host owns a Portable Moonshrine", () => {
+    setInventoryFromSnapshot(
+      {},
+      {
+        "portable-moonshrine": 1,
+        "brook-tonic": 1,
+        "moonwake-draught": 1,
+        "brook-crystal": 2,
+      },
+    );
+    expect(canShowInventoryConsumableUse("brook-tonic")).toBe(true);
+    expect(canShowInventoryConsumableUse("moonwake-draught")).toBe(true);
+    expect(canShowInventoryConsumableUse("brook-crystal")).toBe(true);
+    expect(canShowInventoryConsumableUse("boat")).toBe(false);
+  });
+
+  it("is false for visitors", () => {
+    setInventoryFromSnapshot(
+      {},
+      { "portable-moonshrine": 1, "brook-tonic": 1 },
+    );
+    setVisitorMode(true);
+    expect(canShowInventoryConsumableUse("brook-tonic")).toBe(false);
+  });
 });
 
 describe("usePortableMoonshrine", () => {
@@ -80,5 +142,22 @@ describe("usePortableMoonshrine", () => {
     window.removeEventListener(OPEN_PORTABLE_SHRINE_EVENT, onOpen);
     expect(getItemCount("portable-moonshrine")).toBe(1);
     expect(events).toHaveLength(1);
+  });
+
+  it("opens the portable shrine Use tab for a consumable without consuming the shrine", () => {
+    setInventoryFromSnapshot(
+      {},
+      { "portable-moonshrine": 1, "brook-tonic": 2 },
+    );
+    const details: unknown[] = [];
+    const onOpen = (event: Event) => {
+      details.push((event as CustomEvent).detail);
+    };
+    window.addEventListener(OPEN_PORTABLE_SHRINE_EVENT, onOpen);
+    useInventoryConsumable("brook-tonic");
+    window.removeEventListener(OPEN_PORTABLE_SHRINE_EVENT, onOpen);
+    expect(getItemCount("portable-moonshrine")).toBe(1);
+    expect(getItemCount("brook-tonic")).toBe(2);
+    expect(details).toEqual([{ tab: "use", itemId: "brook-tonic" }]);
   });
 });

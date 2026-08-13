@@ -12,7 +12,9 @@ import {
   OPEN_PORTABLE_SHRINE_EVENT,
   PORTABLE_MOONSHRINE_ID,
   type CraftingHudHandle,
+  type OpenPortableShrineDetail,
 } from "./craftingHud";
+import { isConsumableItem } from "../shrine/consumables";
 import { openRecipes } from "./recipePanel";
 
 export type InventoryLine = {
@@ -163,9 +165,20 @@ function renderInventoryBody(): void {
           const useBtn = document.createElement("button");
           useBtn.type = "button";
           useBtn.className = "inventory-use";
+          useBtn.dataset.inventoryUse = line.id;
           useBtn.textContent = "Use";
           useBtn.addEventListener("click", () => {
             usePortableMoonshrine();
+          });
+          li.appendChild(useBtn);
+        } else if (canShowInventoryConsumableUse(line.id)) {
+          const useBtn = document.createElement("button");
+          useBtn.type = "button";
+          useBtn.className = "inventory-use";
+          useBtn.dataset.inventoryUse = line.id;
+          useBtn.textContent = "Use";
+          useBtn.addEventListener("click", () => {
+            useInventoryConsumable(line.id);
           });
           li.appendChild(useBtn);
         }
@@ -188,6 +201,14 @@ function ownsPortableMoonshrine(): boolean {
   return getItemCount(PORTABLE_MOONSHRINE_ID) >= 1;
 }
 
+export function canShowInventoryConsumableUse(itemId: string): boolean {
+  return (
+    !isVisitorMode() &&
+    ownsPortableMoonshrine() &&
+    isConsumableItem(itemId)
+  );
+}
+
 function syncInventoryCraftHud(root: HTMLElement): void {
   const craftHost = root.querySelector("#inventory-craft");
   const intro = root.querySelector("#inventory-intro");
@@ -197,7 +218,7 @@ function syncInventoryCraftHud(root: HTMLElement): void {
   const showGrid = ownsPortableMoonshrine();
   if (intro) {
     intro.textContent = showGrid
-      ? "Drag materials onto the 4×4 to craft. Use the Portable Moonshrine for Craft and Use away from the altar."
+      ? "Drag materials onto the 4×4 to craft. Use tonics here, or Use the Portable Moonshrine for Craft and Use away from the altar."
       : "Materials and items in your pack. Craft at Moon Shrine. Recipes shows the patterns.";
   }
   if (!showGrid) {
@@ -263,10 +284,23 @@ export function isInventoryOpen(): boolean {
 }
 
 /** Opens the portable shrine UI without consuming the item. */
-export function usePortableMoonshrine(): void {
-  if (isVisitorMode()) {
+export function usePortableMoonshrine(
+  detail: OpenPortableShrineDetail = {},
+): void {
+  if (isVisitorMode() || !ownsPortableMoonshrine()) {
     return;
   }
   closeInventory();
-  window.dispatchEvent(new CustomEvent(OPEN_PORTABLE_SHRINE_EVENT));
+  window.dispatchEvent(
+    new CustomEvent<OpenPortableShrineDetail>(OPEN_PORTABLE_SHRINE_EVENT, {
+      detail,
+    }),
+  );
+}
+
+export function useInventoryConsumable(itemId: string): void {
+  if (!canShowInventoryConsumableUse(itemId)) {
+    return;
+  }
+  usePortableMoonshrine({ tab: "use", itemId });
 }

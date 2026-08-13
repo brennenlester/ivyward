@@ -153,6 +153,7 @@ import { getItemCount } from "../inventory/playerInventory";
 import {
   OPEN_PORTABLE_SHRINE_EVENT,
   PORTABLE_MOONSHRINE_ID,
+  type OpenPortableShrineDetail,
 } from "../ui/craftingHud";
 
 const FLOOR_LAYER = 0;
@@ -1547,18 +1548,26 @@ export class IsometricScene extends Phaser.Scene {
     return true;
   }
 
-  private onPortableShrineOpen = (): void => {
+  private onPortableShrineOpen = (event: Event): void => {
     if (this.inShrine || this.inEncounter || this.inDialogue) {
       return;
     }
     if (isVisitorMode() || getItemCount(PORTABLE_MOONSHRINE_ID) < 1) {
       return;
     }
+    const detail =
+      event instanceof CustomEvent
+        ? (event.detail as OpenPortableShrineDetail | undefined)
+        : undefined;
     this.inShrine = true;
     setTouchControlsEnabled(false);
     playShrineSfx(this);
     this.scene.pause();
-    this.scene.launch("ShrineScene", { mode: "portable" });
+    this.scene.launch("ShrineScene", {
+      mode: "portable",
+      tab: detail?.tab,
+      itemId: detail?.itemId,
+    });
   };
 
   private tryDoorInteract(): boolean {
