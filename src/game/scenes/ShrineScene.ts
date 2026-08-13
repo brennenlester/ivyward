@@ -31,6 +31,7 @@ import {
   showShrineCraftingHud,
 } from "../ui/craftingHud";
 import { openRecipes } from "../ui/recipePanel";
+import { shrineTabContentHeight } from "../ui/shrineContentScroll";
 
 const MOON_PANEL = 0x354d78;
 const MOON_STROKE = 0xffedb0;
@@ -502,7 +503,7 @@ export class ShrineScene extends Phaser.Scene {
         this.contentContainer.add(btn);
         y += 44;
       }
-      this.contentHeight = y - contentTop;
+      this.contentHeight = shrineTabContentHeight(y, contentTop);
       return;
     }
 
@@ -591,6 +592,7 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(btn);
       y += 38;
     }
+    this.contentHeight = shrineTabContentHeight(y, contentTop);
   }
 
   private renderGodFusion(
@@ -752,6 +754,7 @@ export class ShrineScene extends Phaser.Scene {
         this.contentContainer.add(btn);
         y += 44;
       }
+      this.contentHeight = shrineTabContentHeight(y, contentTop);
       return;
     }
 
@@ -836,6 +839,7 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(btn);
       y += 38;
     }
+    this.contentHeight = shrineTabContentHeight(y, contentTop);
   }
 
   private setStatus(message: string): void {
