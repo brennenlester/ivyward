@@ -7,6 +7,7 @@ import type { ZoneDefinition } from "../world/zoneTypes";
 import { openCodex } from "./codex";
 import { openParty } from "./partyPanel";
 import { openInventory } from "./inventoryPanel";
+import { openRecipes } from "./recipePanel";
 
 let inviteFeedbackActive = false;
 let copyInviteHandler: (() => void | Promise<void>) | null = null;
@@ -208,6 +209,11 @@ export function initStatusPanelControls(): void {
   const inventoryBtn = document.getElementById("inventory-btn");
   if (inventoryBtn) {
     inventoryBtn.addEventListener("click", () => openInventory());
+  }
+
+  const recipesBtn = document.getElementById("recipes-btn");
+  if (recipesBtn) {
+    recipesBtn.addEventListener("click", () => openRecipes());
   }
 
   const inviteDismiss = document.getElementById("invite-url-dismiss");

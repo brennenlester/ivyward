@@ -150,6 +150,10 @@ import {
   type ChunkEnsureResult,
 } from "../world/archipelagoStream";
 import { getItemCount } from "../inventory/playerInventory";
+import {
+  OPEN_PORTABLE_SHRINE_EVENT,
+  PORTABLE_MOONSHRINE_ID,
+} from "../ui/craftingHud";
 
 const FLOOR_LAYER = 0;
 const PROP_LAYER = 0.45;
@@ -300,6 +304,10 @@ export class IsometricScene extends Phaser.Scene {
     window.addEventListener("resize", this.onWindowResize);
     window.visualViewport?.addEventListener("resize", this.onWindowResize);
     window.visualViewport?.addEventListener("scroll", this.onWindowResize);
+    window.addEventListener(
+      OPEN_PORTABLE_SHRINE_EVENT,
+      this.onPortableShrineOpen,
+    );
   }
 
   shutdown(): void {
@@ -307,6 +315,10 @@ export class IsometricScene extends Phaser.Scene {
     window.removeEventListener("resize", this.onWindowResize);
     window.visualViewport?.removeEventListener("resize", this.onWindowResize);
     window.visualViewport?.removeEventListener("scroll", this.onWindowResize);
+    window.removeEventListener(
+      OPEN_PORTABLE_SHRINE_EVENT,
+      this.onPortableShrineOpen,
+    );
   }
 
   update(_time: number, delta: number): void {
@@ -1531,9 +1543,23 @@ export class IsometricScene extends Phaser.Scene {
       this.shrinePrompt = undefined;
     }
     this.scene.pause();
-    this.scene.launch("ShrineScene");
+    this.scene.launch("ShrineScene", { mode: "altar" });
     return true;
   }
+
+  private onPortableShrineOpen = (): void => {
+    if (this.inShrine || this.inEncounter || this.inDialogue) {
+      return;
+    }
+    if (isVisitorMode() || getItemCount(PORTABLE_MOONSHRINE_ID) < 1) {
+      return;
+    }
+    this.inShrine = true;
+    setTouchControlsEnabled(false);
+    playShrineSfx(this);
+    this.scene.pause();
+    this.scene.launch("ShrineScene", { mode: "portable" });
+  };
 
   private tryDoorInteract(): boolean {
     const door = this.getNearbyDoor();

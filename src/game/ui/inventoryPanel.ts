@@ -3,9 +3,17 @@ import {
   getMaterialName,
 } from "../inventory/materials";
 import {
+  getItemCount,
   playerInventory,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
+import {
+  mountCraftingHud,
+  OPEN_PORTABLE_SHRINE_EVENT,
+  PORTABLE_MOONSHRINE_ID,
+  type CraftingHudHandle,
+} from "./craftingHud";
+import { openRecipes } from "./recipePanel";
 
 export type InventoryLine = {
   kind: "material" | "item";
@@ -45,9 +53,14 @@ export function listInventoryLines(
 
 let inventoryOpen = false;
 let previouslyFocused: HTMLElement | null = null;
+let inventoryCraftHud: CraftingHudHandle | null = null;
 
 function onInventoryKeyDown(event: KeyboardEvent): void {
   if (!inventoryOpen) {
+    return;
+  }
+  const recipes = document.getElementById("recipes-overlay");
+  if (recipes && !recipes.hidden) {
     return;
   }
   // Capture-phase: block Phaser / world hotkeys while the modal is open.
@@ -82,14 +95,21 @@ function ensureInventoryRoot(): HTMLElement {
     <div class="inventory-panel" role="dialog" aria-labelledby="inventory-title">
       <div class="inventory-header">
         <h2 id="inventory-title">Inventory</h2>
-        <button type="button" id="inventory-close" class="inventory-close">Close</button>
+        <div class="inventory-header-actions">
+          <button type="button" id="inventory-recipes" class="inventory-close">Recipes</button>
+          <button type="button" id="inventory-close" class="inventory-close">Close</button>
+        </div>
       </div>
-      <p class="inventory-intro">Materials and items you are carrying. Use them at Moon Shrine or in the field.</p>
+      <p id="inventory-intro" class="inventory-intro"></p>
+      <div id="inventory-craft" class="inventory-craft" hidden></div>
       <div id="inventory-body" class="inventory-body"></div>
       <p id="inventory-hint" class="inventory-hint"></p>
     </div>
   `;
   document.getElementById("app")?.appendChild(root);
+  root.querySelector("#inventory-recipes")?.addEventListener("click", () => {
+    openRecipes();
+  });
   root.querySelector("#inventory-close")?.addEventListener("click", closeInventory);
   root.addEventListener("click", (event) => {
     if (event.target === root) {
@@ -135,6 +155,20 @@ function renderInventoryBody(): void {
         count.className = "inventory-count";
         count.textContent = `×${line.count}`;
         li.append(name, count);
+        if (
+          line.kind === "item" &&
+          line.id === PORTABLE_MOONSHRINE_ID &&
+          !isVisitorMode()
+        ) {
+          const useBtn = document.createElement("button");
+          useBtn.type = "button";
+          useBtn.className = "inventory-use";
+          useBtn.textContent = "Use";
+          useBtn.addEventListener("click", () => {
+            usePortableMoonshrine();
+          });
+          li.appendChild(useBtn);
+        }
         list.appendChild(li);
       }
       section.appendChild(list);
@@ -150,9 +184,46 @@ function renderInventoryBody(): void {
   }
 }
 
+function ownsPortableMoonshrine(): boolean {
+  return getItemCount(PORTABLE_MOONSHRINE_ID) >= 1;
+}
+
+function syncInventoryCraftHud(root: HTMLElement): void {
+  const craftHost = root.querySelector("#inventory-craft");
+  const intro = root.querySelector("#inventory-intro");
+  if (!(craftHost instanceof HTMLElement)) {
+    return;
+  }
+  const showGrid = ownsPortableMoonshrine();
+  if (intro) {
+    intro.textContent = showGrid
+      ? "Drag materials onto the 4×4 to craft. Use the Portable Moonshrine for Craft and Use away from the altar."
+      : "Materials and items in your pack. Craft at Moon Shrine. Recipes shows the patterns.";
+  }
+  if (!showGrid) {
+    inventoryCraftHud?.destroy();
+    inventoryCraftHud = null;
+    craftHost.hidden = true;
+    craftHost.replaceChildren();
+    return;
+  }
+  craftHost.hidden = false;
+  if (!inventoryCraftHud) {
+    inventoryCraftHud = mountCraftingHud(craftHost, {
+      context: "inventory",
+      interactive: !isVisitorMode(),
+      onCrafted: () => renderInventoryBody(),
+      onInventoryChange: () => renderInventoryBody(),
+    });
+  } else {
+    inventoryCraftHud.refresh();
+  }
+}
+
 export function openInventory(): void {
   const root = ensureInventoryRoot();
   renderInventoryBody();
+  syncInventoryCraftHud(root);
   previouslyFocused =
     document.activeElement instanceof HTMLElement ? document.activeElement : null;
   root.hidden = false;
@@ -166,6 +237,8 @@ export function openInventory(): void {
 }
 
 export function closeInventory(): void {
+  inventoryCraftHud?.destroy();
+  inventoryCraftHud = null;
   const root = document.getElementById("inventory-overlay");
   if (root) {
     root.hidden = true;
@@ -187,4 +260,13 @@ export function toggleInventory(): void {
 
 export function isInventoryOpen(): boolean {
   return inventoryOpen;
+}
+
+/** Opens the portable shrine UI without consuming the item. */
+export function usePortableMoonshrine(): void {
+  if (isVisitorMode()) {
+    return;
+  }
+  closeInventory();
+  window.dispatchEvent(new CustomEvent(OPEN_PORTABLE_SHRINE_EVENT));
 }

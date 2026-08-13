@@ -5,6 +5,7 @@ import {
   ACTIVE_PARTY_LIMIT,
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
+import { withStagedCraftingMaterials } from "../crafting/stagedMaterials";
 import {
   playerInventory,
   setInventoryFromSnapshot,
@@ -599,7 +600,7 @@ export function exportWorldSnapshot(
     party: structuredClone(playerParty.creatures),
     activePartyIds: [...playerParty.activeInstanceIds],
     nextInstanceId: getNextInstanceId(),
-    materials: { ...playerInventory.materials },
+    materials: withStagedCraftingMaterials(playerInventory.materials),
     items: { ...playerInventory.items },
     position,
   };

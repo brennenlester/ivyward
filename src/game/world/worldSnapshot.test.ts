@@ -41,6 +41,10 @@ import {
   worldState,
 } from "./worldState";
 import { playerParty } from "../creatures/party";
+import {
+  registerStagedCraftingSource,
+  resetStagedCraftingSourcesForTest,
+} from "../crafting/stagedMaterials";
 
 function questProgress(
   overrides: Partial<Record<QuestId, QuestStatus>> = {},
@@ -550,5 +554,20 @@ describe("applyWorldSnapshot codex achievement", () => {
       "sable-thread": "complete",
       "odd-company": "locked",
     });
+  });
+});
+
+describe("exportWorldSnapshot staged crafting", () => {
+  beforeEach(() => {
+    resetStagedCraftingSourcesForTest();
+    setVisitorMode(false);
+    setInventoryFromSnapshot({ wood: 2 }, {});
+  });
+
+  it("counts staged materials as still in the bag", () => {
+    const stop = registerStagedCraftingSource(() => ({ wood: 1 }));
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 });
+    expect(exported.materials.wood).toBe(3);
+    stop();
   });
 });

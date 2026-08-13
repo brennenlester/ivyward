@@ -1,6 +1,6 @@
 const SAVE_DEBOUNCE_MS = 400;
 
-let persistSuspended = false;
+let persistSuspendCount = 0;
 let saveTimer: ReturnType<typeof setTimeout> | null = null;
 let persistHandler: (() => void) | null = null;
 
@@ -9,15 +9,15 @@ export function registerWorldPersistHandler(handler: () => void): void {
 }
 
 export function suspendHostPersist(): void {
-  persistSuspended = true;
+  persistSuspendCount += 1;
 }
 
 export function resumeHostPersist(): void {
-  persistSuspended = false;
+  persistSuspendCount = Math.max(0, persistSuspendCount - 1);
 }
 
 export function scheduleHostSave(): void {
-  if (persistSuspended || !persistHandler) {
+  if (persistSuspendCount > 0 || !persistHandler) {
     return;
   }
   if (saveTimer) {
@@ -34,5 +34,5 @@ export function notifyWorldChanged(): void {
 }
 
 export function isHostPersistSuspended(): boolean {
-  return persistSuspended;
+  return persistSuspendCount > 0;
 }
