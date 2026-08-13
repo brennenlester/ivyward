@@ -22,6 +22,7 @@ const SKIP_ATLAS_KEYS = new Set([
   "creature-tide-sovereign",
   "creature-cairn-sovereign",
   "creature-horizon-sovereign",
+  "creature-eclipse-sovereign",
 ]);
 
 function collectPngs() {
