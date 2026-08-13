@@ -12,6 +12,12 @@ import {
   getMaterialCount,
 } from "../inventory/playerInventory";
 import { applyShrineFusion, getEligibleCreaturesForItem } from "../shrine/fusion";
+import {
+  applyGodFusion,
+  findGodFusionParents,
+  SOVEREIGN_SEAL_ID,
+} from "../shrine/godFusion";
+import { isGodFusionCompleted } from "../world/worldState";
 import { getEffectsForItem } from "../shrine/shrineEffects";
 import {
   applyConsumable,
@@ -445,20 +451,6 @@ export class ShrineScene extends Phaser.Scene {
     const cx = this.panelCenter.x;
     const contentTop = this.contentBounds.top;
 
-    const ownedItems = FUSION_ITEM_IDS.filter((id) => getItemCount(id) > 0);
-
-    if (ownedItems.length === 0) {
-      const empty = this.add
-        .text(cx, contentTop + 24, "Craft items first, then return to fuse.", {
-          color: MOON_MUTED,
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "15px",
-        })
-        .setOrigin(0.5);
-      this.contentContainer.add(empty);
-      return;
-    }
-
     if (!this.selectedItemId) {
       const prompt = this.add
         .text(cx, contentTop + 8, "Choose an item to fuse:", {
@@ -470,29 +462,42 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(prompt);
 
       let y = contentTop + 40;
-      for (const itemId of ownedItems) {
+      for (const itemId of FUSION_ITEM_IDS) {
+        const owned = getItemCount(itemId);
+        const label =
+          owned > 0
+            ? `${getItemName(itemId)} (×${owned})`
+            : `${getItemName(itemId)} — craft first`;
         const btn = this.add
-          .text(cx, y, `${getItemName(itemId)} (×${getItemCount(itemId)})`, {
-            color: "#1a1a2e",
-            backgroundColor: "#c8b8e8",
+          .text(cx, y, label, {
+            color: owned > 0 ? "#1a1a2e" : MOON_MUTED,
+            backgroundColor: owned > 0 ? "#c8b8e8" : "#3a2a50",
             fontFamily: "system-ui, sans-serif",
             fontSize: "14px",
             padding: { x: 14, y: 8 },
           })
-          .setOrigin(0.5)
-          .setInteractive({ useHandCursor: true });
+          .setOrigin(0.5);
 
-        this.onContentTap(btn, () => {
-          this.selectedItemId = itemId;
-          this.renderTabContent();
-        });
+        if (owned > 0) {
+          btn.setInteractive({ useHandCursor: true });
+          this.onContentTap(btn, () => {
+            this.selectedItemId = itemId;
+            this.renderTabContent();
+          });
+        }
         this.contentContainer.add(btn);
         y += 44;
       }
+      this.contentHeight = y - contentTop;
       return;
     }
 
     const itemId = this.selectedItemId;
+    if (itemId === SOVEREIGN_SEAL_ID) {
+      this.renderGodFusion(itemId, contentTop, cx);
+      return;
+    }
+
     const effects = getEffectsForItem(itemId);
     const effectDesc = effects
       .map((e) => `${e.creatureId} @ Lv.${e.minLevel}: ${e.effectType}`)
@@ -572,6 +577,108 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(btn);
       y += 38;
     }
+  }
+
+  private renderGodFusion(
+    itemId: string,
+    contentTop: number,
+    cx: number,
+  ): void {
+    const header = this.add
+      .text(cx, contentTop + 8, `${getItemName(itemId)} — fuse the two sovereigns`, {
+        color: MOON_MUTED,
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "12px",
+        align: "center",
+        wordWrap: { width: 400 },
+      })
+      .setOrigin(0.5);
+    this.contentContainer.add(header);
+
+    const back = this.add
+      .text(cx - 180, contentTop + 8, "← Back", {
+        color: MOON_TEXT,
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "13px",
+      })
+      .setOrigin(0, 0.5)
+      .setInteractive({ useHandCursor: true });
+    this.onContentTap(back, () => {
+      this.selectedItemId = null;
+      this.renderTabContent();
+    });
+    this.contentContainer.add(back);
+
+    if (isGodFusionCompleted()) {
+      const done = this.add
+        .text(cx, contentTop + 56, "The sovereigns have already been fused.", {
+          color: MOON_MUTED,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          align: "center",
+          wordWrap: { width: 400 },
+        })
+        .setOrigin(0.5);
+      this.contentContainer.add(done);
+      return;
+    }
+
+    const { tide, cairn } = findGodFusionParents();
+    if (!tide || !cairn) {
+      const none = this.add
+        .text(
+          cx,
+          contentTop + 56,
+          "Requires Tide Sovereign and Cairn Sovereign in your party.",
+          {
+            color: MOON_MUTED,
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "14px",
+            align: "center",
+            wordWrap: { width: 400 },
+          },
+        )
+        .setOrigin(0.5);
+      this.contentContainer.add(none);
+      return;
+    }
+
+    const summary = this.add
+      .text(
+        cx,
+        contentTop + 52,
+        `Tide Sovereign Lv.${tide.level} + Cairn Sovereign Lv.${cairn.level}`,
+        {
+          color: MOON_TEXT,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          align: "center",
+        },
+      )
+      .setOrigin(0.5);
+    this.contentContainer.add(summary);
+
+    const btn = this.add
+      .text(cx, contentTop + 96, "Fuse into Horizon Sovereign", {
+        color: "#1a1a2e",
+        backgroundColor: "#e0d4f0",
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "14px",
+        padding: { x: 12, y: 8 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true });
+
+    this.onContentTap(btn, () => {
+      const result = applyGodFusion(tide.instanceId, cairn.instanceId, itemId);
+      this.setStatus(result.message);
+      if (result.ok) {
+        notifyWorldChanged();
+        this.selectedItemId = null;
+      }
+      this.renderTabContent();
+    });
+    this.contentContainer.add(btn);
   }
 
   private renderUseTab(): void {

@@ -8,6 +8,7 @@ export const playerInventory = {
 
 const ITEM_HOLD_CAPS: Record<string, number> = {
   "brook-crystal": 20,
+  "sovereign-seal": 1,
 };
 
 export function getMaterialCount(materialId: string): number {

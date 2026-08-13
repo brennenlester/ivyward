@@ -11,6 +11,7 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "../world/worldSession";
+import { setGodFusionCompleted } from "../world/worldState";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
@@ -18,6 +19,7 @@ const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
 beforeEach(() => {
   setInventoryFromSnapshot({}, {});
   setVisitorMode(false);
+  setGodFusionCompleted(false, false);
 });
 
 describe("boat recipe", () => {
@@ -111,5 +113,72 @@ describe("brook crystal hold cap on snapshot restore", () => {
   it("clamps brook-crystal above 20 when loading inventory", () => {
     setInventoryFromSnapshot({}, { "brook-crystal": 99 });
     expect(getItemCount("brook-crystal")).toBe(20);
+  });
+});
+
+describe("sovereign seal recipe", () => {
+  const sealRecipe = CRAFT_RECIPES.find((r) => r.id === "sovereign-seal")!;
+
+  it("crafts one Sovereign Seal from the locked materials", () => {
+    expect(sealRecipe).toMatchObject({
+      name: "Sovereign Seal",
+      outputItemId: "sovereign-seal",
+      materials: [
+        { materialId: "brook-pearl", count: 3 },
+        { materialId: "pebble", count: 3 },
+        { materialId: "folklore-dust", count: 2 },
+        { materialId: "wild-fiber", count: 2 },
+      ],
+    });
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        pebble: 3,
+        "folklore-dust": 2,
+        "wild-fiber": 2,
+      },
+      {},
+    );
+    expect(craftItem(sealRecipe)).toBe(true);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+    expect(getMaterialCount("brook-pearl")).toBe(0);
+  });
+
+  it("enforces a hold cap of 1", () => {
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        pebble: 3,
+        "folklore-dust": 2,
+        "wild-fiber": 2,
+      },
+      { "sovereign-seal": 1 },
+    );
+    expect(canCraft(sealRecipe)).toBe(false);
+    expect(craftItem(sealRecipe)).toBe(false);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+    expect(getMaterialCount("brook-pearl")).toBe(3);
+  });
+
+  it("clamps seal count on snapshot restore", () => {
+    setInventoryFromSnapshot({}, { "sovereign-seal": 4 });
+    expect(getItemCount("sovereign-seal")).toBe(1);
+  });
+
+  it("blocks crafting a seal after dual-god fusion is complete", () => {
+    setGodFusionCompleted(true, false);
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        pebble: 3,
+        "folklore-dust": 2,
+        "wild-fiber": 2,
+      },
+      {},
+    );
+    expect(canCraft(sealRecipe)).toBe(false);
+    expect(craftItem(sealRecipe)).toBe(false);
+    expect(getItemCount("sovereign-seal")).toBe(0);
+    setGodFusionCompleted(false, false);
   });
 });

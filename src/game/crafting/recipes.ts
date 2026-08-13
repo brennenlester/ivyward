@@ -5,6 +5,7 @@ import {
   getMaterialCount,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
+import { isGodFusionCompleted } from "../world/worldState";
 
 export type CraftRecipe = {
   id: string;
@@ -14,6 +15,17 @@ export type CraftRecipe = {
 };
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
+  {
+    id: "sovereign-seal",
+    name: "Sovereign Seal",
+    outputItemId: "sovereign-seal",
+    materials: [
+      { materialId: "brook-pearl", count: 3 },
+      { materialId: "pebble", count: 3 },
+      { materialId: "folklore-dust", count: 2 },
+      { materialId: "wild-fiber", count: 2 },
+    ],
+  },
   {
     id: "wood-cudgel",
     name: "Wood Cudgel",
@@ -88,6 +100,9 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
 
 export function canCraft(recipe: CraftRecipe): boolean {
   if (isVisitorMode()) {
+    return false;
+  }
+  if (recipe.outputItemId === "sovereign-seal" && isGodFusionCompleted()) {
     return false;
   }
   return (

@@ -1,5 +1,9 @@
 import { getCreatureDefinition } from "./catalog";
-import { createNewCreatureProgress } from "../progression/leveling";
+import {
+  createNewCreatureProgress,
+  LEVEL_XP_THRESHOLDS,
+  MAX_LEVEL,
+} from "../progression/leveling";
 import { hasCraftedWeapon } from "../battle/wandererWeapons";
 import { recordQuestEvent } from "../story/questProgress";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
@@ -81,6 +85,43 @@ export function addToParty(definitionId: string): CreatureInstance {
 
 export function addToPartyFainted(definitionId: string): CreatureInstance {
   return addToPartyWithHp(definitionId, 0);
+}
+
+export function removeFromParty(instanceId: string): boolean {
+  const idx = playerParty.creatures.findIndex((c) => c.instanceId === instanceId);
+  if (idx < 0) {
+    return false;
+  }
+  playerParty.creatures.splice(idx, 1);
+  playerParty.activeInstanceIds = playerParty.activeInstanceIds.filter(
+    (id) => id !== instanceId,
+  );
+  notifyWorldChanged();
+  return true;
+}
+
+/** Add a fused species at a set level with full HP and no shrine bonuses. */
+export function addFusedCreature(
+  definitionId: string,
+  level: number,
+): CreatureInstance {
+  const def = getCreatureDefinition(definitionId);
+  const clampedLevel = Math.min(MAX_LEVEL, Math.max(1, Math.floor(level)));
+  const instance: CreatureInstance = {
+    instanceId: `c-${nextInstanceId++}`,
+    definitionId,
+    speciesId: definitionId,
+    currentHp: def.maxHp,
+    level: clampedLevel,
+    xp: LEVEL_XP_THRESHOLDS[clampedLevel] ?? 0,
+    trait: rollSignatureTrait(definitionId, def.folkloreType),
+  };
+  playerParty.creatures.push(instance);
+  if (playerParty.activeInstanceIds.length < ACTIVE_PARTY_LIMIT) {
+    playerParty.activeInstanceIds.push(instance.instanceId);
+  }
+  notifyWorldChanged();
+  return instance;
 }
 
 export function hasCreature(definitionId: string): boolean {
