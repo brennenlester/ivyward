@@ -31,6 +31,11 @@ export type CraftingHudHandle = {
 export const PORTABLE_MOONSHRINE_ID = "portable-moonshrine";
 export const OPEN_PORTABLE_SHRINE_EVENT = "ivyward-open-portable-shrine";
 
+export type OpenPortableShrineDetail = {
+  tab?: "craft" | "use";
+  itemId?: string;
+};
+
 let shrineHud: CraftingHudHandle | null = null;
 let shrineHost: HTMLElement | null = null;
 

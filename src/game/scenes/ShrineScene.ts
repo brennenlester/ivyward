@@ -86,16 +86,22 @@ export class ShrineScene extends Phaser.Scene {
     super({ key: "ShrineScene" });
   }
 
-  init(data?: { mode?: CraftContext }): void {
+  init(data?: { mode?: CraftContext; tab?: Tab; itemId?: string }): void {
     this.shrineMode = data?.mode === "portable" ? "portable" : "altar";
-    this.activeTab = "craft";
-    this.selectedItemId = null;
+    const requestedTab = data?.tab;
+    this.activeTab =
+      requestedTab === "use" ||
+      (requestedTab === "fusion" && this.shrineMode !== "portable")
+        ? requestedTab
+        : "craft";
+    this.selectedItemId =
+      this.activeTab === "use" && data?.itemId && isConsumableItem(data.itemId)
+        ? data.itemId
+        : null;
   }
 
   create(): void {
     bindOverlayPixelRatio(this);
-    this.activeTab = "craft";
-    this.selectedItemId = null;
 
     this.add
       .rectangle(0, 0, DESIGN_SIZE, DESIGN_SIZE, 0x153051, 0.76)
