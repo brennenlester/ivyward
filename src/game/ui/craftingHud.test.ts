@@ -1,11 +1,21 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mountCraftingHud } from "./craftingHud";
+import {
+  hideShrineCraftingHud,
+  mountCraftingHud,
+  showShrineCraftingHud,
+} from "./craftingHud";
+import { resetStagedCraftingSourcesForTest } from "../crafting/stagedMaterials";
 import {
   getItemCount,
   getMaterialCount,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "../world/worldSession";
+import { exportWorldSnapshot } from "../world/worldSnapshot";
+import {
+  isHostPersistSuspended,
+  resumeHostPersist,
+} from "../world/worldSaveSchedule";
 
 function mountHud() {
   const host = document.createElement("div");
@@ -40,10 +50,16 @@ describe("crafting HUD", () => {
   beforeEach(() => {
     setVisitorMode(false);
     setInventoryFromSnapshot({ wood: 3 }, {});
+    resetStagedCraftingSourcesForTest();
     document.body.replaceChildren();
   });
 
   afterEach(() => {
+    hideShrineCraftingHud(true);
+    while (isHostPersistSuspended()) {
+      resumeHostPersist();
+    }
+    resetStagedCraftingSourcesForTest();
     document.body.replaceChildren();
   });
 
@@ -89,5 +105,41 @@ describe("crafting HUD", () => {
     result.click();
     expect(getItemCount("brook-crystal")).toBe(20);
     hud.destroy();
+  });
+
+  it("exports staged grid materials in world snapshots", () => {
+    const { host, hud } = mountHud();
+    listRow(host, "Wood").click();
+    cellAt(host, 0, 0).click();
+    expect(getMaterialCount("wood")).toBe(2);
+    const snapshot = exportWorldSnapshot({ zoneId: "grove", x: 1, y: 1 });
+    expect(snapshot.materials.wood).toBe(3);
+    hud.destroy();
+  });
+
+  it("resumes persist when the shrine craft HUD is hidden", () => {
+    const app = document.createElement("div");
+    app.id = "app";
+    document.body.appendChild(app);
+    setInventoryFromSnapshot({ wood: 1 }, {});
+    showShrineCraftingHud({ context: "altar" });
+    expect(isHostPersistSuspended()).toBe(true);
+    const host = document.getElementById("shrine-craft-overlay");
+    if (!host) {
+      throw new Error("missing shrine craft overlay");
+    }
+    listRow(host, "Wood").click();
+    cellAt(host, 0, 0).click();
+    expect(getMaterialCount("wood")).toBe(0);
+    hideShrineCraftingHud(false);
+    expect(isHostPersistSuspended()).toBe(false);
+    expect(
+      exportWorldSnapshot({ zoneId: "grove", x: 1, y: 1 }).materials.wood,
+    ).toBe(1);
+    showShrineCraftingHud({ context: "altar" });
+    expect(isHostPersistSuspended()).toBe(true);
+    hideShrineCraftingHud(true);
+    expect(isHostPersistSuspended()).toBe(false);
+    expect(getMaterialCount("wood")).toBe(1);
   });
 });

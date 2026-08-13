@@ -11,6 +11,7 @@ import {
   resumeHostPersist,
   suspendHostPersist,
 } from "../world/worldSaveSchedule";
+import { registerStagedCraftingSource } from "../crafting/stagedMaterials";
 import {
   GRID_SIZE,
   cloneGrid,
@@ -27,6 +28,8 @@ const DRAG_THRESHOLD = 8;
 export type CraftingHudHandle = {
   refresh: () => void;
   returnMaterials: () => void;
+  holdPersist: () => void;
+  releasePersist: () => void;
   destroy: () => void;
 };
 
@@ -50,6 +53,8 @@ export function showShrineCraftingHud(options: {
       interactive: !isVisitorMode(),
       onCrafted: options.onCrafted,
     });
+  } else {
+    shrineHud?.holdPersist();
   }
   shrineHost.hidden = false;
 }
@@ -65,6 +70,8 @@ export function hideShrineCraftingHud(destroy = false): void {
   if (shrineHost) {
     shrineHost.hidden = true;
   }
+  shrineHud?.releasePersist();
+  notifyWorldChanged();
 }
 
 
@@ -106,7 +113,44 @@ export function mountCraftingHud(
   parent.appendChild(root);
 
   const interactive = options.interactive && !isVisitorMode();
-  suspendHostPersist();
+  let persistHeld = false;
+
+  function holdPersist(): void {
+    if (persistHeld || !interactive) {
+      return;
+    }
+    persistHeld = true;
+    suspendHostPersist();
+  }
+
+  function releasePersist(): void {
+    if (!persistHeld) {
+      return;
+    }
+    persistHeld = false;
+    resumeHostPersist();
+  }
+
+  holdPersist();
+
+  const unregisterStaged = registerStagedCraftingSource(() => {
+    const counts: Record<string, number> = {};
+    const bump = (id: string) => {
+      counts[id] = (counts[id] ?? 0) + 1;
+    };
+    for (let r = 0; r < GRID_SIZE; r++) {
+      for (let c = 0; c < GRID_SIZE; c++) {
+        const id = grid[r][c];
+        if (id) {
+          bump(id);
+        }
+      }
+    }
+    if (pickup) {
+      bump(pickup.materialId);
+    }
+    return counts;
+  });
 
   function inventoryChanged(): void {
     options.onInventoryChange?.();
@@ -497,14 +541,18 @@ export function mountCraftingHud(
       render();
       inventoryChanged();
     },
+    holdPersist,
+    releasePersist,
     destroy: () => {
+      holdPersist();
       clearPickup(true);
       grid = returnGridToInventory(grid);
+      unregisterStaged();
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       ghost?.remove();
       root.remove();
-      resumeHostPersist();
+      releasePersist();
       notifyWorldChanged();
     },
   };
