@@ -463,6 +463,23 @@ export const CREATURES: CreatureDefinition[] = [
       { id: "crown-crash", name: "Crown Crash", power: 20, type: "water", accuracy: 100 },
     ],
   },
+  {
+    id: "cairn-sovereign",
+    name: "Cairn Sovereign",
+    folkloreType: "earth",
+    maxHp: 108,
+    attack: 14,
+    defense: 18,
+    spriteKey: "creature-cairn-sovereign",
+    spriteColor: 0x6a6458,
+    early: false,
+    excludeFromCodex: true,
+    moves: [
+      { id: "grave-hum", name: "Grave Hum", power: 10, type: "earth", accuracy: 100 },
+      { id: "cairn-crash", name: "Cairn Crash", power: 15, type: "earth", accuracy: 100 },
+      { id: "ridge-fall", name: "Ridge Fall", power: 20, type: "earth", accuracy: 100 },
+    ],
+  },
 ];
 
 const byId = new Map(CREATURES.map((c) => [c.id, c]));

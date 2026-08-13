@@ -32,7 +32,9 @@ import {
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
 import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
 import {
+  isGodLandEncounterClaimed,
   isGodSailEncounterClaimed,
+  setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   worldState,
 } from "./worldState";
@@ -119,6 +121,18 @@ describe("isValidWorldSnapshot", () => {
       isValidWorldSnapshot({
         ...validSnapshot(),
         godSailEncounterClaimed: "yes",
+      }),
+    ).toBe(false);
+  });
+
+  it("soft-adds and validates the god land claim flag", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ godLandEncounterClaimed: true })),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        godLandEncounterClaimed: "yes",
       }),
     ).toBe(false);
   });
@@ -371,6 +385,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     setVisitorMode(false);
     resetNpcStateForTest();
     setGodSailEncounterClaimed(false, false);
+    setGodLandEncounterClaimed(false, false);
   });
 
   it("restores the god sail claim and defaults older saves to unclaimed", () => {
@@ -379,6 +394,14 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(isGodSailEncounterClaimed()).toBe(false);
+  });
+
+  it("restores the god land claim and defaults older saves to unclaimed", () => {
+    applyWorldSnapshot(validSnapshot({ godLandEncounterClaimed: true }));
+    expect(isGodLandEncounterClaimed()).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(isGodLandEncounterClaimed()).toBe(false);
   });
 
   it("round-trips activePartyIds through apply and export", () => {
@@ -417,6 +440,23 @@ describe("applyWorldSnapshot codex achievement", () => {
     );
 
     expect(worldState.discoveredCreatures).not.toContain("tide-sovereign");
+  });
+
+  it("does not infer codex discovery from a saved Cairn Sovereign", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        discoveredCreatures: [],
+        party: [
+          partyMember({
+            definitionId: "cairn-sovereign",
+            speciesId: "cairn-sovereign",
+            currentHp: 0,
+          }),
+        ],
+      }),
+    );
+
+    expect(worldState.discoveredCreatures).not.toContain("cairn-sovereign");
   });
 
   it("awards a legacy full-codex save after the inventory is restored", () => {

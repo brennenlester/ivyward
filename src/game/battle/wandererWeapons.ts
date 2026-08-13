@@ -5,6 +5,7 @@ import type { MoveDefinition } from "../creatures/types";
 /** Best weapon first. */
 export const WEAPON_ITEM_IDS = [
   "tide-cleaver",
+  "cairn-maul",
   "stone-knife",
   "wood-cudgel",
 ] as const;
@@ -29,6 +30,16 @@ const WEAPON_STATS: Record<
     moves: [
       { id: "cleave", name: "Cleave", power: 14, type: "earth", accuracy: 90 },
       { id: "riptide", name: "Riptide", power: 10, type: "earth", accuracy: 100 },
+    ],
+  },
+  "cairn-maul": {
+    name: "Wanderer (Cairn Maul)",
+    maxHp: 36,
+    attack: 16,
+    defense: 6,
+    moves: [
+      { id: "crush", name: "Crush", power: 14, type: "earth", accuracy: 90 },
+      { id: "quake", name: "Quake", power: 10, type: "earth", accuracy: 100 },
     ],
   },
   "wood-cudgel": {

@@ -37,9 +37,15 @@ import {
 import {
   appendGodSparKillCheatKey,
   getTideSovereignAttack,
+  isGodCreature,
   resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
+import {
+  CAIRN_SOVEREIGN_ID,
+  getCairnSovereignAttack,
+  resolveCairnSovereignOutcome,
+} from "../encounters/godLand";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { markCreatureDiscovered } from "../world/worldState";
 import { setPartyEditLocked } from "../ui/partyPanel";
@@ -80,7 +86,7 @@ export class BattleScene extends Phaser.Scene {
     this.godSparKillCheatBuffer = result.buffer;
     if (
       !result.triggered ||
-      this.wildCreatureId !== TIDE_SOVEREIGN_ID ||
+      !isGodCreature(this.wildCreatureId) ||
       this.battleEnded
     ) {
       return;
@@ -125,7 +131,7 @@ export class BattleScene extends Phaser.Scene {
       currentHp: wildDef.maxHp,
       attack: wildDef.attack,
       defense: wildDef.defense,
-      defenseDisabled: data.wildCreatureId === TIDE_SOVEREIGN_ID,
+      defenseDisabled: isGodCreature(data.wildCreatureId),
       moves: wildDef.moves,
       folkloreType: wildDef.folkloreType,
     };
@@ -701,6 +707,13 @@ export class BattleScene extends Phaser.Scene {
       this.showDamageCounter("player", attack.damage);
       this.flashCombatant("player");
       this.log(`${this.wild.name} used ${attack.move.name}.`);
+    } else if (this.wildCreatureId === CAIRN_SOVEREIGN_ID) {
+      const attack = getCairnSovereignAttack(this.tideSovereignTurnIndex);
+      this.tideSovereignTurnIndex += 1;
+      applyDamage(this.player, attack.damage);
+      this.showDamageCounter("player", attack.damage);
+      this.flashCombatant("player");
+      this.log(`${this.wild.name} used ${attack.move.name}.`);
     } else {
       const move = pickRandomMove(this.wild);
       const outcome = resolveAttack(this.wild, move, this.player);
@@ -812,6 +825,11 @@ export class BattleScene extends Phaser.Scene {
       resolveTideSovereignOutcome("spar-win");
       this.log(
         "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
+      );
+    } else if (playerWon && this.wildCreatureId === CAIRN_SOVEREIGN_ID) {
+      resolveCairnSovereignOutcome("spar-win");
+      this.log(
+        "The defeated Cairn Sovereign joined you, fainted. Cairn Maul obtained!",
       );
     } else if (playerWon) {
       const reward = grantSparRewards(

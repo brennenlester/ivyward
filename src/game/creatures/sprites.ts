@@ -573,6 +573,28 @@ function drawTideSovereign(g: Phaser.GameObjects.Graphics, color: number): void 
   drawEyes(g, 19, 29, 25, 3);
 }
 
+function drawCairnSovereign(g: Phaser.GameObjects.Graphics, color: number): void {
+  g.fillStyle(shade(color, 20), 0.22);
+  g.fillEllipse(24, 46, 28, 8);
+  blob(g, 24, 34, 26, 22, color);
+  blob(g, 24, 22, 20, 16, shade(color, 18));
+  g.fillStyle(OUTLINE, 1);
+  g.fillRoundedRect(16, 6, 16, 10, 2);
+  g.fillRoundedRect(19, 2, 10, 8, 2);
+  g.fillStyle(shade(color, 30), 1);
+  g.fillRoundedRect(17, 7, 14, 8, 1);
+  g.fillStyle(0xc8d0b0, 0.85);
+  g.fillCircle(20, 8, 1.5);
+  g.fillCircle(28, 9, 1.5);
+  g.fillStyle(0x5a8a48, 0.8);
+  g.fillCircle(14, 28, 2);
+  g.fillCircle(34, 30, 2);
+  g.fillStyle(shade(color, -28), 1);
+  g.fillTriangle(12, 40, 6, 50, 18, 44);
+  g.fillTriangle(36, 40, 42, 50, 30, 44);
+  drawEyes(g, 19, 29, 24, 3);
+}
+
 const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
   mossling: drawMossling,
   "ember-wisp": drawEmberWisp,
@@ -604,6 +626,7 @@ const CREATURE_DRAWERS: Record<string, CreatureDrawer> = {
   "lagoon-hare": drawLagoonHare,
   "atoll-wisp": drawAtollWisp,
   "tide-sovereign": drawTideSovereign,
+  "cairn-sovereign": drawCairnSovereign,
 };
 
 export function ensureCreatureTextures(scene: Phaser.Scene): void {

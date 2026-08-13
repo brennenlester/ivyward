@@ -16,6 +16,10 @@ import {
   resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
+import {
+  CAIRN_SOVEREIGN_ID,
+  resolveCairnSovereignOutcome,
+} from "../encounters/godLand";
 import { isVisitorMode } from "../world/worldSession";
 import { markCreatureDiscovered } from "../world/worldState";
 
@@ -196,6 +200,9 @@ export class EncounterScene extends Phaser.Scene {
       if (this.creatureId === TIDE_SOVEREIGN_ID) {
         resolveTideSovereignOutcome("befriend");
         this.showResult("The Tide Sovereign joined you, fainted. Tide Cleaver obtained!");
+      } else if (this.creatureId === CAIRN_SOVEREIGN_ID) {
+        resolveCairnSovereignOutcome("befriend");
+        this.showResult("The Cairn Sovereign joined you, fainted. Cairn Maul obtained!");
       } else {
         addToParty(this.creatureId);
         this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);
@@ -246,6 +253,8 @@ export class EncounterScene extends Phaser.Scene {
     this.actionTaken = true;
     if (this.creatureId === TIDE_SOVEREIGN_ID) {
       resolveTideSovereignOutcome("flee");
+    } else if (this.creatureId === CAIRN_SOVEREIGN_ID) {
+      resolveCairnSovereignOutcome("flee");
     }
     this.endEncounter();
   }
