@@ -449,7 +449,7 @@ export function mountCraftingHud(
         }
         if (interactive) {
           cell.addEventListener("pointerdown", (event) => {
-            if (!grid[r][c]) {
+            if (!grid[r][c] || pickup) {
               return;
             }
             event.preventDefault();

@@ -92,6 +92,26 @@ describe("crafting HUD", () => {
     hud.destroy();
   });
 
+  it("swaps two occupied cells on tap when already holding a material", () => {
+    setInventoryFromSnapshot({ wood: 1, stone: 1 }, {});
+    const { host, hud } = mountHud();
+    listRow(host, "Wood").click();
+    cellAt(host, 0, 0).click();
+    listRow(host, "Stone").click();
+    cellAt(host, 0, 1).click();
+    cellAt(host, 0, 0).dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, clientX: 1, clientY: 1 }),
+    );
+    cellAt(host, 0, 0).click();
+    cellAt(host, 0, 1).dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, clientX: 2, clientY: 2 }),
+    );
+    cellAt(host, 0, 1).click();
+    expect(cellAt(host, 0, 0).textContent).toBe("Stone");
+    expect(cellAt(host, 0, 1).textContent).toBe("Wood");
+    hud.destroy();
+  });
+
   it("disables the result and shows a hold-cap error", () => {
     setInventoryFromSnapshot({ "brook-pearl": 1 }, { "brook-crystal": 20 });
     const { host, hud } = mountHud();
