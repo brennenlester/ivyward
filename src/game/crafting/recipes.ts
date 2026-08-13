@@ -331,6 +331,7 @@ export type CraftFromGridResult =
 export function craftFromGrid(
   grid: CraftGrid,
   context: CraftContext,
+  onConsumed?: (next: CraftGrid) => void,
 ): CraftFromGridResult {
   if (isVisitorMode()) {
     return {
@@ -350,7 +351,9 @@ export function craftFromGrid(
     return { ok: false, grid, message: "You can't hold more of that." };
   }
   const next = clearBox(grid, match.box);
+  onConsumed?.(next);
   if (!addItem(match.recipe.outputItemId, match.recipe.outputCount)) {
+    onConsumed?.(grid);
     return { ok: false, grid, message: "You can't hold more of that." };
   }
   return { ok: true, grid: next, recipe: match.recipe };

@@ -6,11 +6,7 @@ import {
   playerInventory,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
-import {
-  notifyWorldChanged,
-  resumeHostPersist,
-  suspendHostPersist,
-} from "../world/worldSaveSchedule";
+import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { registerStagedCraftingSource } from "../crafting/stagedMaterials";
 import {
   GRID_SIZE,
@@ -28,8 +24,6 @@ const DRAG_THRESHOLD = 8;
 export type CraftingHudHandle = {
   refresh: () => void;
   returnMaterials: () => void;
-  holdPersist: () => void;
-  releasePersist: () => void;
   destroy: () => void;
 };
 
@@ -53,8 +47,6 @@ export function showShrineCraftingHud(options: {
       interactive: !isVisitorMode(),
       onCrafted: options.onCrafted,
     });
-  } else {
-    shrineHud?.holdPersist();
   }
   shrineHost.hidden = false;
 }
@@ -70,8 +62,6 @@ export function hideShrineCraftingHud(destroy = false): void {
   if (shrineHost) {
     shrineHost.hidden = true;
   }
-  shrineHud?.releasePersist();
-  notifyWorldChanged();
 }
 
 
@@ -113,25 +103,6 @@ export function mountCraftingHud(
   parent.appendChild(root);
 
   const interactive = options.interactive && !isVisitorMode();
-  let persistHeld = false;
-
-  function holdPersist(): void {
-    if (persistHeld || !interactive) {
-      return;
-    }
-    persistHeld = true;
-    suspendHostPersist();
-  }
-
-  function releasePersist(): void {
-    if (!persistHeld) {
-      return;
-    }
-    persistHeld = false;
-    resumeHostPersist();
-  }
-
-  holdPersist();
 
   const unregisterStaged = registerStagedCraftingSource(() => {
     const counts: Record<string, number> = {};
@@ -184,13 +155,17 @@ export function mountCraftingHud(
     }
     if (returnToSource) {
       if (pickup.from === "list") {
-        addMaterial(pickup.materialId, 1);
+        const id = pickup.materialId;
+        pickup = null;
+        addMaterial(id, 1);
       } else {
         grid = cloneGrid(grid);
         grid[pickup.from.row][pickup.from.col] = pickup.materialId;
+        pickup = null;
       }
+    } else {
+      pickup = null;
     }
-    pickup = null;
     dragging = false;
     dragStart = null;
     ghost?.remove();
@@ -202,7 +177,9 @@ export function mountCraftingHud(
     if (!interactive || pickup) {
       return;
     }
-    const result = craftFromGrid(grid, options.context);
+    const result = craftFromGrid(grid, options.context, (next) => {
+      grid = next;
+    });
     if (!result.ok) {
       lastError = result.message;
       render();
@@ -230,10 +207,14 @@ export function mountCraftingHud(
     }
     if (existing) {
       if (pickup.from === "list") {
+        grid[row][col] = pickup.materialId;
+        pickup = null;
         addMaterial(existing, 1);
-      } else {
-        grid[pickup.from.row][pickup.from.col] = existing;
+        inventoryChanged();
+        render();
+        return;
       }
+      grid[pickup.from.row][pickup.from.col] = existing;
     }
     grid[row][col] = pickup.materialId;
     pickup = null;
@@ -245,8 +226,9 @@ export function mountCraftingHud(
     if (!pickup || !interactive) {
       return;
     }
-    addMaterial(pickup.materialId, 1);
+    const id = pickup.materialId;
     pickup = null;
+    addMaterial(id, 1);
     inventoryChanged();
     render();
   }
@@ -537,22 +519,22 @@ export function mountCraftingHud(
     refresh: () => render(),
     returnMaterials: () => {
       clearPickup(true);
-      grid = returnGridToInventory(grid);
+      const leftover = grid;
+      grid = emptyGrid();
+      returnGridToInventory(leftover);
       render();
       inventoryChanged();
     },
-    holdPersist,
-    releasePersist,
     destroy: () => {
-      holdPersist();
       clearPickup(true);
-      grid = returnGridToInventory(grid);
+      const leftover = grid;
+      grid = emptyGrid();
       unregisterStaged();
+      returnGridToInventory(leftover);
       window.removeEventListener("pointermove", moveListener);
       window.removeEventListener("pointerup", upListener);
       ghost?.remove();
       root.remove();
-      releasePersist();
       notifyWorldChanged();
     },
   };

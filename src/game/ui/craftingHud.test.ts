@@ -12,10 +12,7 @@ import {
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "../world/worldSession";
 import { exportWorldSnapshot } from "../world/worldSnapshot";
-import {
-  isHostPersistSuspended,
-  resumeHostPersist,
-} from "../world/worldSaveSchedule";
+import { isHostPersistSuspended } from "../world/worldSaveSchedule";
 
 function mountHud() {
   const host = document.createElement("div");
@@ -56,9 +53,6 @@ describe("crafting HUD", () => {
 
   afterEach(() => {
     hideShrineCraftingHud(true);
-    while (isHostPersistSuspended()) {
-      resumeHostPersist();
-    }
     resetStagedCraftingSourcesForTest();
     document.body.replaceChildren();
   });
@@ -89,6 +83,10 @@ describe("crafting HUD", () => {
     result.click();
     expect(getItemCount("wood-cudgel")).toBe(1);
     expect(getMaterialCount("wood")).toBe(0);
+    expect(isHostPersistSuspended()).toBe(false);
+    expect(
+      exportWorldSnapshot({ zoneId: "grove", x: 1, y: 1 }).items["wood-cudgel"],
+    ).toBe(1);
     hud.destroy();
   });
 
@@ -117,13 +115,13 @@ describe("crafting HUD", () => {
     hud.destroy();
   });
 
-  it("resumes persist when the shrine craft HUD is hidden", () => {
+  it("keeps persist live while the shrine craft HUD is open or hidden", () => {
     const app = document.createElement("div");
     app.id = "app";
     document.body.appendChild(app);
     setInventoryFromSnapshot({ wood: 1 }, {});
     showShrineCraftingHud({ context: "altar" });
-    expect(isHostPersistSuspended()).toBe(true);
+    expect(isHostPersistSuspended()).toBe(false);
     const host = document.getElementById("shrine-craft-overlay");
     if (!host) {
       throw new Error("missing shrine craft overlay");
@@ -131,15 +129,17 @@ describe("crafting HUD", () => {
     listRow(host, "Wood").click();
     cellAt(host, 0, 0).click();
     expect(getMaterialCount("wood")).toBe(0);
+    expect(
+      exportWorldSnapshot({ zoneId: "grove", x: 1, y: 1 }).materials.wood,
+    ).toBe(1);
     hideShrineCraftingHud(false);
     expect(isHostPersistSuspended()).toBe(false);
     expect(
       exportWorldSnapshot({ zoneId: "grove", x: 1, y: 1 }).materials.wood,
     ).toBe(1);
     showShrineCraftingHud({ context: "altar" });
-    expect(isHostPersistSuspended()).toBe(true);
-    hideShrineCraftingHud(true);
     expect(isHostPersistSuspended()).toBe(false);
+    hideShrineCraftingHud(true);
     expect(getMaterialCount("wood")).toBe(1);
   });
 });
