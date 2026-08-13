@@ -1,6 +1,7 @@
 import { getItemName, getMaterialName } from "../inventory/materials";
 import {
   addMaterial,
+  canAddItem,
   consumeMaterial,
   playerInventory,
 } from "../inventory/playerInventory";
@@ -96,6 +97,8 @@ export function mountCraftingHud(
   let dragStart: { x: number; y: number } | null = null;
   let dragging = false;
   let suppressPlace = false;
+  let ignoreClick = false;
+  let lastError: string | null = null;
   let ghost: HTMLElement | null = null;
 
   const root = document.createElement("div");
@@ -113,11 +116,17 @@ export function mountCraftingHud(
     if (!interactive) {
       return "Visitors can view, but only the host can craft.";
     }
+    if (lastError) {
+      return lastError;
+    }
     const match = matchGrid(grid, options.context);
     if (match.status === "blocked") {
       return match.message;
     }
     if (match.status === "match") {
+      if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
+        return "You can't hold more of that.";
+      }
       const count =
         match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
       return `${match.recipe.name}${count}`;
@@ -151,9 +160,11 @@ export function mountCraftingHud(
     }
     const result = craftFromGrid(grid, options.context);
     if (!result.ok) {
+      lastError = result.message;
       render();
       return;
     }
+    lastError = null;
     grid = result.grid;
     options.onCrafted?.(result.recipe.name, result.recipe.outputCount);
     inventoryChanged();
@@ -164,6 +175,7 @@ export function mountCraftingHud(
     if (!pickup || !interactive) {
       return;
     }
+    lastError = null;
     grid = cloneGrid(grid);
     const existing = grid[row][col];
     if (pickup.from !== "list" && pickup.from.row === row && pickup.from.col === col) {
@@ -195,16 +207,19 @@ export function mountCraftingHud(
     render();
   }
 
-  function startPickup(next: Pickup, event: PointerEvent): void {
+  function startPickup(next: Pickup, event?: PointerEvent): void {
     if (!interactive) {
       return;
     }
+    lastError = null;
     clearPickup(true);
     pickup = next;
     tapSelect = next;
-    dragStart = { x: event.clientX, y: event.clientY };
+    dragStart = event
+      ? { x: event.clientX, y: event.clientY }
+      : null;
     dragging = false;
-    suppressPlace = true;
+    suppressPlace = Boolean(event);
     if (next.from === "list") {
       if (!consumeMaterial(next.materialId, 1)) {
         pickup = null;
@@ -292,11 +307,6 @@ export function mountCraftingHud(
       return;
     }
     const target = event.target as HTMLElement | null;
-    const result = target?.closest("[data-craft-result]");
-    if (result && !pickup) {
-      takeResult();
-      return;
-    }
     if (!pickup || !tapSelect) {
       return;
     }
@@ -358,7 +368,20 @@ export function mountCraftingHud(
         if (interactive) {
           row.addEventListener("pointerdown", (event) => {
             event.preventDefault();
+            ignoreClick = true;
             startPickup({ materialId: mat.id, from: "list" }, event);
+          });
+          row.addEventListener("click", (event) => {
+            if (ignoreClick) {
+              ignoreClick = false;
+              event.preventDefault();
+              return;
+            }
+            if (pickup && pickup.from !== "list") {
+              returnPickupToList();
+              return;
+            }
+            startPickup({ materialId: mat.id, from: "list" });
           });
         }
         list.appendChild(row);
@@ -390,10 +413,29 @@ export function mountCraftingHud(
               return;
             }
             event.preventDefault();
+            ignoreClick = true;
             startPickup(
               { materialId: grid[r][c]!, from: { row: r, col: c } },
               event,
             );
+          });
+          cell.addEventListener("click", (event) => {
+            if (ignoreClick) {
+              ignoreClick = false;
+              event.preventDefault();
+              return;
+            }
+            if (pickup) {
+              placePickupOnCell(r, c);
+              tapSelect = null;
+              return;
+            }
+            if (grid[r][c]) {
+              startPickup({
+                materialId: grid[r][c]!,
+                from: { row: r, col: c },
+              });
+            }
           });
         }
         gridEl.appendChild(cell);
@@ -407,10 +449,21 @@ export function mountCraftingHud(
     result.dataset.craftResult = "1";
     const match = matchGrid(grid, options.context);
     if (match.status === "match") {
+      const atCap = !canAddItem(
+        match.recipe.outputItemId,
+        match.recipe.outputCount,
+      );
       const countLabel =
         match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
-      result.textContent = `${getItemName(match.recipe.outputItemId)}${countLabel}`;
-      result.disabled = !interactive;
+      result.textContent = atCap
+        ? "You can't hold more of that."
+        : `${getItemName(match.recipe.outputItemId)}${countLabel}`;
+      result.disabled = !interactive || atCap;
+      if (interactive && !atCap) {
+        result.addEventListener("click", () => {
+          takeResult();
+        });
+      }
     } else if (match.status === "blocked") {
       result.textContent = match.message;
       result.disabled = true;
