@@ -9,12 +9,16 @@ export const worldState = {
   discoveredZones: [] as ZoneId[],
   /** Creature species seen in an encounter — shown in every matching habitat. */
   discoveredCreatures: [] as string[],
-  /** Tide Sovereign was obtained; natural god-sail rolls stop permanently. */
+  /** Tide Sovereign was obtained; natural god-sail rolls stop until unclaimed. */
   godSailEncounterClaimed: false,
-  /** Cairn Sovereign was obtained; natural god-land rolls stop permanently. */
+  /** Cairn Sovereign was obtained; natural god-land rolls stop until unclaimed. */
   godLandEncounterClaimed: false,
-  /** Dual-god fusion into Horizon Sovereign has been completed. */
+  /** At least one Horizon Sovereign has been fused. Legacy saves used this as once-only. */
   godFusionCompleted: false,
+  /** Successful Tide+Cairn → Horizon fusions this save (0–2). */
+  horizonFusionCount: 0,
+  /** Two Horizons have been fused into Eclipse Sovereign. */
+  eclipseFusionCompleted: false,
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -57,18 +61,65 @@ export function setGodLandEncounterClaimed(
   }
 }
 
+export const MAX_HORIZON_FUSIONS = 2;
+
 export function isGodFusionCompleted(): boolean {
   return worldState.godFusionCompleted;
+}
+
+export function getHorizonFusionCount(): number {
+  return worldState.horizonFusionCount;
+}
+
+export function isEclipseFusionCompleted(): boolean {
+  return worldState.eclipseFusionCompleted;
+}
+
+export function canHuntParentSovereigns(): boolean {
+  return (
+    !worldState.eclipseFusionCompleted &&
+    worldState.horizonFusionCount < MAX_HORIZON_FUSIONS
+  );
+}
+
+export function setHorizonFusionCount(count: number, notify = true): void {
+  const next = Math.min(
+    MAX_HORIZON_FUSIONS,
+    Math.max(0, Math.floor(count)),
+  );
+  worldState.horizonFusionCount = next;
+  worldState.godFusionCompleted = next >= 1;
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function recordHorizonFusion(notify = true): void {
+  setHorizonFusionCount(worldState.horizonFusionCount + 1, notify);
+}
+
+export function setEclipseFusionCompleted(
+  completed: boolean,
+  notify = true,
+): void {
+  worldState.eclipseFusionCompleted = completed;
+  if (notify) {
+    notifyWorldChanged();
+  }
 }
 
 export function setGodFusionCompleted(
   completed: boolean,
   notify = true,
 ): void {
-  worldState.godFusionCompleted = completed;
-  if (notify) {
-    notifyWorldChanged();
+  if (completed) {
+    setHorizonFusionCount(
+      Math.max(1, worldState.horizonFusionCount),
+      notify,
+    );
+    return;
   }
+  setHorizonFusionCount(0, notify);
 }
 
 export function markZoneDiscovered(zoneId: ZoneId): void {

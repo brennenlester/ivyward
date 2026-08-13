@@ -17,7 +17,7 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "../world/worldSession";
-import { setGodFusionCompleted } from "../world/worldState";
+import { setEclipseFusionCompleted, setGodFusionCompleted } from "../world/worldState";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
@@ -30,6 +30,7 @@ beforeEach(() => {
   setInventoryFromSnapshot({}, {});
   setVisitorMode(false);
   setGodFusionCompleted(false, false);
+  setEclipseFusionCompleted(false, false);
 });
 
 describe("shaped patterns", () => {
@@ -200,8 +201,24 @@ describe("sovereign seal recipe", () => {
     expect(getItemCount("sovereign-seal")).toBe(1);
   });
 
-  it("blocks crafting a seal after dual-god fusion is complete", () => {
+  it("still crafts a seal after Horizon fusion", () => {
     setGodFusionCompleted(true, false);
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        pebble: 3,
+        "folklore-dust": 2,
+        "wild-fiber": 2,
+      },
+      {},
+    );
+    expect(canCraft(sealRecipe)).toBe(true);
+    expect(craftItem(sealRecipe)).toBe(true);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+  });
+
+  it("blocks crafting a seal after Eclipse fusion is complete", () => {
+    setEclipseFusionCompleted(true, false);
     setInventoryFromSnapshot(
       {
         "brook-pearl": 3,
@@ -214,7 +231,7 @@ describe("sovereign seal recipe", () => {
     expect(canCraft(sealRecipe)).toBe(false);
     expect(craftItem(sealRecipe)).toBe(false);
     expect(getItemCount("sovereign-seal")).toBe(0);
-    setGodFusionCompleted(false, false);
+    setEclipseFusionCompleted(false, false);
   });
 });
 

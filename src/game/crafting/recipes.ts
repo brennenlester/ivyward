@@ -7,7 +7,7 @@ import {
   getMaterialCount,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
-import { isGodFusionCompleted } from "../world/worldState";
+import { isEclipseFusionCompleted } from "../world/worldState";
 
 export const GRID_SIZE = 4;
 
@@ -255,11 +255,11 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
         message: "Already have a Moonshrine",
       };
     }
-    if (recipe.outputItemId === "sovereign-seal" && isGodFusionCompleted()) {
+    if (recipe.outputItemId === "sovereign-seal" && isEclipseFusionCompleted()) {
       return {
         status: "blocked",
         recipe,
-        message: "The dual-god fusion is already complete.",
+        message: "Eclipse Sovereign has already been fused.",
       };
     }
     return { status: "match", recipe, box };
@@ -301,7 +301,7 @@ export function canCraft(
   if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
     return false;
   }
-  if (recipe.outputItemId === "sovereign-seal" && isGodFusionCompleted()) {
+  if (recipe.outputItemId === "sovereign-seal" && isEclipseFusionCompleted()) {
     return false;
   }
   return (

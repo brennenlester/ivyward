@@ -14,7 +14,9 @@ import {
 import { LEVEL_XP_THRESHOLDS } from "../progression/leveling";
 import { applyShrineFusion } from "./fusion";
 import {
+  applyEclipseFusion,
   applyGodFusion,
+  ECLIPSE_SOVEREIGN_ID,
   HORIZON_SOVEREIGN_ID,
   SOVEREIGN_SEAL_ID,
 } from "./godFusion";
@@ -22,8 +24,16 @@ import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import { setVisitorMode } from "../world/worldSession";
 import {
+  getHorizonFusionCount,
+  isEclipseFusionCompleted,
   isGodFusionCompleted,
+  isGodLandEncounterClaimed,
+  isGodSailEncounterClaimed,
+  setEclipseFusionCompleted,
   setGodFusionCompleted,
+  setGodLandEncounterClaimed,
+  setGodSailEncounterClaimed,
+  setHorizonFusionCount,
 } from "../world/worldState";
 
 function member(
@@ -45,6 +55,10 @@ describe("dual-god fusion", () => {
     setInventoryFromSnapshot({}, {});
     setVisitorMode(false);
     setGodFusionCompleted(false, false);
+    setEclipseFusionCompleted(false, false);
+    setHorizonFusionCount(0, false);
+    setGodSailEncounterClaimed(false, false);
+    setGodLandEncounterClaimed(false, false);
   });
 
   it("refuses visitors, missing seal, missing gods, and the wrong item", () => {
@@ -87,8 +101,44 @@ describe("dual-god fusion", () => {
     );
   });
 
-  it("refuses a second fusion after completion", () => {
-    setGodFusionCompleted(true, false);
+  it("allows a second Horizon fusion after the first and unclaims parent hunts", () => {
+    setGodSailEncounterClaimed(true, false);
+    setGodLandEncounterClaimed(true, false);
+    setPartyFromSnapshot(
+      [
+        member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID }),
+        member({ instanceId: "c", definitionId: CAIRN_SOVEREIGN_ID }),
+      ],
+      3,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    expect(getHorizonFusionCount()).toBe(1);
+    expect(isGodSailEncounterClaimed()).toBe(false);
+    expect(isGodLandEncounterClaimed()).toBe(false);
+
+    setPartyFromSnapshot(
+      [
+        member({ instanceId: "h1", definitionId: HORIZON_SOVEREIGN_ID, level: 40 }),
+        member({ instanceId: "t2", definitionId: TIDE_SOVEREIGN_ID, level: 20 }),
+        member({ instanceId: "c2", definitionId: CAIRN_SOVEREIGN_ID, level: 33 }),
+      ],
+      6,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    setGodSailEncounterClaimed(true, false);
+    setGodLandEncounterClaimed(true, false);
+    expect(applyGodFusion("t2", "c2", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    expect(getHorizonFusionCount()).toBe(2);
+    expect(
+      playerParty.creatures.filter((c) => c.definitionId === HORIZON_SOVEREIGN_ID),
+    ).toHaveLength(2);
+    expect(isGodSailEncounterClaimed()).toBe(true);
+    expect(isGodLandEncounterClaimed()).toBe(true);
+  });
+
+  it("refuses a third Horizon fusion", () => {
+    setHorizonFusionCount(2, false);
     setPartyFromSnapshot(
       [
         member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID }),
@@ -99,10 +149,9 @@ describe("dual-god fusion", () => {
     setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
     expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID)).toEqual({
       ok: false,
-      message: "The sovereigns have already been fused.",
+      message: "Fuse the two Horizon Sovereigns instead.",
     });
     expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(1);
-    expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(true);
   });
 
   it("consumes both parents and the seal, then adds Horizon Sovereign", () => {
@@ -155,6 +204,99 @@ describe("dual-god fusion", () => {
     expect(getCreatureDefinition(HORIZON_SOVEREIGN_ID).excludeFromCodex).toBe(
       true,
     );
+  });
+
+  it("fuses two Horizons into Eclipse Sovereign", () => {
+    setHorizonFusionCount(2, false);
+    setPartyFromSnapshot(
+      [
+        member({
+          instanceId: "h1",
+          definitionId: HORIZON_SOVEREIGN_ID,
+          level: 41,
+        }),
+        member({
+          instanceId: "h2",
+          definitionId: HORIZON_SOVEREIGN_ID,
+          level: 48,
+        }),
+      ],
+      4,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+
+    const result = applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID);
+    expect(result).toEqual({
+      ok: true,
+      message: "Horizon Sovereigns fused into Eclipse Sovereign!",
+    });
+    expect(hasCreature(HORIZON_SOVEREIGN_ID)).toBe(false);
+    expect(hasCreature(ECLIPSE_SOVEREIGN_ID)).toBe(true);
+    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(0);
+    expect(isEclipseFusionCompleted()).toBe(true);
+
+    const fused = playerParty.creatures[0];
+    expect(fused).toMatchObject({
+      definitionId: ECLIPSE_SOVEREIGN_ID,
+      level: 48,
+      xp: LEVEL_XP_THRESHOLDS[48],
+      currentHp: getCreatureDefinition(ECLIPSE_SOVEREIGN_ID).maxHp,
+    });
+    expect(getCreatureDefinition(ECLIPSE_SOVEREIGN_ID)).toMatchObject({
+      folkloreType: "mist",
+      maxHp: 144,
+      attack: 24,
+      defense: 22,
+      excludeFromCodex: true,
+    });
+  });
+
+  it("refuses Eclipse fusion for visitors, missing seal, same instance, and a second Eclipse", () => {
+    setPartyFromSnapshot(
+      [
+        member({ instanceId: "h1", definitionId: HORIZON_SOVEREIGN_ID }),
+        member({ instanceId: "h2", definitionId: HORIZON_SOVEREIGN_ID }),
+      ],
+      4,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+
+    setVisitorMode(true);
+    expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID).ok).toBe(false);
+    setVisitorMode(false);
+
+    expect(applyEclipseFusion("h1", "h1", SOVEREIGN_SEAL_ID).message).toMatch(
+      /Requires two Horizon Sovereigns/,
+    );
+
+    setEclipseFusionCompleted(true, false);
+    expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID)).toEqual({
+      ok: false,
+      message: "Eclipse Sovereign has already been fused.",
+    });
+    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(1);
+
+    setEclipseFusionCompleted(false, false);
+    setInventoryFromSnapshot({}, {});
+    expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID).message).toBe(
+      "You need a Sovereign Seal.",
+    );
+  });
+
+  it("treats a legacy Horizon-complete flag as one fusion, not Eclipse", () => {
+    setGodFusionCompleted(true, false);
+    expect(getHorizonFusionCount()).toBe(1);
+    expect(isEclipseFusionCompleted()).toBe(false);
+    setPartyFromSnapshot(
+      [
+        member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID }),
+        member({ instanceId: "c", definitionId: CAIRN_SOVEREIGN_ID }),
+      ],
+      3,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    expect(getHorizonFusionCount()).toBe(2);
   });
 
   it("leaves ember-charm fusion working", () => {

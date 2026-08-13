@@ -498,6 +498,24 @@ export const CREATURES: CreatureDefinition[] = [
       { id: "still-crown", name: "Still Crown", power: 10, type: "mist", accuracy: 100 },
     ],
   },
+  {
+    id: "eclipse-sovereign",
+    name: "Eclipse Sovereign",
+    folkloreType: "mist",
+    maxHp: 144,
+    attack: 24,
+    defense: 22,
+    spriteKey: "creature-eclipse-sovereign",
+    spriteColor: 0x2a2438,
+    early: false,
+    excludeFromCodex: true,
+    moves: [
+      { id: "eclipse-pulse", name: "Eclipse Pulse", power: 14, type: "mist", accuracy: 100 },
+      { id: "umbral-crash", name: "Umbral Crash", power: 22, type: "earth", accuracy: 90 },
+      { id: "abyssal-eclipse", name: "Abyssal Eclipse", power: 22, type: "water", accuracy: 90 },
+      { id: "still-eclipse", name: "Still Eclipse", power: 12, type: "mist", accuracy: 100 },
+    ],
+  },
 ];
 
 const byId = new Map(CREATURES.map((c) => [c.id, c]));

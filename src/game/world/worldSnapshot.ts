@@ -13,12 +13,14 @@ import {
 import { restoreQuestProgress, questProgress } from "../story/questProgress";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
+import { reopenParentSovereignEncounters } from "../shrine/godFusion";
 import {
   setDiscoveredCreatures,
   setDiscoveredZones,
-  setGodFusionCompleted,
+  setEclipseFusionCompleted,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
+  setHorizonFusionCount,
   setOverworldUnlocked,
   worldState,
 } from "./worldState";
@@ -86,8 +88,12 @@ export type WorldSnapshot = {
   godSailEncounterClaimed?: boolean;
   /** Cairn Sovereign has been obtained. Optional for older saves. */
   godLandEncounterClaimed?: boolean;
-  /** Dual-god fusion completed. Optional for older saves. */
+  /** Dual-god Horizon fusion completed at least once. Optional for older saves. */
   godFusionCompleted?: boolean;
+  /** Tide+Cairn → Horizon fusion count (0–2). Optional for older saves. */
+  horizonFusionCount?: number;
+  /** Two Horizons fused into Eclipse. Optional for older saves. */
+  eclipseFusionCompleted?: boolean;
   questProgress: Record<QuestId, QuestStatus>;
   party: CreatureInstance[];
   /** Active battle party instance ids (max 7). Optional for older saves. */
@@ -498,6 +504,22 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   ) {
     return false;
   }
+  if (s.horizonFusionCount !== undefined) {
+    if (
+      typeof s.horizonFusionCount !== "number" ||
+      !Number.isInteger(s.horizonFusionCount) ||
+      s.horizonFusionCount < 0 ||
+      s.horizonFusionCount > 2
+    ) {
+      return false;
+    }
+  }
+  if (
+    s.eclipseFusionCompleted !== undefined &&
+    typeof s.eclipseFusionCompleted !== "boolean"
+  ) {
+    return false;
+  }
 
   const pos = s.position as Record<string, unknown> | undefined;
   if (
@@ -596,6 +618,8 @@ export function exportWorldSnapshot(
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
     godFusionCompleted: worldState.godFusionCompleted,
+    horizonFusionCount: worldState.horizonFusionCount,
+    eclipseFusionCompleted: worldState.eclipseFusionCompleted,
     questProgress: { ...questProgress },
     party: structuredClone(playerParty.creatures),
     activePartyIds: [...playerParty.activeInstanceIds],
@@ -634,7 +658,11 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
-  setGodFusionCompleted(snapshot.godFusionCompleted === true, false);
+  setEclipseFusionCompleted(snapshot.eclipseFusionCompleted === true, false);
+  const horizonCount =
+    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
+  setHorizonFusionCount(horizonCount, false);
+  reopenParentSovereignEncounters();
   setPlacedBoat(snapshot.placedBoat === true);
   if (snapshot.placedBoat === true) {
     setMooredDock(inferMooredDock(snapshot));
