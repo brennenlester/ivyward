@@ -30,6 +30,7 @@ import {
   hideShrineCraftingHud,
   showShrineCraftingHud,
 } from "../ui/craftingHud";
+import { openRecipes } from "../ui/recipePanel";
 
 const MOON_PANEL = 0x354d78;
 const MOON_STROKE = 0xffedb0;
@@ -144,6 +145,7 @@ export class ShrineScene extends Phaser.Scene {
           align: "center",
         })
         .setOrigin(0.5);
+      this.addRecipesButton(cx, cy + 130);
       this.setupCloseControls(cx, cy + 175);
       return;
     }
@@ -356,7 +358,7 @@ export class ShrineScene extends Phaser.Scene {
             { id: "fusion", label: "Fusion" },
           ];
 
-    let x = cx - (tabs.length === 2 ? 70 : 120);
+    let x = cx - (tabs.length === 2 ? 90 : 160);
     for (const tab of tabs) {
       const btn = this.add
         .text(x, y, tab.label, {
@@ -379,6 +381,21 @@ export class ShrineScene extends Phaser.Scene {
       this.tabButtons.push(btn);
       x += 90;
     }
+    this.addRecipesButton(x, y);
+  }
+
+  private addRecipesButton(x: number, y: number): void {
+    this.add
+      .text(x, y, "Recipes", {
+        color: MOON_TEXT,
+        backgroundColor: "#42658d",
+        fontFamily: "Source Sans 3, sans-serif",
+        fontSize: "15px",
+        padding: { x: 18, y: 9 },
+      })
+      .setOrigin(0.5)
+      .setInteractive({ useHandCursor: true })
+      .on("pointerdown", () => openRecipes());
   }
 
   private refreshTabs(): void {

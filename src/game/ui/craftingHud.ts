@@ -1,4 +1,5 @@
 import { getItemName, getMaterialName } from "../inventory/materials";
+import { openRecipes } from "./recipePanel";
 import {
   addMaterial,
   canAddItem,
@@ -364,6 +365,19 @@ export function mountCraftingHud(
 
   function render(): void {
     root.replaceChildren();
+    const header = document.createElement("div");
+    header.className = "crafting-hud-header";
+    const recipesBtn = document.createElement("button");
+    recipesBtn.type = "button";
+    recipesBtn.className = "crafting-recipes-btn";
+    recipesBtn.dataset.craftRecipes = "1";
+    recipesBtn.textContent = "Recipes";
+    recipesBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      openRecipes();
+    });
+    header.appendChild(recipesBtn);
+
     const layout = document.createElement("div");
     layout.className = "crafting-hud-layout";
 
@@ -504,7 +518,7 @@ export function mountCraftingHud(
     status.textContent = statusMessage();
 
     layout.append(list, board);
-    root.append(layout, status);
+    root.append(header, layout, status);
   }
 
   const moveListener = (event: PointerEvent) => onPointerMove(event);

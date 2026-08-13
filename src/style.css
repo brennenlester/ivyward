@@ -749,6 +749,11 @@ body,
   font-weight: 700;
 }
 
+.inventory-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .inventory-close {
   border: 2px solid #a0c8b8;
   background: #f4fffa;
@@ -834,6 +839,24 @@ body,
   border: 1px solid #c8e4d8;
   border-radius: 12px;
   padding: 10px;
+}
+
+.crafting-hud-header {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.crafting-recipes-btn {
+  border: 2px solid #a0c8b8;
+  background: #ffedb0;
+  color: #1a1a2e;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 999px;
+  cursor: pointer;
 }
 
 .crafting-hud-layout {
@@ -965,7 +988,7 @@ body,
 .recipes-overlay {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 50;
   display: flex;
   align-items: center;
   justify-content: center;

@@ -75,7 +75,7 @@ function ensureRecipesRoot(): HTMLElement {
         <h2 id="recipes-title">Recipes</h2>
         <button type="button" id="recipes-close" class="recipes-close">Close</button>
       </div>
-      <p class="recipes-intro">Shaped 4×4 patterns. Slide them anywhere on the grid; do not rotate. Open Inventory or Moon Shrine to craft.</p>
+      <p class="recipes-intro">Shaped 4×4 patterns. Slide them anywhere on the grid; do not rotate. Craft at Moon Shrine, or from Inventory after you own a Portable Moonshrine.</p>
       <div id="recipes-body" class="recipes-body"></div>
     </div>
   `;
@@ -155,7 +155,10 @@ export function closeRecipes(): void {
     root.hidden = true;
   }
   recipesOpen = false;
-  setBackgroundInert(false);
+  const inventory = document.getElementById("inventory-overlay");
+  if (!inventory || inventory.hidden) {
+    setBackgroundInert(false);
+  }
   window.removeEventListener("keydown", onRecipesKeyDown, true);
   previouslyFocused?.focus();
   previouslyFocused = null;

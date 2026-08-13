@@ -4,6 +4,7 @@ import {
   mountCraftingHud,
   showShrineCraftingHud,
 } from "./craftingHud";
+import { closeRecipes, isRecipesOpen } from "./recipePanel";
 import { resetStagedCraftingSourcesForTest } from "../crafting/stagedMaterials";
 import {
   getItemCount,
@@ -52,6 +53,7 @@ describe("crafting HUD", () => {
   });
 
   afterEach(() => {
+    closeRecipes();
     hideShrineCraftingHud(true);
     resetStagedCraftingSourcesForTest();
     document.body.replaceChildren();
@@ -141,5 +143,16 @@ describe("crafting HUD", () => {
     expect(isHostPersistSuspended()).toBe(false);
     hideShrineCraftingHud(true);
     expect(getMaterialCount("wood")).toBe(1);
+  });
+
+  it("opens Recipes from the craft HUD", () => {
+    const { host, hud } = mountHud();
+    const recipesBtn = host.querySelector(
+      "[data-craft-recipes]",
+    ) as HTMLButtonElement;
+    expect(recipesBtn.textContent).toBe("Recipes");
+    recipesBtn.click();
+    expect(isRecipesOpen()).toBe(true);
+    hud.destroy();
   });
 });
