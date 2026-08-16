@@ -93,6 +93,22 @@ export function findNpcNearPlayer(
   );
 }
 
+/** Chebyshev distance to the nearest villager in this zone, if any. */
+export function nearestNpcDistance(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+): number | undefined {
+  let best: number | undefined;
+  for (const npc of getZoneNpcs(zoneId)) {
+    const dist = Math.max(Math.abs(npc.x - tileX), Math.abs(npc.y - tileY));
+    if (best === undefined || dist < best) {
+      best = dist;
+    }
+  }
+  return best;
+}
+
 export function getNpcById(npcId: string): NpcDefinition | undefined {
   for (const npcs of Object.values(NPCS)) {
     const match = npcs?.find((npc) => npc.id === npcId);

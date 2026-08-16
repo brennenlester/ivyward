@@ -56,7 +56,7 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
     { x: 1, y: 2, kind: "loom" },
   ],
   "hearthkeep-cottage": [
-    { x: 3, y: 1, kind: "hearth" },
+    { x: 1, y: 1, kind: "hearth" },
     { x: 5, y: 3, kind: "shelf" },
   ],
   overworld: [

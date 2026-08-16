@@ -15,7 +15,12 @@ import {
 import type { CreatureInstance } from "../creatures/types";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
-import { findMinigameAt } from "./ids";
+import {
+  findMinigameAt,
+  findMinigameNearPlayer,
+  shouldPreferMinigameOverNpc,
+} from "./ids";
+import { nearestNpcDistance } from "../world/npcs";
 import {
   canLaunchMinigame,
   getClaimedMinigameWins,
@@ -88,7 +93,34 @@ describe("minigame launch", () => {
   it("finds each cottage prop", () => {
     expect(findMinigameAt("warden-cottage", 1, 1)?.id).toBe("ward-crossing");
     expect(findMinigameAt("weaver-cottage", 1, 2)?.id).toBe("loom-pattern");
-    expect(findMinigameAt("hearthkeep-cottage", 3, 1)?.id).toBe("hearth-lots");
+    expect(findMinigameAt("hearthkeep-cottage", 1, 1)?.id).toBe("hearth-lots");
+  });
+
+  it("starts from an adjacent tile", () => {
+    expect(findMinigameNearPlayer("warden-cottage", 2, 1)?.game.id).toBe(
+      "ward-crossing",
+    );
+    expect(findMinigameNearPlayer("weaver-cottage", 1, 3)?.game.id).toBe(
+      "loom-pattern",
+    );
+    expect(findMinigameNearPlayer("hearthkeep-cottage", 1, 2)?.game.id).toBe(
+      "hearth-lots",
+    );
+  });
+
+  it("keeps villager talk when standing on the NPC", () => {
+    expect(
+      shouldPreferMinigameOverNpc(
+        findMinigameNearPlayer("hearthkeep-cottage", 3, 2)?.dist ?? 99,
+        nearestNpcDistance("hearthkeep-cottage", 3, 2),
+      ),
+    ).toBe(false);
+    expect(
+      shouldPreferMinigameOverNpc(
+        findMinigameNearPlayer("hearthkeep-cottage", 1, 1)?.dist ?? 99,
+        nearestNpcDistance("hearthkeep-cottage", 1, 1),
+      ),
+    ).toBe(true);
   });
 
   it("refuses Ward the Crossing without a living party", () => {

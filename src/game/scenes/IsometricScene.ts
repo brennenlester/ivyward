@@ -112,8 +112,11 @@ import {
   getZoneProps,
   propTextureKey,
 } from "../world/zoneProps";
-import { findNpcNearPlayer, getZoneNpcs } from "../world/npcs";
-import { findMinigameAt } from "../minigames/ids";
+import { findNpcNearPlayer, getZoneNpcs, nearestNpcDistance } from "../world/npcs";
+import {
+  findMinigameNearPlayer,
+  shouldPreferMinigameOverNpc,
+} from "../minigames/ids";
 import { canLaunchMinigame } from "../minigames/progress";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
 import {
@@ -1596,7 +1599,15 @@ export class IsometricScene extends Phaser.Scene {
   private getMinigameHere() {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    return findMinigameAt(this.currentZoneId, tileX, tileY);
+    const nearby = findMinigameNearPlayer(this.currentZoneId, tileX, tileY);
+    if (!nearby) {
+      return undefined;
+    }
+    const npcDist = nearestNpcDistance(this.currentZoneId, tileX, tileY);
+    if (!shouldPreferMinigameOverNpc(nearby.dist, npcDist)) {
+      return undefined;
+    }
+    return nearby.game;
   }
 
   private tryMinigameInteract(): boolean {

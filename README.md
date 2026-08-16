@@ -61,7 +61,7 @@ Talk again after the gift and each villager will offer a **side ask**:
 
 Active village asks show in the status panel as `Village ask: …`. Delivery asks only take materials when you successfully turn them in. Visitors cannot accept or complete side asks.
 
-Stand on the house's signature prop and press **E** for a minigame. Talking still handles gifts and side asks. Visitors can play but never receive the first-win gift.
+Stand next to the house's signature prop and press **E** for a minigame (same reach as talking). Standing on the villager still talks — gifts and side asks are unchanged. Visitors can play but never receive the first-win gift.
 
 | House | Prop | Minigame | First win (once per save) |
 | --- | --- | --- | --- |
