@@ -21,12 +21,16 @@ import type { ZoneId } from "./zoneTypes";
 const STORAGE_KEY = "ivyward-save-v1";
 /** Pre-rename key; migrate on read so existing host saves are not lost. */
 const LEGACY_STORAGE_KEY = "poke-save-v1";
+/** Raw payload of the last save that could not be repaired (#190). */
+const BACKUP_STORAGE_KEY = "ivyward-save-v1-backup";
 
-let hostPosition: WorldSnapshot["position"] = {
+const DEFAULT_HOST_POSITION: WorldSnapshot["position"] = {
   zoneId: STARTING_ZONE_ID,
   x: 3,
   y: 7,
 };
+
+let hostPosition: WorldSnapshot["position"] = { ...DEFAULT_HOST_POSITION };
 
 function readRawSave(): string | null {
   try {
@@ -84,9 +88,65 @@ export function resetHostGame(): void {
   window.location.assign(url.toString());
 }
 
-export function loadHostSave(): WorldSnapshot | null {
+/**
+ * Position is the only structurally fragile snapshot field — map layout
+ * changes have invalidated saved positions twice before (see the legacy
+ * repair functions). The repair must be attributable to position alone: a
+ * candidate replacing only the position must validate, otherwise the save is
+ * quarantined instead (#190 fail-safe rule).
+ */
+function repairWithDefaultSpawn(parsed: unknown): WorldSnapshot | null {
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    return null;
+  }
+  const respawned = {
+    ...(parsed as Record<string, unknown>),
+    position: { ...DEFAULT_HOST_POSITION },
+  };
+  if (!isValidWorldSnapshot(respawned)) {
+    return null;
+  }
+  if (respawned.sailing !== true) {
+    return respawned;
+  }
+  // The land spawn cannot hold a mid-sail flag — the validator would accept
+  // it and load a stuck sail-on-land state. Grounding a legitimate `true` is
+  // coherence, not corruption-masking (wrong-typed sailing already failed the
+  // position-only candidate above).
+  const grounded = { ...respawned, sailing: false };
+  return isValidWorldSnapshot(grounded) ? grounded : null;
+}
+
+/**
+ * Move the raw payload to the backup key so it stays recoverable, then clear
+ * the live keys. Under quota pressure the primary slot is freed first (the
+ * payload is the same size); if the backup write still fails, the payload is
+ * restored to the primary key rather than lost — the next load repeats the
+ * same deterministic path.
+ */
+function quarantineRawSave(raw: string): void {
   try {
-    const raw = readRawSave();
+    localStorage.setItem(BACKUP_STORAGE_KEY, raw);
+  } catch {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      localStorage.setItem(BACKUP_STORAGE_KEY, raw);
+    } catch {
+      try {
+        localStorage.setItem(STORAGE_KEY, raw);
+      } catch {
+        // ponytail: storage wholly unwritable; nothing left to preserve
+      }
+      return;
+    }
+  }
+  clearHostSave();
+}
+
+export function loadHostSave(): WorldSnapshot | null {
+  let raw: string | null = null;
+  try {
+    raw = readRawSave();
     if (!raw) {
       return null;
     }
@@ -94,13 +154,22 @@ export function loadHostSave(): WorldSnapshot | null {
     migrateBoatStateToHarbor(parsed);
     repairLegacyOverworldShorePosition(parsed);
     repairLegacyArchipelagoLayoutPosition(parsed);
-    if (!isValidWorldSnapshot(parsed)) {
-      clearHostSave();
-      return null;
+    if (isValidWorldSnapshot(parsed)) {
+      return parsed;
     }
-    return parsed;
+    const repaired = repairWithDefaultSpawn(parsed);
+    if (repaired) {
+      return repaired;
+    }
+    // Unrepairable: keep the raw payload recoverable instead of deleting it.
+    quarantineRawSave(raw);
+    return null;
   } catch {
-    clearHostSave();
+    if (raw) {
+      quarantineRawSave(raw);
+    } else {
+      clearHostSave();
+    }
     return null;
   }
 }
