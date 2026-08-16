@@ -181,6 +181,18 @@ describe("crafting HUD", () => {
     hud.destroy();
   });
 
+  it("clears a grid cell when the material is picked back up", () => {
+    const { host, hud } = mountHud();
+    listRow(host, "Wood").click();
+    cellAt(host, 0, 0).click();
+    expect(cellAt(host, 0, 0).querySelector("img.material-icon")).not.toBeNull();
+    cellAt(host, 0, 0).click();
+    const empty = cellAt(host, 0, 0);
+    expect(empty.querySelector("img.material-icon")).toBeNull();
+    expect(empty.getAttribute("aria-label")).toBeNull();
+    hud.destroy();
+  });
+
   it("opens Recipes from the craft HUD", () => {
     const { host, hud } = mountHud();
     const recipesBtn = host.querySelector(

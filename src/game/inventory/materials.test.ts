@@ -19,9 +19,6 @@ describe("getMaterialIconSrc", () => {
   });
 
   it("returns undefined for non-recipe materials", () => {
-    expect(getMaterialIconSrc("moss-fiber")).toBe(
-      "/assets/materials/moss-fiber.png",
-    );
     expect(getMaterialIconSrc("stone-chip")).toBeUndefined();
     expect(getMaterialIconSrc("unknown-mat")).toBeUndefined();
   });

@@ -451,8 +451,12 @@ export function mountCraftingHud(
         cell.dataset.col = String(c);
         cell.disabled = !interactive;
         const id = grid[r][c];
+        cell.replaceChildren();
         if (id) {
           appendMaterialVisual(cell, id, { showName: false });
+        } else {
+          cell.removeAttribute("title");
+          cell.removeAttribute("aria-label");
         }
         if (interactive) {
           cell.addEventListener("pointerdown", (event) => {
