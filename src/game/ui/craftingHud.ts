@@ -1,4 +1,5 @@
 import { getItemName, getMaterialName } from "../inventory/materials";
+import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
 import {
   addMaterial,
@@ -274,7 +275,8 @@ export function mountCraftingHud(
       ghost.setAttribute("aria-hidden", "true");
       document.body.appendChild(ghost);
     }
-    ghost.textContent = getMaterialName(materialId);
+    ghost.replaceChildren();
+    appendMaterialVisual(ghost, materialId, { showName: false });
     return ghost;
   }
 
@@ -404,12 +406,13 @@ export function mountCraftingHud(
         row.type = "button";
         row.className = "crafting-list-row";
         row.disabled = !interactive;
-        const name = document.createElement("span");
-        name.textContent = mat.name;
+        const main = document.createElement("span");
+        main.className = "crafting-list-main";
+        appendMaterialVisual(main, mat.id, { showName: true });
         const count = document.createElement("span");
         count.className = "crafting-count";
         count.textContent = `×${mat.count}`;
-        row.append(name, count);
+        row.append(main, count);
         if (interactive) {
           row.addEventListener("pointerdown", (event) => {
             event.preventDefault();
@@ -448,9 +451,8 @@ export function mountCraftingHud(
         cell.dataset.col = String(c);
         cell.disabled = !interactive;
         const id = grid[r][c];
-        cell.textContent = id ? getMaterialName(id) : "";
         if (id) {
-          cell.title = getMaterialName(id);
+          appendMaterialVisual(cell, id, { showName: false });
         }
         if (interactive) {
           cell.addEventListener("pointerdown", (event) => {

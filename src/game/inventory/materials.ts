@@ -83,8 +83,29 @@ export function getMaterialForCreature(creatureId: string): string | undefined {
   return CREATURE_MATERIALS[creatureId];
 }
 
+/** Recipe-grid materials that have HUD icons. Other owned mats stay name-only. */
+export const CRAFT_MATERIAL_ICON_IDS = [
+  "wood",
+  "stone",
+  "wild-fiber",
+  "moss-fiber",
+  "ember-ash",
+  "brook-pearl",
+  "pebble",
+  "folklore-dust",
+] as const;
+
 export function getMaterialName(materialId: string): string {
   return MATERIAL_NAMES[materialId] ?? materialId;
+}
+
+export function getMaterialIconSrc(materialId: string): string | undefined {
+  if (
+    !(CRAFT_MATERIAL_ICON_IDS as readonly string[]).includes(materialId)
+  ) {
+    return undefined;
+  }
+  return `/assets/materials/${materialId}.png`;
 }
 
 export function getItemName(itemId: string): string {
