@@ -105,7 +105,9 @@ export function getMaterialIconSrc(materialId: string): string | undefined {
   ) {
     return undefined;
   }
-  return `/assets/materials/${materialId}.png`;
+  const base = import.meta.env.BASE_URL;
+  const prefix = base.endsWith("/") ? base : `${base}/`;
+  return `${prefix}assets/materials/${materialId}.png`;
 }
 
 export function getItemName(itemId: string): string {

@@ -10,6 +10,10 @@ export function appendMaterialVisual(
   el.setAttribute("aria-label", name);
 
   const src = getMaterialIconSrc(materialId);
+  const label = document.createElement("span");
+  label.className = "material-icon-name";
+  label.textContent = name;
+
   if (src) {
     const img = document.createElement("img");
     img.className = "material-icon";
@@ -17,22 +21,15 @@ export function appendMaterialVisual(
     img.alt = "";
     img.draggable = false;
     img.setAttribute("aria-hidden", "true");
+    if (!options.showName) {
+      label.classList.add("visually-hidden");
+    }
     img.addEventListener("error", () => {
       img.remove();
-      if (!options.showName && !el.querySelector(".material-icon-fallback")) {
-        const fallback = document.createElement("span");
-        fallback.className = "material-icon-fallback";
-        fallback.textContent = name;
-        el.appendChild(fallback);
-      }
+      label.classList.remove("visually-hidden");
     });
     el.appendChild(img);
   }
 
-  if (options.showName || !src) {
-    const label = document.createElement("span");
-    label.className = "material-icon-name";
-    label.textContent = name;
-    el.appendChild(label);
-  }
+  el.appendChild(label);
 }

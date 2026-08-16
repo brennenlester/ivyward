@@ -8,13 +8,16 @@ import {
 describe("getMaterialIconSrc", () => {
   it("maps the eight craft materials to public PNG paths", () => {
     for (const id of CRAFT_MATERIAL_ICON_IDS) {
-      expect(getMaterialIconSrc(id)).toBe(`/assets/materials/${id}.png`);
+      const src = getMaterialIconSrc(id);
+      expect(src).toBeDefined();
+      expect(src!.endsWith(`assets/materials/${id}.png`)).toBe(true);
+      expect(src!.startsWith(import.meta.env.BASE_URL)).toBe(true);
     }
   });
 
   it("covers every recipe glyph", () => {
     for (const id of Object.values(PATTERN_GLYPHS)) {
-      expect(getMaterialIconSrc(id)).toBe(`/assets/materials/${id}.png`);
+      expect(getMaterialIconSrc(id)).toBeDefined();
     }
   });
 

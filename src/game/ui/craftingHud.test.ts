@@ -6,6 +6,7 @@ import {
 } from "./craftingHud";
 import { closeRecipes, isRecipesOpen } from "./recipePanel";
 import { resetStagedCraftingSourcesForTest } from "../crafting/stagedMaterials";
+import { getMaterialIconSrc } from "../inventory/materials";
 import {
   getItemCount,
   getMaterialCount,
@@ -170,12 +171,12 @@ describe("crafting HUD", () => {
     const row = listRow(host, "Wood");
     expect(
       row.querySelector("img.material-icon")?.getAttribute("src"),
-    ).toBe("/assets/materials/wood.png");
+    ).toBe(getMaterialIconSrc("wood"));
     row.click();
     cellAt(host, 0, 0).click();
     const cell = cellAt(host, 0, 0);
     expect(cell.querySelector("img.material-icon")?.getAttribute("src")).toBe(
-      "/assets/materials/wood.png",
+      getMaterialIconSrc("wood"),
     );
     expect(cell.getAttribute("aria-label")).toBe("Wood");
     hud.destroy();

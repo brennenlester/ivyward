@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getMaterialIconSrc } from "../inventory/materials";
 import { closeRecipes, listRecipePages, openRecipes } from "./recipePanel";
 
 describe("listRecipePages", () => {
@@ -26,11 +27,14 @@ describe("recipe overlay icons", () => {
     document.body.appendChild(app);
     openRecipes();
     const pearl = document.querySelector(
-      'img.material-icon[src="/assets/materials/brook-pearl.png"]',
+      `img.material-icon[src="${getMaterialIconSrc("brook-pearl")}"]`,
     );
     expect(pearl).toBeInstanceOf(HTMLImageElement);
     const filled = pearl?.closest(".recipe-cell-filled");
     expect(filled?.getAttribute("aria-label")).toBe("Brook Pearl");
+    expect(filled?.querySelector(".material-icon-name")?.textContent).toBe(
+      "Brook Pearl",
+    );
     closeRecipes();
     document.body.replaceChildren();
   });
