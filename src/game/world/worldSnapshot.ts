@@ -37,6 +37,11 @@ import {
   setClaimedNpcGifts,
   setSideQuestStatuses,
 } from "./npcState";
+import {
+  getClaimedMinigameWins,
+  setClaimedMinigameWins,
+} from "../minigames/progress";
+import { isMinigameId } from "../minigames/ids";
 import { isSideQuestId, type SideQuestId, type SideQuestStatus } from "./sideQuests";
 import {
   isBoatPlaced,
@@ -76,6 +81,8 @@ export type WorldSnapshot = {
   unlockedAchievements?: string[];
   /** Villagers whose one-time gift is spent. Optional for older saves. */
   claimedNpcGifts?: string[];
+  /** Cottage minigames already paid out. Optional for older saves. */
+  claimedMinigameWins?: string[];
   /** NPC side-quest progress. Optional for older saves. */
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
   /** Boat moored at the Harbor dock. Optional for older saves. */
@@ -453,6 +460,15 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.claimedMinigameWins !== undefined) {
+    if (!Array.isArray(s.claimedMinigameWins)) return false;
+    for (const minigameId of s.claimedMinigameWins) {
+      if (typeof minigameId !== "string" || !isMinigameId(minigameId)) {
+        return false;
+      }
+    }
+  }
+
   if (s.npcSideQuests !== undefined) {
     if (typeof s.npcSideQuests !== "object" || s.npcSideQuests === null) {
       return false;
@@ -611,6 +627,7 @@ export function exportWorldSnapshot(
     discoveredCreatures: [...worldState.discoveredCreatures],
     unlockedAchievements: getUnlockedAchievements(),
     claimedNpcGifts: getClaimedNpcGifts(),
+    claimedMinigameWins: getClaimedMinigameWins(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
     mooredDock: getMooredDock() ?? undefined,
@@ -655,6 +672,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   );
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
+  setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);

@@ -13,7 +13,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | Input | Action |
 | --- | --- |
 | **Arrow keys** or **WASD** | Move (hold to keep walking) |
-| **E** | Interact — open Moon Shrine on the moon altar, enter a cottage door, talk to a villager, or moor / board / disembark a boat at Harbor or Archipelago docks |
+| **E** | Interact — open Moon Shrine, enter a cottage door, talk to a villager, play a cottage minigame on the house prop, or moor / board / disembark a boat |
 | **I** | Shortcut: copy a friend invite link (host only) |
 | **Copy invite link** (status panel) | Copy a friend invite link (host only; works on touch) |
 | **Party** (status panel) | Manage the active party (max 7) and scroll/swap reserve creatures |
@@ -60,6 +60,16 @@ Talk again after the gift and each villager will offer a **side ask**:
 | Hearthkeep Odd | Travel with three companions | Moonwake Draught ×1 |
 
 Active village asks show in the status panel as `Village ask: …`. Delivery asks only take materials when you successfully turn them in. Visitors cannot accept or complete side asks.
+
+Stand on the house's signature prop and press **E** for a minigame. Talking still handles gifts and side asks. Visitors can play but never receive the first-win gift.
+
+| House | Prop | Minigame | First win (once per save) |
+| --- | --- | --- | --- |
+| Warden's Cottage | Shelf | **Ward the Crossing** — place copies of your living party on 3 lanes and hold 3 waves | Wild Fiber ×2 |
+| Weaver's Cottage | Loom | **Loom Pattern** — repeat three thread sequences | Moss Fiber ×2 |
+| Hearthkeep Cottage | Hearth | **Hearth Lots** — 12-round property game vs Odd | Brook Tonic ×1 |
+
+Ward the Crossing needs at least one living **active** companion. Overworld HP does not change. Hearth Lots uses play money; inventory only changes on that first-win tonic.
 
 ### Encounters and crafting
 

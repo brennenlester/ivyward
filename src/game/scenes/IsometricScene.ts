@@ -113,6 +113,8 @@ import {
   propTextureKey,
 } from "../world/zoneProps";
 import { findNpcNearPlayer, getZoneNpcs } from "../world/npcs";
+import { findMinigameAt } from "../minigames/ids";
+import { canLaunchMinigame } from "../minigames/progress";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
 import {
   getGatherCooldownRemainingMs,
@@ -206,6 +208,7 @@ export class IsometricScene extends Phaser.Scene {
   private godLandCheatBuffer = "";
   private inShrine = false;
   private inDialogue = false;
+  private inMinigame = false;
   private shrinePrompt?: Phaser.GameObjects.Text;
   private gatherToast?: Phaser.GameObjects.Text;
   private questToast?: Phaser.GameObjects.Text;
@@ -284,6 +287,7 @@ export class IsometricScene extends Phaser.Scene {
       this.pendingGodLandEncounter = undefined;
       this.inShrine = false;
       this.inDialogue = false;
+      this.inMinigame = false;
       this.travelSinceEncounter = 0;
       this.godSailTravelSinceEncounter = 0;
       this.godLandTravelSinceEncounter = 0;
@@ -299,6 +303,9 @@ export class IsometricScene extends Phaser.Scene {
       this.playerGridY = y;
       this.syncPlayerToGrid();
       this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    });
+    this.events.on("minigame-closed", () => {
+      this.inMinigame = false;
     });
 
     this.scale.on("resize", () => this.onResize());
@@ -323,7 +330,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
-    if (this.inEncounter || this.inShrine || this.inDialogue) {
+    if (this.inEncounter || this.inShrine || this.inDialogue || this.inMinigame) {
       this.isMoving = false;
       this.playPlayerAnimation();
       return;
@@ -349,6 +356,7 @@ export class IsometricScene extends Phaser.Scene {
       if (
         !this.tryShrineInteract() &&
         !this.tryDoorInteract() &&
+        !this.tryMinigameInteract() &&
         !this.tryNpcInteract() &&
         !this.tryDockInteract()
       ) {
@@ -1316,7 +1324,8 @@ export class IsometricScene extends Phaser.Scene {
   private updateInteractPrompt(): void {
     const shrine = this.isOnShrineTile();
     const door = !shrine ? this.getNearbyDoor() : undefined;
-    const npc = !shrine && !door ? this.getNearbyNpc() : undefined;
+    const minigame = !shrine && !door ? this.getMinigameHere() : undefined;
+    const npc = !shrine && !door && !minigame ? this.getNearbyNpc() : undefined;
     const dock =
       !shrine && !door && !npc ? this.getNearbyDockPrompt() : undefined;
     const sailingHint =
@@ -1331,6 +1340,8 @@ export class IsometricScene extends Phaser.Scene {
       label = "Press E — Moon Shrine";
     } else if (door) {
       label = `Press E — ${door.label}`;
+    } else if (minigame) {
+      label = `Press E — ${minigame.title}`;
     } else if (npc) {
       label = `Press E — Talk to ${npc.name}`;
     } else if (dock) {
@@ -1549,7 +1560,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private onPortableShrineOpen = (event: Event): void => {
-    if (this.inShrine || this.inEncounter || this.inDialogue) {
+    if (this.inShrine || this.inEncounter || this.inDialogue || this.inMinigame) {
       return;
     }
     if (isVisitorMode() || getItemCount(PORTABLE_MOONSHRINE_ID) < 1) {
@@ -1579,6 +1590,33 @@ export class IsometricScene extends Phaser.Scene {
     this.playerGridY = door.targetY;
     this.loadZone(door.targetZone);
     this.syncPlayerToGrid();
+    return true;
+  }
+
+  private getMinigameHere() {
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    return findMinigameAt(this.currentZoneId, tileX, tileY);
+  }
+
+  private tryMinigameInteract(): boolean {
+    const minigame = this.getMinigameHere();
+    if (!minigame) {
+      return false;
+    }
+    const launch = canLaunchMinigame(minigame.id);
+    if (!launch.ok) {
+      this.showGatherToast(launch.message ?? "Not now.", false);
+      return true;
+    }
+    this.inMinigame = true;
+    setTouchControlsEnabled(false);
+    if (this.shrinePrompt) {
+      this.shrinePrompt.destroy();
+      this.shrinePrompt = undefined;
+    }
+    this.scene.pause();
+    this.scene.launch(minigame.sceneKey);
     return true;
   }
 

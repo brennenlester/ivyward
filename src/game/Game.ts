@@ -5,6 +5,9 @@ import { EncounterScene } from "./scenes/EncounterScene";
 import { BattleScene } from "./scenes/BattleScene";
 import { ShrineScene } from "./scenes/ShrineScene";
 import { DialogueScene } from "./scenes/DialogueScene";
+import { WardCrossingScene } from "./scenes/WardCrossingScene";
+import { LoomPatternScene } from "./scenes/LoomPatternScene";
+import { HearthLotsScene } from "./scenes/HearthLotsScene";
 
 export function createGame(parent: string): Phaser.Game {
   return new Phaser.Game({
@@ -20,6 +23,9 @@ export function createGame(parent: string): Phaser.Game {
       BattleScene,
       ShrineScene,
       DialogueScene,
+      WardCrossingScene,
+      LoomPatternScene,
+      HearthLotsScene,
     ],
     scale: {
       mode: Phaser.Scale.FIT,

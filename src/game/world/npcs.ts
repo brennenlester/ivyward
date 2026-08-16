@@ -32,7 +32,7 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       ],
       idleLines: [
         "Every creature out there keeps to its own ground. Learn the ground, and you learn the creature.",
-        "My ledger has gaps in it. Blank pages bother me more than empty shelves do.",
+        "The shelf holds the old ward-map. Stand there if you want to walk the lines with your companions.",
         "Walk the fens and the mistwood both. Some things only show themselves far from the lantern light.",
       ],
       gift: { kind: "material", id: "wild-fiber", amount: 3 },
@@ -51,7 +51,7 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       ],
       idleLines: [
         "A pattern is only finished when there are no gaps left in it. Same with a good record.",
-        "Folk bring me odd tufts from the peat. I never turn them away.",
+        "The loom remembers a sequence if you watch it. Try the pattern when you have a quiet minute.",
         "Bryn writes everything down. I just remember it. Both work.",
       ],
       gift: { kind: "material", id: "moss-fiber", amount: 3 },
@@ -70,7 +70,7 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       ],
       idleLines: [
         "Take a tonic before the fens. The peat there does not forgive a tired party.",
-        "Travellers who finish what they start tend to find the road kinder.",
+        "If you stand at the hearth I will deal the lots. A short game, then the kettle.",
         "Rest here whenever you like. The fire does not mind company.",
       ],
       gift: { kind: "item", id: "brook-tonic", amount: 1 },
