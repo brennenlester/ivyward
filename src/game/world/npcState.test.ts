@@ -1,15 +1,22 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
+  beginConversation,
   claimNpcGift,
+  confirmOddRest,
   getActiveSideQuestHint,
   getClaimedNpcGifts,
+  getOddRestCost,
   getSideQuestStatus,
   getSideQuestStatuses,
   hasClaimedNpcGift,
+  hasPurchasedOddRest,
   isSideQuestObjectiveMet,
   openConversation,
+  ODD_REST_FIRST_COST,
+  ODD_REST_REPEAT_COST,
   resetNpcStateForTest,
   setClaimedNpcGifts,
+  setOddRestPurchased,
   setSideQuestStatuses,
   tryConsumeDelivery,
 } from "./npcState";
@@ -20,7 +27,7 @@ import {
   getMaterialCount,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
-import { setPartyFromSnapshot } from "../creatures/party";
+import { getEffectiveMaxHp, playerParty, setPartyFromSnapshot } from "../creatures/party";
 import { setDiscoveredCreatures } from "./worldState";
 import { setVisitorMode } from "./worldSession";
 import { ZONES } from "./zones";
@@ -200,9 +207,9 @@ describe("party-size side quest", () => {
     expect(lines.at(-1)).toContain("Moonwake Draught×1");
     expect(getItemCount("moonwake-draught")).toBe(1);
     expect(getSideQuestStatus("odd-company")).toBe("complete");
-    expect(openConversation(ODD)).toEqual([
-      SIDE_QUESTS["odd-company"].completeLine,
-    ]);
+    const restTalk = beginConversation(ODD);
+    expect(restTalk.prompt).toEqual({ kind: "advance" });
+    expect(restTalk.lines[0]).toContain("Wood ×20");
     expect(getItemCount("moonwake-draught")).toBe(1);
   });
 });
@@ -244,5 +251,179 @@ describe("claim and side-quest persistence", () => {
       "sable-thread": "complete",
       "odd-company": "locked",
     });
+  });
+});
+
+describe("Odd paid rest", () => {
+  const restMaterials = {
+    wood: 40,
+    "wild-fiber": 40,
+    pebble: 40,
+  };
+
+  function injuredCompanions() {
+    setPartyFromSnapshot(
+      [
+        {
+          instanceId: "1",
+          definitionId: "mossling",
+          speciesId: "mossling",
+          currentHp: 10,
+          level: 1,
+          xp: 0,
+        },
+        {
+          instanceId: "2",
+          definitionId: "ember-wisp",
+          speciesId: "ember-wisp",
+          currentHp: 0,
+          level: 1,
+          xp: 0,
+        },
+      ],
+      3,
+    );
+  }
+
+  function unlockOddRest() {
+    setClaimedNpcGifts([ODD.id]);
+    setSideQuestStatuses({ "odd-company": "complete" });
+    injuredCompanions();
+  }
+
+  it("does not offer rest before the side quest is complete", () => {
+    setClaimedNpcGifts([ODD.id]);
+    setInventoryFromSnapshot(restMaterials, {});
+    injuredCompanions();
+    const offer = beginConversation(ODD);
+    expect(offer.prompt).toEqual({ kind: "advance" });
+    expect(offer.lines).toEqual(SIDE_QUESTS["odd-company"].offerLines);
+    expect(beginConversation(ODD).lines).toEqual([
+      SIDE_QUESTS["odd-company"].progressLine,
+    ]);
+  });
+
+  it("offers a confirmable first rest after the quest for 20 of each material", () => {
+    unlockOddRest();
+    setInventoryFromSnapshot(restMaterials, {});
+    const talk = beginConversation(ODD);
+    expect(talk.prompt).toEqual({ kind: "confirm-rest" });
+    expect(talk.lines[0]).toContain("Wood ×20");
+    expect(talk.lines[0]).toContain("Wild Fiber ×20");
+    expect(talk.lines[0]).toContain("Pebble ×20");
+    expect(getMaterialCount("wood")).toBe(40);
+  });
+
+  it("heals the whole party including fainted members on confirm", () => {
+    unlockOddRest();
+    setInventoryFromSnapshot(restMaterials, {});
+    beginConversation(ODD);
+    const lines = confirmOddRest();
+    expect(lines[0]).toMatch(/whole again/i);
+    expect(getMaterialCount("wood")).toBe(20);
+    expect(getMaterialCount("wild-fiber")).toBe(20);
+    expect(getMaterialCount("pebble")).toBe(20);
+    expect(hasPurchasedOddRest()).toBe(true);
+    expect(getOddRestCost()).toBe(ODD_REST_REPEAT_COST);
+    expect(playerParty.creatures[0]!.currentHp).toBe(
+      getEffectiveMaxHp(playerParty.creatures[0]!),
+    );
+    expect(playerParty.creatures[1]!.currentHp).toBe(
+      getEffectiveMaxHp(playerParty.creatures[1]!),
+    );
+    expect(playerParty.creatures[0]!.currentHp).toBeGreaterThan(10);
+    expect(playerParty.creatures[1]!.currentHp).toBeGreaterThan(0);
+  });
+
+  it("charges 5 of each after the first rest", () => {
+    unlockOddRest();
+    setInventoryFromSnapshot(restMaterials, {});
+    confirmOddRest();
+    injuredCompanions();
+    const talk = beginConversation(ODD);
+    expect(talk.prompt).toEqual({ kind: "confirm-rest" });
+    expect(talk.lines[0]).toContain("Wood ×5");
+    confirmOddRest();
+    expect(getMaterialCount("wood")).toBe(15);
+    expect(getMaterialCount("wild-fiber")).toBe(15);
+    expect(getMaterialCount("pebble")).toBe(15);
+  });
+
+  it("keeps the cheaper price after the first-rest flag is restored", () => {
+    setOddRestPurchased(true);
+    unlockOddRest();
+    setInventoryFromSnapshot(
+      { wood: 5, "wild-fiber": 5, pebble: 5 },
+      {},
+    );
+    expect(getOddRestCost()).toBe(ODD_REST_REPEAT_COST);
+    expect(beginConversation(ODD).lines[0]).toContain("Wood ×5");
+    confirmOddRest();
+    expect(getMaterialCount("wood")).toBe(0);
+  });
+
+  it("does not consume or flag when materials are short", () => {
+    unlockOddRest();
+    setInventoryFromSnapshot(
+      { wood: 19, "wild-fiber": 20, pebble: 20 },
+      {},
+    );
+    const talk = beginConversation(ODD);
+    expect(talk.prompt).toEqual({ kind: "advance" });
+    expect(talk.lines[0]).toContain("Wood ×20");
+    expect(confirmOddRest()[0]).toContain("Wood ×20");
+    expect(getMaterialCount("wood")).toBe(19);
+    expect(hasPurchasedOddRest()).toBe(false);
+  });
+
+  it("does not charge a full or empty party", () => {
+    setClaimedNpcGifts([ODD.id]);
+    setSideQuestStatuses({ "odd-company": "complete" });
+    setInventoryFromSnapshot(restMaterials, {});
+    expect(beginConversation(ODD).prompt).toEqual({ kind: "advance" });
+    expect(confirmOddRest()[0]).toMatch(/already warm/i);
+    expect(getMaterialCount("wood")).toBe(40);
+    expect(hasPurchasedOddRest()).toBe(false);
+
+    injuredCompanions();
+    const maxHp = getEffectiveMaxHp(playerParty.creatures[0]!);
+    setPartyFromSnapshot(
+      [
+        {
+          instanceId: "1",
+          definitionId: "mossling",
+          speciesId: "mossling",
+          currentHp: maxHp,
+          level: 1,
+          xp: 0,
+        },
+      ],
+      2,
+    );
+    expect(beginConversation(ODD).prompt).toEqual({ kind: "advance" });
+    confirmOddRest();
+    expect(getMaterialCount("wood")).toBe(40);
+    expect(hasPurchasedOddRest()).toBe(false);
+  });
+
+  it("never offers rest to a visitor", () => {
+    unlockOddRest();
+    setInventoryFromSnapshot(restMaterials, {});
+    setVisitorMode(true);
+    const talk = beginConversation(ODD);
+    expect(talk.prompt).toEqual({ kind: "advance" });
+    expect(talk.lines).toEqual([ODD.idleLines[0]]);
+    confirmOddRest();
+    expect(getMaterialCount("wood")).toBe(40);
+    expect(hasPurchasedOddRest()).toBe(false);
+  });
+
+  it("does not consume if the player never confirms", () => {
+    unlockOddRest();
+    setInventoryFromSnapshot(restMaterials, {});
+    beginConversation(ODD);
+    expect(getMaterialCount("wood")).toBe(40);
+    expect(hasPurchasedOddRest()).toBe(false);
+    expect(ODD_REST_FIRST_COST).toBe(20);
   });
 });

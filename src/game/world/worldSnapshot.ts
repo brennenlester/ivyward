@@ -35,7 +35,9 @@ import { ALL_NPC_IDS } from "./npcs";
 import {
   getClaimedNpcGifts,
   getSideQuestStatuses,
+  hasPurchasedOddRest,
   setClaimedNpcGifts,
+  setOddRestPurchased,
   setSideQuestStatuses,
 } from "./npcState";
 import {
@@ -82,6 +84,8 @@ export type WorldSnapshot = {
   unlockedAchievements?: string[];
   /** Villagers whose one-time gift is spent. Optional for older saves. */
   claimedNpcGifts?: string[];
+  /** True after Odd's first paid rest. Optional for older saves. */
+  oddRestPurchased?: boolean;
   /** Cottage minigames already paid out. Optional for older saves. */
   claimedMinigameWins?: string[];
   /** NPC side-quest progress. Optional for older saves. */
@@ -523,6 +527,10 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
+  if (s.oddRestPurchased !== undefined && typeof s.oddRestPurchased !== "boolean") {
+    return false;
+  }
+
   if (s.claimedMinigameWins !== undefined) {
     if (!Array.isArray(s.claimedMinigameWins)) return false;
     for (const minigameId of s.claimedMinigameWins) {
@@ -723,6 +731,7 @@ export function exportWorldSnapshot(
     discoveredCreatures: [...worldState.discoveredCreatures],
     unlockedAchievements: getUnlockedAchievements(),
     claimedNpcGifts: getClaimedNpcGifts(),
+    oddRestPurchased: hasPurchasedOddRest(),
     claimedMinigameWins: getClaimedMinigameWins(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
@@ -775,6 +784,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   );
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
+  setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);

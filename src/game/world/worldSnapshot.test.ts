@@ -14,6 +14,7 @@ import {
   claimNpcGift,
   getClaimedNpcGifts,
   getSideQuestStatuses,
+  hasPurchasedOddRest,
   resetNpcStateForTest,
   setClaimedNpcGifts,
 } from "./npcState";
@@ -189,6 +190,18 @@ describe("isValidWorldSnapshot", () => {
   it("rejects an unknown claimed NPC gift", () => {
     expect(
       isValidWorldSnapshot(validSnapshot({ claimedNpcGifts: ["not-a-villager"] })),
+    ).toBe(false);
+  });
+
+  it("soft-adds and validates the Odd rest purchase flag", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ oddRestPurchased: true })),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        oddRestPurchased: "yes",
+      }),
     ).toBe(false);
   });
 
@@ -609,6 +622,18 @@ describe("applyWorldSnapshot codex achievement", () => {
     applyWorldSnapshot(validSnapshot());
 
     expect(getClaimedNpcGifts()).toEqual([]);
+  });
+
+  it("restores Odd's first-rest purchase and defaults older saves to unpaid", () => {
+    applyWorldSnapshot(validSnapshot({ oddRestPurchased: true }));
+    expect(hasPurchasedOddRest()).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(hasPurchasedOddRest()).toBe(false);
+
+    applyWorldSnapshot(validSnapshot({ oddRestPurchased: true }));
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 });
+    expect(exported.oddRestPurchased).toBe(true);
   });
 
   it("restores NPC side-quest progress", () => {

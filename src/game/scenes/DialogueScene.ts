@@ -3,7 +3,11 @@ import { NPC_DISPLAY } from "../render/displaySizes";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { applyNpcSprite } from "../render/worldTextures";
 import { getNpcById, type NpcDefinition } from "../world/npcs";
-import { openConversation } from "../world/npcState";
+import {
+  beginConversation,
+  confirmOddRest,
+  type ConversationPrompt,
+} from "../world/npcState";
 
 const PANEL_WIDTH = 470;
 const PANEL_HEIGHT = 220;
@@ -20,9 +24,11 @@ const TEXT_STYLE = {
 export class DialogueScene extends Phaser.Scene {
   private npc!: NpcDefinition;
   private lines: string[] = [];
+  private prompt: ConversationPrompt = { kind: "advance" };
   private lineIndex = 0;
   private bodyText!: Phaser.GameObjects.Text;
   private advanceButton!: Phaser.GameObjects.Text;
+  private declineButton!: Phaser.GameObjects.Text;
   private closing = false;
 
   constructor() {
@@ -35,7 +41,9 @@ export class DialogueScene extends Phaser.Scene {
       throw new Error(`Unknown NPC: ${data.npcId}`);
     }
     this.npc = npc;
-    this.lines = openConversation(npc);
+    const conversation = beginConversation(npc);
+    this.lines = conversation.lines;
+    this.prompt = conversation.prompt;
     this.lineIndex = 0;
     this.closing = false;
   }
@@ -107,6 +115,23 @@ export class DialogueScene extends Phaser.Scene {
     this.advanceButton.on("pointerout", () => this.advanceButton.setAlpha(1));
     this.advanceButton.on("pointerdown", () => this.advance());
 
+    this.declineButton = this.add
+      .text(0, panelTop + PANEL_HEIGHT - PANEL_PADDING, "No", {
+        ...TEXT_STYLE,
+        color: "#1a3040",
+        backgroundColor: "#7ec8e8",
+        fontSize: "15px",
+        fontStyle: "bold",
+        padding: { x: 16, y: 9 },
+      })
+      .setOrigin(1, 1)
+      .setVisible(false)
+      .setInteractive({ useHandCursor: true });
+
+    this.declineButton.on("pointerover", () => this.declineButton.setAlpha(0.88));
+    this.declineButton.on("pointerout", () => this.declineButton.setAlpha(1));
+    this.declineButton.on("pointerdown", () => this.close());
+
     this.input.keyboard?.on("keydown-E", () => this.advance());
     this.input.keyboard?.on("keydown-SPACE", () => this.advance());
     this.input.keyboard?.on("keydown-ENTER", () => this.advance());
@@ -118,7 +143,16 @@ export class DialogueScene extends Phaser.Scene {
   private renderLine(): void {
     this.bodyText.setText(this.lines[this.lineIndex] ?? "");
     const isLast = this.lineIndex >= this.lines.length - 1;
-    this.advanceButton.setText(isLast ? "Goodbye" : "Next");
+    const confirming = this.prompt.kind === "confirm-rest" && isLast;
+    this.advanceButton.setText(confirming ? "Rest" : isLast ? "Goodbye" : "Next");
+    this.advanceButton.setBackgroundColor(confirming ? "#7ed6a8" : "#f0c878");
+    this.declineButton.setVisible(confirming);
+    if (confirming) {
+      this.declineButton.setPosition(
+        this.advanceButton.x - this.advanceButton.displayWidth - 12,
+        this.advanceButton.y,
+      );
+    }
   }
 
   private advance(): void {
@@ -126,10 +160,21 @@ export class DialogueScene extends Phaser.Scene {
       return;
     }
     if (this.lineIndex >= this.lines.length - 1) {
+      if (this.prompt.kind === "confirm-rest") {
+        this.applyRest();
+        return;
+      }
       this.close();
       return;
     }
     this.lineIndex += 1;
+    this.renderLine();
+  }
+
+  private applyRest(): void {
+    this.lines = confirmOddRest();
+    this.prompt = { kind: "advance" };
+    this.lineIndex = 0;
     this.renderLine();
   }
 

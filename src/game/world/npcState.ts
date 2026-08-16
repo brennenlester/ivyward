@@ -5,7 +5,7 @@ import {
   getMaterialCount,
 } from "../inventory/playerInventory";
 import { getItemName, getMaterialName } from "../inventory/materials";
-import { playerParty } from "../creatures/party";
+import { getEffectiveMaxHp, playerParty } from "../creatures/party";
 import { worldState } from "./worldState";
 import { notifyWorldChanged } from "./worldSaveSchedule";
 import { isVisitorMode } from "./worldSession";
@@ -22,6 +22,22 @@ import {
 
 const giftsClaimed = new Set<string>();
 const sideQuestStatus = new Map<SideQuestId, SideQuestStatus>();
+
+const ODD_NPC_ID = "hearthkeep-odd";
+const ODD_REST_MATERIALS = ["wood", "wild-fiber", "pebble"] as const;
+export const ODD_REST_FIRST_COST = 20;
+export const ODD_REST_REPEAT_COST = 5;
+
+export type ConversationPrompt =
+  | { kind: "advance" }
+  | { kind: "confirm-rest" };
+
+export type Conversation = {
+  lines: string[];
+  prompt: ConversationPrompt;
+};
+
+let oddRestPurchased = false;
 
 function defaultSideQuestStatus(): Map<SideQuestId, SideQuestStatus> {
   const map = new Map<SideQuestId, SideQuestStatus>();
@@ -78,6 +94,18 @@ export function setSideQuestStatuses(
 
 export function getSideQuestStatus(id: SideQuestId): SideQuestStatus {
   return sideQuestStatus.get(id) ?? "locked";
+}
+
+export function hasPurchasedOddRest(): boolean {
+  return oddRestPurchased;
+}
+
+export function setOddRestPurchased(purchased: boolean): void {
+  oddRestPurchased = purchased;
+}
+
+export function getOddRestCost(): number {
+  return oddRestPurchased ? ODD_REST_REPEAT_COST : ODD_REST_FIRST_COST;
 }
 
 export function formatGift(gift: NpcGift): string {
@@ -180,44 +208,144 @@ function nextIdleLine(npc: NpcDefinition): string {
   return npc.idleLines[index];
 }
 
+function talk(
+  lines: string[],
+  prompt: ConversationPrompt = { kind: "advance" },
+): Conversation {
+  return { lines, prompt };
+}
+
+function formatOddRestCost(cost: number): string {
+  const parts = ODD_REST_MATERIALS.map(
+    (id) => `${getMaterialName(id)} ×${cost}`,
+  );
+  return `${parts.slice(0, -1).join(", ")}, and ${parts.at(-1)}`;
+}
+
+function partyNeedsOddRest(): boolean {
+  return playerParty.creatures.some(
+    (creature) => creature.currentHp < getEffectiveMaxHp(creature),
+  );
+}
+
+function canAffordOddRest(cost: number): boolean {
+  return ODD_REST_MATERIALS.every((id) => getMaterialCount(id) >= cost);
+}
+
+function consumeOddRest(cost: number): boolean {
+  if (!canAffordOddRest(cost)) {
+    return false;
+  }
+  for (const id of ODD_REST_MATERIALS) {
+    if (!consumeMaterial(id, cost)) {
+      for (const restored of ODD_REST_MATERIALS) {
+        if (restored === id) {
+          break;
+        }
+        addMaterial(restored, cost);
+      }
+      return false;
+    }
+  }
+  return true;
+}
+
+function healPartyFully(): void {
+  for (const creature of playerParty.creatures) {
+    creature.currentHp = getEffectiveMaxHp(creature);
+  }
+}
+
+function oddRestTalk(): Conversation {
+  const cost = getOddRestCost();
+  const costLabel = formatOddRestCost(cost);
+  if (playerParty.creatures.length === 0 || !partyNeedsOddRest()) {
+    return talk([
+      "They are already warm through. Come back when the road has worn them.",
+    ]);
+  }
+  if (!canAffordOddRest(cost)) {
+    return talk([
+      `Bring ${costLabel} and I will see to the whole party.`,
+    ]);
+  }
+  return talk(
+    [`Sit. I can see the whole party right for ${costLabel}.`],
+    { kind: "confirm-rest" },
+  );
+}
+
 /**
- * Lines for one conversation: first-visit gift, then side-quest offer /
- * progress / turn-in, then idle chatter. Visitors never claim gifts or move
- * side-quest state.
+ * Confirm Odd's paid rest. No-op unless the host can afford the current cost
+ * and at least one party creature is injured or fainted.
  */
-export function openConversation(npc: NpcDefinition): string[] {
+export function confirmOddRest(): string[] {
+  if (
+    isVisitorMode() ||
+    getSideQuestStatus("odd-company") !== "complete"
+  ) {
+    return ["The fire is for the folk who live here."];
+  }
+  const cost = getOddRestCost();
+  if (playerParty.creatures.length === 0 || !partyNeedsOddRest()) {
+    return [
+      "They are already warm through. Come back when the road has worn them.",
+    ];
+  }
+  if (!consumeOddRest(cost)) {
+    return [`Bring ${formatOddRestCost(cost)} and I will see to the whole party.`];
+  }
+  healPartyFully();
+  oddRestPurchased = true;
+  notifyWorldChanged();
+  return ["There. Whole again. The hearth does not mind the work."];
+}
+
+/**
+ * Lines and prompt for one conversation: first-visit gift, then side-quest
+ * offer / progress / turn-in, then Odd's rest or idle chatter. Visitors never
+ * claim gifts, move side-quest state, or rest.
+ */
+export function beginConversation(npc: NpcDefinition): Conversation {
   if (!hasClaimedNpcGift(npc.id)) {
     const lines = [...npc.introLines];
     const giftLine = claimNpcGift(npc);
     if (giftLine) {
       lines.push(giftLine);
     }
-    return lines;
+    return talk(lines);
   }
 
   if (isVisitorMode()) {
-    return [nextIdleLine(npc)];
+    return talk([nextIdleLine(npc)]);
   }
 
   const quest = getSideQuestForNpc(npc.id);
   if (quest) {
     const status = getSideQuestStatus(quest.id);
     if (status === "locked") {
-      return activateSideQuest(quest);
+      return talk(activateSideQuest(quest));
     }
     if (status === "active") {
       const turnIn = turnInSideQuest(quest);
       if (turnIn) {
-        return turnIn;
+        return talk(turnIn);
       }
-      return [quest.progressLine];
+      return talk([quest.progressLine]);
     }
     if (status === "complete") {
-      return [quest.completeLine];
+      if (npc.id === ODD_NPC_ID) {
+        return oddRestTalk();
+      }
+      return talk([quest.completeLine]);
     }
   }
 
-  return [nextIdleLine(npc)];
+  return talk([nextIdleLine(npc)]);
+}
+
+export function openConversation(npc: NpcDefinition): string[] {
+  return beginConversation(npc).lines;
 }
 
 /** Active side quests for the status panel / HUD hint. */
@@ -243,6 +371,7 @@ export function getActiveSideQuestHint(): string | null {
 export function resetNpcStateForTest(): void {
   giftsClaimed.clear();
   idleCursor.clear();
+  oddRestPurchased = false;
   for (const [id, status] of defaultSideQuestStatus()) {
     sideQuestStatus.set(id, status);
   }

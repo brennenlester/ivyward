@@ -61,6 +61,8 @@ Talk again after the gift and each villager will offer a **side ask**:
 
 Active village asks show in the status panel as `Village ask: …`. Delivery asks only take materials when you successfully turn them in. Visitors cannot accept or complete side asks.
 
+After Hearthkeep Odd's side ask is done, talk to him again to rest the party at the hearth. The first rest costs **Wood ×20, Wild Fiber ×20, and Pebble ×20**; later rests cost **5 of each**. Confirm with **Rest** (or decline with **No**) — it fully restores every party creature, including fainted ones. Visitors cannot rest.
+
 Stand next to the house's signature prop and press **E** for a minigame (same reach as talking). Standing on the villager still talks — gifts and side asks are unchanged. Visitors can play but never receive the first-win gift.
 
 | House | Prop | Minigame | First win (once per save) |
