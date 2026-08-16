@@ -4,7 +4,7 @@ import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import { getZoneNpcs } from "./npcs";
 import { ZONE_PROPS } from "./zoneProps";
-import { cottageWallRuns } from "./cottageWalls";
+import { cottageFrame } from "./cottageWalls";
 
 const INTERIOR_IDS = (Object.keys(ZONES) as ZoneId[]).filter(
   (id) => ZONES[id].interior,
@@ -44,24 +44,15 @@ describe("cottage interiors", () => {
     expect(new Set(keys).size).toBe(3);
   });
 
-  it("frames each cottage as a square: connecting N/S borders and thin E/W sides", () => {
-    const runs = cottageWallRuns(ZONES["warden-cottage"]);
-    expect(runs).toContainEqual({
-      axis: "h",
-      x0: 1,
-      y0: 0,
-      x1: 5,
-      y1: 0,
+  it("frames each cottage as a square floor with a south door", () => {
+    const frame = cottageFrame(ZONES["warden-cottage"]);
+    expect(frame).toEqual({
+      floorX0: 1,
+      floorY0: 1,
+      floorX1: 5,
+      floorY1: 5,
+      doorX: 3,
     });
-    expect(runs.filter((run) => run.axis === "h" && run.y0 === 0)).toHaveLength(1);
-    expect(runs.filter((run) => run.axis === "h" && run.y0 === 6)).toEqual([
-      { axis: "h", x0: 1, y0: 6, x1: 2, y1: 6 },
-      { axis: "h", x0: 4, y0: 6, x1: 5, y1: 6 },
-    ]);
-    expect(runs.filter((run) => run.axis === "v")).toEqual([
-      { axis: "v", x0: 0, y0: 1, x1: 0, y1: 5 },
-      { axis: "v", x0: 6, y0: 1, x1: 6, y1: 5 },
-    ]);
   });
 });
 

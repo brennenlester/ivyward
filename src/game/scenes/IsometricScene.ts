@@ -17,7 +17,6 @@ import {
 } from "../isometric";
 import {
   applyNpcSprite,
-  ensureCottageSideTexture,
   ensureWorldTextures,
   getBoatTextureKey,
   getBoundaryTextureKey,
@@ -108,7 +107,7 @@ import {
 } from "../world/zones";
 import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
-import { cottageWallRuns, COTTAGE_SIDE_WALL_WIDTH } from "../world/cottageWalls";
+import { cottageFrame } from "../world/cottageWalls";
 import {
   getZoneProps,
   propTextureKey,
@@ -1219,45 +1218,84 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawCottageWalls(zone: ZoneDefinition): void {
-    const key = getBoundaryTextureKey(zone.id);
-    if (!this.textures.exists(key)) {
-      this.drawWallsInColumns(zone, 0, zone.width);
+    const frame = cottageFrame(zone);
+    if (frame.floorX1 < frame.floorX0) {
       return;
     }
-    const sideKey = ensureCottageSideTexture(this, key);
-    const northFoot = this.toScreen(1, 0).y + TILE_HEIGHT / 2 - 2;
-    const southFoot =
-      this.toScreen(1, zone.height - 1).y + TILE_HEIGHT / 2 - 2;
+    const innerLeft =
+      this.toScreen(frame.floorX0, frame.floorY0).x - TILE_WIDTH / 2;
+    const innerRight =
+      this.toScreen(frame.floorX1, frame.floorY0).x + TILE_WIDTH / 2;
+    const innerTop =
+      this.toScreen(frame.floorX0, frame.floorY0).y - TILE_HEIGHT / 2;
+    const innerBottom =
+      this.toScreen(frame.floorX0, frame.floorY1).y + TILE_HEIGHT / 2;
+    const wall = 28;
+    const trim = 4;
+    const outerLeft = innerLeft - wall;
+    const outerTop = innerTop - wall;
+    const outerRight = innerRight + wall;
+    const outerBottom = innerBottom + wall;
+    const doorLeft =
+      frame.doorX === null
+        ? innerLeft
+        : this.toScreen(frame.doorX, zone.height - 1).x - TILE_WIDTH / 2;
+    const doorRight =
+      frame.doorX === null
+        ? innerRight
+        : this.toScreen(frame.doorX, zone.height - 1).x + TILE_WIDTH / 2;
 
-    for (const run of cottageWallRuns(zone)) {
-      if (run.axis === "h") {
-        const first = this.toScreen(run.x0, run.y0);
-        const last = this.toScreen(run.x1, run.y1);
-        const left = first.x - TILE_WIDTH / 2 - 1;
-        const width = last.x - first.x + TILE_WIDTH + 2;
-        const footY = first.y + TILE_HEIGHT / 2 - 2;
-        this.add
-          .image(left, footY, key)
-          .setOrigin(0, 1)
-          .setDisplaySize(width, BOUNDARY_DISPLAY.height)
-          .setDepth(depthForGridCell(run.x0, run.y0, PROP_LAYER));
-        continue;
+    const back = this.add
+      .graphics()
+      .setDepth(depthForGridCell(0, 0, PROP_LAYER));
+    const front = this.add
+      .graphics()
+      .setDepth(depthForGridCell(0, zone.height - 1, PROP_LAYER));
+
+    const paint = (
+      g: Phaser.GameObjects.Graphics,
+      color: number,
+      pad: number,
+      thick: number,
+      parts: { top?: boolean; sides?: boolean; south?: boolean },
+    ): void => {
+      const left = outerLeft + pad;
+      const top = outerTop + pad;
+      const right = outerRight - pad;
+      const bottom = outerBottom - pad;
+      g.fillStyle(color, 1);
+      if (parts.top) {
+        g.fillRect(left, top, right - left, thick);
       }
+      if (parts.sides) {
+        g.fillRect(left, top, thick, bottom - top);
+        g.fillRect(right - thick, top, thick, bottom - top);
+      }
+      if (parts.south) {
+        g.fillRect(left, bottom - thick, Math.max(0, doorLeft - left), thick);
+        g.fillRect(
+          doorRight,
+          bottom - thick,
+          Math.max(0, right - doorRight),
+          thick,
+        );
+      }
+    };
 
-      const top = this.toScreen(run.x0, run.y0);
-      const westSide = run.x0 === 0;
-      const innerX = westSide
-        ? top.x + TILE_WIDTH / 2
-        : top.x - TILE_WIDTH / 2;
-      this.add
-        .image(innerX, southFoot + 1, sideKey)
-        .setOrigin(westSide ? 1 : 0, 1)
-        .setDisplaySize(
-          COTTAGE_SIDE_WALL_WIDTH,
-          southFoot - northFoot + 2,
-        )
-        .setDepth(depthForGridCell(run.x0, run.y1, PROP_LAYER));
-    }
+    paint(back, 0x3d2818, 0, wall, { top: true, sides: true });
+    paint(back, 0xe6d2b0, trim, wall - trim, { top: true, sides: true });
+    paint(front, 0x3d2818, 0, wall, { south: true });
+    paint(front, 0xe6d2b0, trim, wall - trim, { south: true });
+
+    back.lineStyle(3, 0x3d2818, 1);
+    back.beginPath();
+    back.moveTo(doorLeft, innerBottom);
+    back.lineTo(innerLeft, innerBottom);
+    back.lineTo(innerLeft, innerTop);
+    back.lineTo(innerRight, innerTop);
+    back.lineTo(innerRight, innerBottom);
+    back.lineTo(doorRight, innerBottom);
+    back.strokePath();
   }
 
   private drawWallsInColumns(
