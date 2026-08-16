@@ -4,6 +4,7 @@ import {
   LOOM_CELLS,
   createLoomState,
   generateLoomPatterns,
+  loomInputWasMiss,
   tapLoomCell,
   type LoomState,
 } from "../minigames/loomPattern";
@@ -109,15 +110,17 @@ export class LoomPatternScene extends Phaser.Scene {
     const previousRound = this.state.round;
     const previousInput = this.state.input.length;
     this.state = tapLoomCell(this.state, index);
-    this.flash(index, 0xc8e0a8);
     if (this.state.status === "won") {
+      this.flash(index, 0xc8e0a8);
       resolveMinigameEnd(this, "loom-pattern", true, this.statusText, this.closing);
       return;
     }
-    if (this.state.input.length === 0 && previousInput > 0) {
+    if (loomInputWasMiss(previousRound, previousInput, this.state)) {
+      this.flash(index, 0xe07870);
       this.statusText.setText("Wrong thread. Try this pattern again.");
       return;
     }
+    this.flash(index, 0xc8e0a8);
     if (this.state.round !== previousRound) {
       this.playTarget();
     }

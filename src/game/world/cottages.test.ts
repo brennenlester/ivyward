@@ -3,6 +3,8 @@ import { ZONES } from "./zones";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import { getZoneNpcs } from "./npcs";
+import { ZONE_PROPS } from "./zoneProps";
+import { cottageFrame } from "./cottageWalls";
 
 const INTERIOR_IDS = (Object.keys(ZONES) as ZoneId[]).filter(
   (id) => ZONES[id].interior,
@@ -32,6 +34,25 @@ describe("cottage interiors", () => {
     for (const id of INTERIOR_IDS) {
       expect(getZoneNpcs(id)).toHaveLength(1);
     }
+  });
+
+  it("gives each villager a unique sprite", () => {
+    const keys = INTERIOR_IDS.flatMap((id) =>
+      getZoneNpcs(id).map((npc) => npc.spriteKey),
+    );
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys).size).toBe(3);
+  });
+
+  it("frames each cottage as a square floor with a south door", () => {
+    const frame = cottageFrame(ZONES["warden-cottage"]);
+    expect(frame).toEqual({
+      floorX0: 1,
+      floorY0: 1,
+      floorX1: 5,
+      floorY1: 5,
+      doorX: 3,
+    });
   });
 });
 
@@ -79,5 +100,9 @@ describe("village doors", () => {
   it("gives each cottage its own door", () => {
     const targets = (village.doors ?? []).map((door) => door.targetZone);
     expect(new Set(targets).size).toBe(targets.length);
+  });
+
+  it("does not put hearths in the village square", () => {
+    expect(ZONE_PROPS.village?.some((prop) => prop.kind === "hearth")).toBe(false);
   });
 });

@@ -16,7 +16,7 @@ import {
   playerDepthAboveGrid,
 } from "../isometric";
 import {
-  NPC_TEXTURE_KEY,
+  applyNpcSprite,
   ensureWorldTextures,
   getBoatTextureKey,
   getBoundaryTextureKey,
@@ -27,7 +27,6 @@ import {
 import {
   BOUNDARY_DISPLAY,
   FLOOR_DISPLAY,
-  NPC_DISPLAY,
   PROP_DISPLAY,
   fitDisplay,
 } from "../render/displaySizes";
@@ -108,12 +107,16 @@ import {
 } from "../world/zones";
 import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
+import { cottageFrame } from "../world/cottageWalls";
 import {
   getZoneProps,
   propTextureKey,
 } from "../world/zoneProps";
-import { findNpcNearPlayer, getZoneNpcs } from "../world/npcs";
-import { findMinigameAt } from "../minigames/ids";
+import { findNpcNearPlayer, getZoneNpcs, nearestNpcDistance } from "../world/npcs";
+import {
+  findMinigameNearPlayer,
+  shouldPreferMinigameOverNpc,
+} from "../minigames/ids";
 import { canLaunchMinigame } from "../minigames/progress";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
 import {
@@ -1207,7 +1210,92 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawWalls(zone: ZoneDefinition): void {
+    if (zone.interior) {
+      this.drawCottageWalls(zone);
+      return;
+    }
     this.drawWallsInColumns(zone, 0, zone.width);
+  }
+
+  private drawCottageWalls(zone: ZoneDefinition): void {
+    const frame = cottageFrame(zone);
+    if (frame.floorX1 < frame.floorX0) {
+      return;
+    }
+    const innerLeft =
+      this.toScreen(frame.floorX0, frame.floorY0).x - TILE_WIDTH / 2;
+    const innerRight =
+      this.toScreen(frame.floorX1, frame.floorY0).x + TILE_WIDTH / 2;
+    const innerTop =
+      this.toScreen(frame.floorX0, frame.floorY0).y - TILE_HEIGHT / 2;
+    const innerBottom =
+      this.toScreen(frame.floorX0, frame.floorY1).y + TILE_HEIGHT / 2;
+    const wall = 28;
+    const trim = 4;
+    const outerLeft = innerLeft - wall;
+    const outerTop = innerTop - wall;
+    const outerRight = innerRight + wall;
+    const outerBottom = innerBottom + wall;
+    const doorLeft =
+      frame.doorX === null
+        ? innerLeft
+        : this.toScreen(frame.doorX, zone.height - 1).x - TILE_WIDTH / 2;
+    const doorRight =
+      frame.doorX === null
+        ? innerRight
+        : this.toScreen(frame.doorX, zone.height - 1).x + TILE_WIDTH / 2;
+
+    const back = this.add
+      .graphics()
+      .setDepth(depthForGridCell(0, 0, PROP_LAYER));
+    const front = this.add
+      .graphics()
+      .setDepth(depthForGridCell(0, zone.height - 1, PROP_LAYER));
+
+    const paint = (
+      g: Phaser.GameObjects.Graphics,
+      color: number,
+      pad: number,
+      thick: number,
+      parts: { top?: boolean; sides?: boolean; south?: boolean },
+    ): void => {
+      const left = outerLeft + pad;
+      const top = outerTop + pad;
+      const right = outerRight - pad;
+      const bottom = outerBottom - pad;
+      g.fillStyle(color, 1);
+      if (parts.top) {
+        g.fillRect(left, top, right - left, thick);
+      }
+      if (parts.sides) {
+        g.fillRect(left, top, thick, bottom - top);
+        g.fillRect(right - thick, top, thick, bottom - top);
+      }
+      if (parts.south) {
+        g.fillRect(left, bottom - thick, Math.max(0, doorLeft - left), thick);
+        g.fillRect(
+          doorRight,
+          bottom - thick,
+          Math.max(0, right - doorRight),
+          thick,
+        );
+      }
+    };
+
+    paint(back, 0x3d2818, 0, wall, { top: true, sides: true });
+    paint(back, 0xe6d2b0, trim, wall - trim, { top: true, sides: true });
+    paint(front, 0x3d2818, 0, wall, { south: true });
+    paint(front, 0xe6d2b0, trim, wall - trim, { south: true });
+
+    back.lineStyle(3, 0x3d2818, 1);
+    back.beginPath();
+    back.moveTo(doorLeft, innerBottom);
+    back.lineTo(innerLeft, innerBottom);
+    back.lineTo(innerLeft, innerTop);
+    back.lineTo(innerRight, innerTop);
+    back.lineTo(innerRight, innerBottom);
+    back.lineTo(doorRight, innerBottom);
+    back.strokePath();
   }
 
   private drawWallsInColumns(
@@ -1288,10 +1376,9 @@ export class IsometricScene extends Phaser.Scene {
     for (const npc of getZoneNpcs(zone.id)) {
       const screen = this.toScreen(npc.x, npc.y);
       const sprite = this.add
-        .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, NPC_TEXTURE_KEY)
+        .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, npc.spriteKey)
         .setOrigin(0.5, 1);
-      fitDisplay(sprite, NPC_DISPLAY);
-      sprite.setTint(npc.tint);
+      applyNpcSprite(this, sprite, npc);
       sprite.setDepth(depthForGridCell(npc.x, npc.y, PROP_LAYER));
     }
   }
@@ -1596,7 +1683,15 @@ export class IsometricScene extends Phaser.Scene {
   private getMinigameHere() {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    return findMinigameAt(this.currentZoneId, tileX, tileY);
+    const nearby = findMinigameNearPlayer(this.currentZoneId, tileX, tileY);
+    if (!nearby) {
+      return undefined;
+    }
+    const npcDist = nearestNpcDistance(this.currentZoneId, tileX, tileY);
+    if (!shouldPreferMinigameOverNpc(nearby.dist, npcDist)) {
+      return undefined;
+    }
+    return nearby.game;
   }
 
   private tryMinigameInteract(): boolean {

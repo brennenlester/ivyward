@@ -1,7 +1,7 @@
 import Phaser from "phaser";
-import { NPC_DISPLAY, fitDisplay } from "../render/displaySizes";
+import { NPC_DISPLAY } from "../render/displaySizes";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
-import { NPC_TEXTURE_KEY } from "../render/worldTextures";
+import { applyNpcSprite } from "../render/worldTextures";
 import { getNpcById, type NpcDefinition } from "../world/npcs";
 import { openConversation } from "../world/npcState";
 
@@ -62,10 +62,16 @@ export class DialogueScene extends Phaser.Scene {
     panel.strokeRoundedRect(panelLeft, panelTop, PANEL_WIDTH, PANEL_HEIGHT, 20);
 
     const portrait = this.add
-      .image(panelLeft + PANEL_PADDING + 22, panelTop - 6, NPC_TEXTURE_KEY)
+      .image(
+        panelLeft + PANEL_PADDING + 28,
+        panelTop - 6,
+        this.npc.spriteKey,
+      )
       .setOrigin(0.5, 1);
-    fitDisplay(portrait, { width: NPC_DISPLAY.width * 1.6, height: NPC_DISPLAY.height * 1.6 });
-    portrait.setTint(this.npc.tint);
+    applyNpcSprite(this, portrait, this.npc, {
+      width: NPC_DISPLAY.width * 1.8,
+      height: NPC_DISPLAY.height * 1.8,
+    });
 
     this.add
       .text(panelLeft + PANEL_PADDING, panelTop + PANEL_PADDING, this.npc.name, {
