@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { DESIGN_SIZE } from "../render/pixelRatio";
 import {
   HEARTH_LOTS_BOARD,
+  HEARTH_LOTS_BOARD_TEXTURE,
   buyPendingLot,
   createLotsState,
   hearthLotsBoardCell,
@@ -21,9 +22,8 @@ import {
   resolveMinigameEnd,
 } from "../minigames/overlay";
 
-const CELL_W = 108;
-const CELL_H = 76;
-const BOARD_LEFT = (DESIGN_SIZE - CELL_W * 5) / 2;
+const CELL = 88;
+const BOARD_LEFT = (DESIGN_SIZE - CELL * 5) / 2;
 const BOARD_TOP = 108;
 
 function spaceFill(state: LotsState, space: LotsSpace): number {
@@ -140,24 +140,57 @@ export class HearthLotsScene extends Phaser.Scene {
 
   private refresh(): void {
     this.boardRoot.removeAll(true);
+    const painted = this.textures.exists(HEARTH_LOTS_BOARD_TEXTURE);
+    if (painted) {
+      const art = this.add
+        .image(
+          DESIGN_SIZE / 2,
+          BOARD_TOP + CELL * 2.5,
+          HEARTH_LOTS_BOARD_TEXTURE,
+        )
+        .setDisplaySize(CELL * 5, CELL * 5);
+      this.boardRoot.add(art);
+    }
     for (const space of HEARTH_LOTS_BOARD) {
       const { col, row } = hearthLotsBoardCell(space.index);
-      const x = BOARD_LEFT + col * CELL_W + CELL_W / 2;
-      const y = BOARD_TOP + row * CELL_H + CELL_H / 2;
+      const x = BOARD_LEFT + col * CELL + CELL / 2;
+      const y = BOARD_TOP + row * CELL + CELL / 2;
       const pending = this.state.pendingBuy === space.index;
-      const cell = this.add
-        .rectangle(x, y, CELL_W - 6, CELL_H - 6, spaceFill(this.state, space), 0.96)
-        .setStrokeStyle(pending ? 3 : 2, pending ? 0xffe8a0 : 0xd8a05c);
+      if (!painted) {
+        const cell = this.add
+          .rectangle(x, y, CELL - 6, CELL - 6, spaceFill(this.state, space), 0.96)
+          .setStrokeStyle(pending ? 3 : 2, pending ? 0xffe8a0 : 0xd8a05c);
+        this.boardRoot.add(cell);
+      } else {
+        const owner = this.state.player.owned.includes(space.index)
+          ? 0xc89048
+          : this.state.odd.owned.includes(space.index)
+            ? 0x8868a8
+            : pending
+              ? 0xffe8a0
+              : 0x000000;
+        const wash = this.add
+          .rectangle(
+            x,
+            y,
+            CELL - 8,
+            CELL - 8,
+            owner,
+            pending ? 0.28 : owner === 0x000000 ? 0 : 0.4,
+          )
+          .setStrokeStyle(pending ? 3 : 1, pending ? 0xffe8a0 : 0x000000, pending ? 1 : 0.15);
+        this.boardRoot.add(wash);
+      }
       const label = this.add
-        .text(x, y - 12, space.name, {
+        .text(x, y - 14, space.name, {
           ...MINIGAME_TEXT,
           color: "#fff8ec",
           fontSize: "11px",
           align: "center",
-          wordWrap: { width: CELL_W - 14, useAdvancedWrap: true },
+          wordWrap: { width: CELL - 14, useAdvancedWrap: true },
         })
         .setOrigin(0.5, 0.5);
-      this.boardRoot.add([cell, label]);
+      this.boardRoot.add(label);
       const tokens: string[] = [];
       if (this.state.player.position === space.index) {
         tokens.push("You");
@@ -184,7 +217,7 @@ export class HearthLotsScene extends Phaser.Scene {
     const summary = this.add
       .text(
         DESIGN_SIZE / 2,
-        BOARD_TOP + CELL_H * 2.5,
+        BOARD_TOP + CELL * 2.5,
         [
           `Round ${Math.min(this.state.round + 1, 12)} / 12`,
           `You ${this.state.player.marks} marks (${lotsNetWorth(this.state, "player")} worth)`,

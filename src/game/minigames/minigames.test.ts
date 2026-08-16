@@ -31,6 +31,7 @@ import {
 import {
   createWardState,
   deployDefender,
+  startWard,
   stepWard,
   WARD_SPAWN_COLUMN,
 } from "./wardCrossing";
@@ -181,8 +182,9 @@ describe("minigame first-win", () => {
 });
 
 describe("ward the crossing", () => {
-  it("deploys a copy and does not change overworld HP", () => {
+  it("deploys during setup and does not change overworld HP", () => {
     let state = createWardState();
+    expect(state.status).toBe("setup");
     state = deployDefender(state, "c-1", 0, 1);
     expect(state.defenders).toHaveLength(1);
     state = {
@@ -192,8 +194,16 @@ describe("ward the crossing", () => {
     expect(playerParty.creatures[0].currentHp).toBe(28);
   });
 
+  it("does not march invaders until Start", () => {
+    const idle = stepWard(createWardState());
+    expect(idle.status).toBe("setup");
+    expect(idle.tick).toBe(0);
+    expect(idle.invaders).toEqual([]);
+    expect(startWard(idle).status).toBe("playing");
+  });
+
   it("loses when an invader walks onto the home column", () => {
-    let state = createWardState();
+    let state = startWard(createWardState());
     state = {
       ...state,
       invaders: [
@@ -216,7 +226,7 @@ describe("ward the crossing", () => {
   });
 
   it("wins after the last invader is cleared", () => {
-    let state = createWardState();
+    let state = startWard(createWardState());
     state = {
       ...state,
       spawns: [],

@@ -20,7 +20,7 @@ export const PROP_DISPLAY: Record<string, { width: number; height: number }> = {
 };
 
 /** Logical on-screen size for villager NPCs. */
-export const NPC_DISPLAY = { width: 40, height: 54 } as const;
+export const NPC_DISPLAY = { width: 48, height: 72 } as const;
 
 /** Logical on-screen sizes for floor / border tiles (Imagine textures are 4×). */
 export const FLOOR_DISPLAY = { width: 48, height: 48 } as const;

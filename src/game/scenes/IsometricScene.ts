@@ -16,7 +16,7 @@ import {
   playerDepthAboveGrid,
 } from "../isometric";
 import {
-  NPC_TEXTURE_KEY,
+  applyNpcSprite,
   ensureWorldTextures,
   getBoatTextureKey,
   getBoundaryTextureKey,
@@ -27,7 +27,6 @@ import {
 import {
   BOUNDARY_DISPLAY,
   FLOOR_DISPLAY,
-  NPC_DISPLAY,
   PROP_DISPLAY,
   fitDisplay,
 } from "../render/displaySizes";
@@ -1291,10 +1290,9 @@ export class IsometricScene extends Phaser.Scene {
     for (const npc of getZoneNpcs(zone.id)) {
       const screen = this.toScreen(npc.x, npc.y);
       const sprite = this.add
-        .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, NPC_TEXTURE_KEY)
+        .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, npc.spriteKey)
         .setOrigin(0.5, 1);
-      fitDisplay(sprite, NPC_DISPLAY);
-      sprite.setTint(npc.tint);
+      applyNpcSprite(this, sprite, npc);
       sprite.setDepth(depthForGridCell(npc.x, npc.y, PROP_LAYER));
     }
   }

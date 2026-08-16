@@ -9,7 +9,9 @@ export type NpcDefinition = {
   name: string;
   x: number;
   y: number;
-  /** Robe tint for the shared villager sprite. */
+  /** Unique anime sprite; procedural `npc-villager` is the missing-file fallback. */
+  spriteKey: string;
+  /** Robe tint for the shared fallback villager sprite. */
   tint: number;
   /** Shown the first time you speak, before the gift line. */
   introLines: string[];
@@ -25,6 +27,7 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       name: "Warden Bryn",
       x: 3,
       y: 2,
+      spriteKey: "npc-warden-bryn",
       tint: 0x9fc7e8,
       introLines: [
         "You must be the one walking the old paths. Come in, the hearth is warm.",
@@ -44,6 +47,7 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       name: "Weaver Sable",
       x: 3,
       y: 2,
+      spriteKey: "npc-weaver-sable",
       tint: 0xd8a8d0,
       introLines: [
         "Mind the loom. Thread's finer than it looks.",
@@ -63,6 +67,7 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       name: "Hearthkeep Odd",
       x: 3,
       y: 2,
+      spriteKey: "npc-hearthkeep-odd",
       tint: 0xe8b888,
       introLines: [
         "Sit, sit. Nobody passes the hearth without something warm.",

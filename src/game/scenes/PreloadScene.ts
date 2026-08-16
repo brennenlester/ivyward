@@ -32,6 +32,13 @@ export class PreloadScene extends Phaser.Scene {
       "creature-eclipse-sovereign",
       "assets/creatures/creature-eclipse-sovereign.png",
     );
+    this.load.image("npc-warden-bryn", "assets/npcs/npc-warden-bryn.png");
+    this.load.image("npc-weaver-sable", "assets/npcs/npc-weaver-sable.png");
+    this.load.image("npc-hearthkeep-odd", "assets/npcs/npc-hearthkeep-odd.png");
+    this.load.image(
+      "minigame-hearth-lots-board",
+      "assets/minigames/hearth-lots-board.png",
+    );
     preloadGameAudio(this);
   }
 

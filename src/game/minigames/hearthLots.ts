@@ -1,6 +1,7 @@
 export const HEARTH_LOTS_SPACES = 16;
 export const HEARTH_LOTS_ROUNDS = 12;
 export const HEARTH_STARTING_MARKS = 8;
+export const HEARTH_LOTS_BOARD_TEXTURE = "minigame-hearth-lots-board";
 
 /** Clockwise ring on a 5×5 grid; space 0 (Hearth) is the bottom-left corner. */
 const HEARTH_LOTS_RING: { col: number; row: number }[] = [

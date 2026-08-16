@@ -1,6 +1,7 @@
 import Phaser from "phaser";
 import { TILE_HEIGHT, TILE_WIDTH } from "../isometric";
 import type { ZoneId } from "../world/zoneTypes";
+import { NPC_DISPLAY, fitContainDisplay } from "./displaySizes";
 
 type ZonePalette = { light: number; dark: number; accent: number; edge: number };
 
@@ -782,4 +783,22 @@ export function getDockTextureKey(light: boolean): string {
 
 export function getBoatTextureKey(): string {
   return "prop-boat";
+}
+
+export function applyNpcSprite(
+  scene: Phaser.Scene,
+  image: Phaser.GameObjects.Image,
+  npc: { spriteKey: string; tint: number },
+  size: { width: number; height: number } = NPC_DISPLAY,
+): Phaser.GameObjects.Image {
+  const key = scene.textures.exists(npc.spriteKey)
+    ? npc.spriteKey
+    : NPC_TEXTURE_KEY;
+  image.setTexture(key);
+  if (key === NPC_TEXTURE_KEY) {
+    image.setTint(npc.tint);
+  } else {
+    image.clearTint();
+  }
+  return fitContainDisplay(image, size);
 }

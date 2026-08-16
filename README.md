@@ -65,7 +65,7 @@ Stand next to the house's signature prop and press **E** for a minigame (same re
 
 | House | Prop | Minigame | First win (once per save) |
 | --- | --- | --- | --- |
-| Warden's Cottage | Shelf | **Ward the Crossing** — place copies of your living party on 3 lanes and hold 3 waves | Wild Fiber ×2 |
+| Warden's Cottage | Shelf | **Ward the Crossing** — place copies of your living party on 3 lanes, press Start, hold 3 waves | Wild Fiber ×2 |
 | Weaver's Cottage | Loom | **Loom Pattern** — repeat three thread sequences | Moss Fiber ×2 |
 | Hearthkeep Cottage | Hearth | **Hearth Lots** — 12-round property board vs Odd | Brook Tonic ×1 |
 

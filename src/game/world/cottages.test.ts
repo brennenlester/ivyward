@@ -34,6 +34,14 @@ describe("cottage interiors", () => {
       expect(getZoneNpcs(id)).toHaveLength(1);
     }
   });
+
+  it("gives each villager a unique sprite", () => {
+    const keys = INTERIOR_IDS.flatMap((id) =>
+      getZoneNpcs(id).map((npc) => npc.spriteKey),
+    );
+    expect(keys).toHaveLength(3);
+    expect(new Set(keys).size).toBe(3);
+  });
 });
 
 describe("village doors", () => {
