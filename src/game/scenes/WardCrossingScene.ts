@@ -11,6 +11,7 @@ import {
   createWardState,
   deployDefender,
   livingPartyForWard,
+  startWard,
   stepWard,
 } from "../minigames/wardCrossing";
 import {
@@ -34,6 +35,7 @@ export class WardCrossingScene extends Phaser.Scene {
   private bench: Phaser.GameObjects.GameObject[] = [];
   private closing = { current: false };
   private ticker?: Phaser.Time.TimerEvent;
+  private startButton!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "WardCrossingScene" });
@@ -56,7 +58,7 @@ export class WardCrossingScene extends Phaser.Scene {
       .setOrigin(0, 0);
 
     this.statusText = this.add
-      .text(24, 52, "Place companions on the left. Hold the right.", {
+      .text(24, 52, "Place companions on the left, then Start.", {
         ...MINIGAME_TEXT,
         color: "#e8d8c0",
         fontSize: "15px",
@@ -65,8 +67,19 @@ export class WardCrossingScene extends Phaser.Scene {
       .setOrigin(0, 0);
 
     bindMinigameQuit(this, () => this.quit());
+    this.startButton = addMinigameButton(this, DESIGN_SIZE / 2, 580, "Start");
+    this.startButton.on("pointerdown", () => this.begin());
     this.drawGrid();
     this.drawBench();
+  }
+
+  private begin(): void {
+    if (this.closing.current || this.state.status !== "setup") {
+      return;
+    }
+    this.state = startWard(this.state);
+    this.startButton.setVisible(false);
+    this.statusText.setText("Hold the right.");
     this.ticker = this.time.addEvent({
       delay: 750,
       loop: true,
@@ -190,7 +203,10 @@ export class WardCrossingScene extends Phaser.Scene {
   }
 
   private tryDeploy(lane: number, column: number): void {
-    if (this.closing.current || this.state.status !== "playing") {
+    if (
+      this.closing.current ||
+      (this.state.status !== "setup" && this.state.status !== "playing")
+    ) {
       return;
     }
     if (!this.selectedId) {

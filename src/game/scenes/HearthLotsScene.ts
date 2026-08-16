@@ -2,12 +2,15 @@ import Phaser from "phaser";
 import { DESIGN_SIZE } from "../render/pixelRatio";
 import {
   HEARTH_LOTS_BOARD,
+  HEARTH_LOTS_BOARD_TEXTURE,
   buyPendingLot,
   createLotsState,
+  hearthLotsBoardCell,
   lotsNetWorth,
   playOddIfNeeded,
   rollLots,
   skipPendingLot,
+  type LotsSpace,
   type LotsState,
 } from "../minigames/hearthLots";
 import {
@@ -19,10 +22,33 @@ import {
   resolveMinigameEnd,
 } from "../minigames/overlay";
 
+const CELL = 88;
+const BOARD_LEFT = (DESIGN_SIZE - CELL * 5) / 2;
+const BOARD_TOP = 108;
+
+function spaceFill(state: LotsState, space: LotsSpace): number {
+  if (space.kind === "start") {
+    return 0xb87840;
+  }
+  if (space.kind === "tax") {
+    return 0x8a4048;
+  }
+  if (space.kind === "event") {
+    return 0x3a6080;
+  }
+  if (state.player.owned.includes(space.index)) {
+    return 0xc89048;
+  }
+  if (state.odd.owned.includes(space.index)) {
+    return 0x8868a8;
+  }
+  return 0x5a4038;
+}
+
 export class HearthLotsScene extends Phaser.Scene {
   private state: LotsState = createLotsState();
   private statusText!: Phaser.GameObjects.Text;
-  private boardText!: Phaser.GameObjects.Text;
+  private boardRoot!: Phaser.GameObjects.Container;
   private closing = { current: false };
   private rollButton!: Phaser.GameObjects.Text;
   private buyButton!: Phaser.GameObjects.Text;
@@ -49,18 +75,10 @@ export class HearthLotsScene extends Phaser.Scene {
         ...MINIGAME_TEXT,
         color: "#e8d8c0",
         fontSize: "15px",
-        wordWrap: { width: DESIGN_SIZE - 48, useAdvancedWrap: true },
+        wordWrap: { width: DESIGN_SIZE - 140, useAdvancedWrap: true },
       })
       .setOrigin(0, 0);
-    this.boardText = this.add
-      .text(24, 110, "", {
-        ...MINIGAME_TEXT,
-        color: "#fff8ec",
-        fontSize: "14px",
-        lineSpacing: 4,
-        wordWrap: { width: DESIGN_SIZE - 48, useAdvancedWrap: true },
-      })
-      .setOrigin(0, 0);
+    this.boardRoot = this.add.container(0, 0);
 
     bindMinigameQuit(this, () => this.quit());
     this.rollButton = addMinigameButton(this, 90, 580, "Roll");
@@ -121,27 +139,100 @@ export class HearthLotsScene extends Phaser.Scene {
   }
 
   private refresh(): void {
-    const spaces = HEARTH_LOTS_BOARD.map((space) => {
-      const marks = [
-        this.state.player.position === space.index ? "You" : "",
-        this.state.odd.position === space.index ? "Odd" : "",
-      ]
-        .filter(Boolean)
-        .join("+");
-      const owner = this.state.player.owned.includes(space.index)
-        ? " (yours)"
-        : this.state.odd.owned.includes(space.index)
-          ? " (Odd)"
-          : "";
-      return `${space.index + 1}. ${space.name}${owner}${marks ? ` [${marks}]` : ""}`;
-    });
-    this.boardText.setText(
-      [
-        `Round ${Math.min(this.state.round + 1, 12)}/12  You ${this.state.player.marks} marks (${lotsNetWorth(this.state, "player")} worth)  Odd ${this.state.odd.marks} (${lotsNetWorth(this.state, "odd")})`,
-        "",
-        ...spaces,
-      ].join("\n"),
-    );
+    this.boardRoot.removeAll(true);
+    const painted = this.textures.exists(HEARTH_LOTS_BOARD_TEXTURE);
+    if (painted) {
+      const art = this.add
+        .image(
+          DESIGN_SIZE / 2,
+          BOARD_TOP + CELL * 2.5,
+          HEARTH_LOTS_BOARD_TEXTURE,
+        )
+        .setDisplaySize(CELL * 5, CELL * 5);
+      this.boardRoot.add(art);
+    }
+    for (const space of HEARTH_LOTS_BOARD) {
+      const { col, row } = hearthLotsBoardCell(space.index);
+      const x = BOARD_LEFT + col * CELL + CELL / 2;
+      const y = BOARD_TOP + row * CELL + CELL / 2;
+      const pending = this.state.pendingBuy === space.index;
+      if (!painted) {
+        const cell = this.add
+          .rectangle(x, y, CELL - 6, CELL - 6, spaceFill(this.state, space), 0.96)
+          .setStrokeStyle(pending ? 3 : 2, pending ? 0xffe8a0 : 0xd8a05c);
+        this.boardRoot.add(cell);
+      } else {
+        const owner = this.state.player.owned.includes(space.index)
+          ? 0xc89048
+          : this.state.odd.owned.includes(space.index)
+            ? 0x8868a8
+            : pending
+              ? 0xffe8a0
+              : 0x000000;
+        const wash = this.add
+          .rectangle(
+            x,
+            y,
+            CELL - 8,
+            CELL - 8,
+            owner,
+            pending ? 0.28 : owner === 0x000000 ? 0 : 0.4,
+          )
+          .setStrokeStyle(pending ? 3 : 1, pending ? 0xffe8a0 : 0x000000, pending ? 1 : 0.15);
+        this.boardRoot.add(wash);
+      }
+      const label = this.add
+        .text(x, y - 14, space.name, {
+          ...MINIGAME_TEXT,
+          color: "#fff8ec",
+          fontSize: "11px",
+          align: "center",
+          wordWrap: { width: CELL - 14, useAdvancedWrap: true },
+        })
+        .setOrigin(0.5, 0.5);
+      this.boardRoot.add(label);
+      const tokens: string[] = [];
+      if (this.state.player.position === space.index) {
+        tokens.push("You");
+      }
+      if (this.state.odd.position === space.index) {
+        tokens.push("Odd");
+      }
+      tokens.forEach((who, i) => {
+        const tx = x - 16 + i * 32;
+        const ty = y + 22;
+        const token = this.add.circle(tx, ty, 9, who === "You" ? 0xf0c878 : 0xc890d8);
+        const tokenLabel = this.add
+          .text(tx, ty, who === "You" ? "Y" : "O", {
+            ...MINIGAME_TEXT,
+            color: "#1a3040",
+            fontSize: "10px",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5, 0.5);
+        this.boardRoot.add([token, tokenLabel]);
+      });
+    }
+
+    const summary = this.add
+      .text(
+        DESIGN_SIZE / 2,
+        BOARD_TOP + CELL * 2.5,
+        [
+          `Round ${Math.min(this.state.round + 1, 12)} / 12`,
+          `You ${this.state.player.marks} marks (${lotsNetWorth(this.state, "player")} worth)`,
+          `Odd ${this.state.odd.marks} marks (${lotsNetWorth(this.state, "odd")} worth)`,
+        ].join("\n"),
+        {
+          ...MINIGAME_TEXT,
+          color: "#fff8ec",
+          fontSize: "14px",
+          align: "center",
+        },
+      )
+      .setOrigin(0.5, 0.5);
+    this.boardRoot.add(summary);
+
     this.statusText.setText(this.state.log);
     this.rollButton.setVisible(
       this.state.status === "playing" &&

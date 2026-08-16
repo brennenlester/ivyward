@@ -53,18 +53,68 @@ export function getMinigameById(id: MinigameId): MinigameDefinition {
   return MINIGAMES[id];
 }
 
+export type NearbyMinigame = {
+  game: MinigameDefinition;
+  x: number;
+  y: number;
+  dist: number;
+};
+
+function chebyshev(ax: number, ay: number, bx: number, by: number): number {
+  return Math.max(Math.abs(ax - bx), Math.abs(ay - by));
+}
+
+/** Exact tile match. Prefer `findMinigameNearPlayer` for interact. */
 export function findMinigameAt(
   zoneId: ZoneId,
   tileX: number,
   tileY: number,
 ): MinigameDefinition | undefined {
-  return MINIGAME_IDS.map((id) => MINIGAMES[id]).find((game) => {
+  return findMinigameNearPlayer(zoneId, tileX, tileY, 0)?.game;
+}
+
+/**
+ * Nearest signature prop within `maxDist` (Chebyshev), same as villager talk
+ * and gather. `maxDist` 0 is stand-on-tile only.
+ */
+export function findMinigameNearPlayer(
+  zoneId: ZoneId,
+  tileX: number,
+  tileY: number,
+  maxDist = 1,
+): NearbyMinigame | undefined {
+  let best: NearbyMinigame | undefined;
+  for (const id of MINIGAME_IDS) {
+    const game = MINIGAMES[id];
     if (game.zoneId !== zoneId) {
-      return false;
+      continue;
     }
-    return getZoneProps(zoneId).some(
-      (prop) =>
-        prop.kind === game.propKind && prop.x === tileX && prop.y === tileY,
-    );
-  });
+    for (const prop of getZoneProps(zoneId)) {
+      if (prop.kind !== game.propKind) {
+        continue;
+      }
+      const dist = chebyshev(prop.x, prop.y, tileX, tileY);
+      if (dist > maxDist) {
+        continue;
+      }
+      if (!best || dist < best.dist) {
+        best = { game, x: prop.x, y: prop.y, dist };
+      }
+    }
+  }
+  return best;
+}
+
+/** True when this tile should start the minigame instead of villager talk. */
+export function shouldPreferMinigameOverNpc(
+  minigameDist: number,
+  npcDist: number | undefined,
+): boolean {
+  if (minigameDist === 0) {
+    return true;
+  }
+  if (npcDist === undefined) {
+    return true;
+  }
+  return minigameDist < npcDist;
 }

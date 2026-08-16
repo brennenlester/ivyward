@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import { hasWorldTexture } from "./imagineAssets";
 import { TILE_HEIGHT, TILE_WIDTH } from "../isometric";
 import type { ZoneId } from "../world/zoneTypes";
+import { NPC_DISPLAY, fitContainDisplay } from "./displaySizes";
 
 type ZonePalette = { light: number; dark: number; accent: number; edge: number };
 
@@ -120,6 +121,22 @@ function generateFloorTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
       g.fillCircle(34, 14, 2);
       g.fillStyle(0xffe080, 0.4);
       g.fillEllipse(24, 32, 16, 5);
+    } else if (
+      zoneId === "warden-cottage" ||
+      zoneId === "weaver-cottage" ||
+      zoneId === "hearthkeep-cottage"
+    ) {
+      g.fillStyle(palette.edge, 0.45);
+      g.fillRect(0, 11, TILE_WIDTH, 2);
+      g.fillRect(0, 23, TILE_WIDTH, 2);
+      g.fillRect(0, 35, TILE_WIDTH, 2);
+      g.fillStyle(palette.accent, 0.28);
+      g.fillRect(6, 13, 20, 1);
+      g.fillRect(22, 25, 16, 1);
+      g.fillRect(10, 37, 18, 1);
+      g.fillStyle(0x5a3820, 0.5);
+      g.fillCircle(8, 12, 1);
+      g.fillCircle(40, 24, 1);
     } else {
       // Bright blue route grass (Folklore Fields)
       g.fillStyle(0xdff7f4, 0.55);
@@ -418,6 +435,37 @@ function generateWallTextures(scene: Phaser.Scene): void {
     g.fillStyle(0xffe080, 0.45);
     g.fillEllipse(24, BOUNDARY_HEIGHT - 28, 18, 6);
   });
+
+  const cottageWalls: { key: string; accent: number }[] = [
+    { key: "boundary-warden-cottage", accent: 0x7aa8c8 },
+    { key: "boundary-weaver-cottage", accent: 0xc890b0 },
+    { key: "boundary-hearthkeep-cottage", accent: 0xe0a060 },
+  ];
+  for (const { key, accent } of cottageWalls) {
+    generateBoundaryTexture(scene, key, (g) => {
+      g.fillStyle(0x000000, 0.14);
+      g.fillEllipse(24, BOUNDARY_HEIGHT - 3, 36, 6);
+
+      g.fillStyle(OUTLINE, 1);
+      g.fillRoundedRect(4, 6, 40, 46, 3);
+      g.fillStyle(0xe8d4b8, 1);
+      g.fillRoundedRect(5, 7, 38, 44, 2);
+
+      g.fillStyle(0x8a5a38, 1);
+      g.fillRoundedRect(5, BOUNDARY_HEIGHT - 22, 38, 18, 2);
+      g.fillStyle(0xc48858, 1);
+      for (let i = 0; i < 4; i += 1) {
+        g.fillRect(8 + i * 9, BOUNDARY_HEIGHT - 20, 7, 14);
+      }
+      g.fillStyle(0x6a4030, 1);
+      g.fillRect(5, BOUNDARY_HEIGHT - 24, 38, 3);
+
+      g.fillStyle(accent, 0.95);
+      g.fillRoundedRect(18, 12, 12, 16, 2);
+      g.fillStyle(0xffe8a0, 0.75);
+      g.fillCircle(24, 18, 3);
+    });
+  }
 }
 
 function generatePropTextures(scene: Phaser.Scene): void {
@@ -619,22 +667,31 @@ function generatePropTextures(scene: Phaser.Scene): void {
 
   if (!hasWorldTexture(scene, "prop-shelf")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
+    g.fillStyle(0x000000, 0.16);
+    g.fillEllipse(22, 40, 28, 5);
     g.fillStyle(OUTLINE, 1);
-    g.fillRoundedRect(5, 6, 34, 34, 3);
-    g.fillStyle(0x8a6040, 1);
-    g.fillRoundedRect(6, 7, 32, 32, 2);
-    g.fillStyle(0x5a3c28, 1);
-    g.fillRect(8, 18, 28, 3);
-    g.fillRect(8, 29, 28, 3);
-    const spines = [0xd86858, 0xe8b060, 0x70a8d8, 0x8ac878];
-    for (let i = 0; i < 4; i += 1) {
+    g.fillRoundedRect(4, 2, 36, 38, 3);
+    g.fillStyle(0x6a4228, 1);
+    g.fillRoundedRect(5, 3, 34, 36, 2);
+    g.fillStyle(0x3a2418, 1);
+    g.fillRect(8, 6, 28, 30);
+    g.fillStyle(0x8a5a38, 1);
+    g.fillRect(7, 15, 30, 3);
+    g.fillRect(7, 26, 30, 3);
+    g.fillRect(7, 36, 30, 3);
+    const spines = [0xc45c4c, 0xe0a048, 0x5a8cc0, 0x6ab070, 0xb078c0];
+    for (let i = 0; i < 5; i += 1) {
       g.fillStyle(spines[i], 1);
-      g.fillRect(10 + i * 6, 10, 4, 8);
-      g.fillStyle(spines[(i + 2) % 4], 1);
-      g.fillRect(10 + i * 6, 22, 4, 7);
+      g.fillRect(9 + i * 5, 7 + (i % 2), 4, 8 - (i % 2));
+      g.fillStyle(spines[(i + 2) % 5], 1);
+      g.fillRect(9 + i * 5, 19, 4, 7);
     }
+    g.fillStyle(0xd8b070, 1);
+    g.fillRect(10, 30, 12, 6);
     g.fillStyle(0xf0e0c0, 1);
-    g.fillRect(24, 32, 10, 6);
+    g.fillRoundedRect(24, 30, 10, 6, 1);
+    g.fillStyle(0xe8c878, 1);
+    g.fillCircle(22, 5, 3);
     g.generateTexture("prop-shelf", 44, 42);
     g.destroy();
   }
@@ -660,23 +717,38 @@ function generateNpcTexture(scene: Phaser.Scene): void {
     return;
   }
   const g = scene.make.graphics({ x: 0, y: 0 });
+  g.fillStyle(0x000000, 0.16);
+  g.fillEllipse(20, 51, 22, 5);
   g.fillStyle(OUTLINE, 1);
-  g.fillRoundedRect(8, 20, 24, 32, 6);
-  g.fillEllipse(20, 15, 22, 22);
-  g.fillStyle(0xe8e8f0, 1);
-  g.fillRoundedRect(9, 21, 22, 30, 5);
-  g.fillStyle(0xf6dcc0, 1);
-  g.fillEllipse(20, 15, 18, 18);
-  g.fillStyle(0xe8e8f0, 1);
-  g.fillRoundedRect(8, 5, 24, 12, 6);
+  g.fillRoundedRect(10, 44, 9, 8, 2);
+  g.fillRoundedRect(21, 44, 9, 8, 2);
+  g.fillStyle(0x5a4030, 1);
+  g.fillRoundedRect(11, 45, 7, 6, 1);
+  g.fillRoundedRect(22, 45, 7, 6, 1);
   g.fillStyle(OUTLINE, 1);
-  g.fillCircle(16, 16, 1.8);
-  g.fillCircle(24, 16, 1.8);
-  g.fillStyle(0xd8a0a0, 0.6);
-  g.fillCircle(13, 20, 2.4);
-  g.fillCircle(27, 20, 2.4);
+  g.fillRoundedRect(7, 22, 26, 26, 8);
+  g.fillRoundedRect(4, 26, 7, 14, 3);
+  g.fillRoundedRect(29, 26, 7, 14, 3);
+  g.fillStyle(0xe8e8f0, 1);
+  g.fillRoundedRect(8, 23, 24, 24, 7);
+  g.fillRoundedRect(5, 27, 5, 12, 2);
+  g.fillRoundedRect(30, 27, 5, 12, 2);
   g.fillStyle(0xc8b090, 1);
-  g.fillRoundedRect(9, 34, 22, 4, 2);
+  g.fillRoundedRect(8, 36, 24, 4, 1);
+  g.fillStyle(OUTLINE, 1);
+  g.fillEllipse(20, 16, 20, 20);
+  g.fillStyle(0xf6dcc0, 1);
+  g.fillEllipse(20, 16, 16, 16);
+  g.fillStyle(OUTLINE, 1);
+  g.fillRoundedRect(8, 4, 24, 12, 6);
+  g.fillStyle(0xe8e8f0, 1);
+  g.fillRoundedRect(9, 5, 22, 10, 5);
+  g.fillStyle(OUTLINE, 1);
+  g.fillCircle(16, 17, 1.6);
+  g.fillCircle(24, 17, 1.6);
+  g.fillStyle(0xd8a0a0, 0.55);
+  g.fillCircle(13, 21, 2);
+  g.fillCircle(27, 21, 2);
   g.generateTexture(NPC_TEXTURE_KEY, 40, 54);
   g.destroy();
 }
@@ -712,4 +784,22 @@ export function getDockTextureKey(light: boolean): string {
 
 export function getBoatTextureKey(): string {
   return "prop-boat";
+}
+
+export function applyNpcSprite(
+  scene: Phaser.Scene,
+  image: Phaser.GameObjects.Image,
+  npc: { spriteKey: string; tint: number },
+  size: { width: number; height: number } = NPC_DISPLAY,
+): Phaser.GameObjects.Image {
+  const key = scene.textures.exists(npc.spriteKey)
+    ? npc.spriteKey
+    : NPC_TEXTURE_KEY;
+  image.setTexture(key);
+  if (key === NPC_TEXTURE_KEY) {
+    image.setTint(npc.tint);
+  } else {
+    image.clearTint();
+  }
+  return fitContainDisplay(image, size);
 }

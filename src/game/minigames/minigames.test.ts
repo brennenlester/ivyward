@@ -15,7 +15,12 @@ import {
 import type { CreatureInstance } from "../creatures/types";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
-import { findMinigameAt } from "./ids";
+import {
+  findMinigameAt,
+  findMinigameNearPlayer,
+  shouldPreferMinigameOverNpc,
+} from "./ids";
+import { nearestNpcDistance } from "../world/npcs";
 import {
   canLaunchMinigame,
   getClaimedMinigameWins,
@@ -26,13 +31,16 @@ import {
 import {
   createWardState,
   deployDefender,
+  startWard,
   stepWard,
   WARD_SPAWN_COLUMN,
 } from "./wardCrossing";
-import { createLoomState, tapLoomCell } from "./loomPattern";
+import { createLoomState, loomInputWasMiss, tapLoomCell } from "./loomPattern";
 import {
+  HEARTH_LOTS_SPACES,
   buyPendingLot,
   createLotsState,
+  hearthLotsBoardCell,
   lotsNetWorth,
   playOddIfNeeded,
   rollLots,
@@ -88,7 +96,34 @@ describe("minigame launch", () => {
   it("finds each cottage prop", () => {
     expect(findMinigameAt("warden-cottage", 1, 1)?.id).toBe("ward-crossing");
     expect(findMinigameAt("weaver-cottage", 1, 2)?.id).toBe("loom-pattern");
-    expect(findMinigameAt("hearthkeep-cottage", 3, 1)?.id).toBe("hearth-lots");
+    expect(findMinigameAt("hearthkeep-cottage", 1, 1)?.id).toBe("hearth-lots");
+  });
+
+  it("starts from an adjacent tile", () => {
+    expect(findMinigameNearPlayer("warden-cottage", 2, 1)?.game.id).toBe(
+      "ward-crossing",
+    );
+    expect(findMinigameNearPlayer("weaver-cottage", 1, 3)?.game.id).toBe(
+      "loom-pattern",
+    );
+    expect(findMinigameNearPlayer("hearthkeep-cottage", 1, 2)?.game.id).toBe(
+      "hearth-lots",
+    );
+  });
+
+  it("keeps villager talk when standing on the NPC", () => {
+    expect(
+      shouldPreferMinigameOverNpc(
+        findMinigameNearPlayer("hearthkeep-cottage", 3, 2)?.dist ?? 99,
+        nearestNpcDistance("hearthkeep-cottage", 3, 2),
+      ),
+    ).toBe(false);
+    expect(
+      shouldPreferMinigameOverNpc(
+        findMinigameNearPlayer("hearthkeep-cottage", 1, 1)?.dist ?? 99,
+        nearestNpcDistance("hearthkeep-cottage", 1, 1),
+      ),
+    ).toBe(true);
   });
 
   it("refuses Ward the Crossing without a living party", () => {
@@ -147,8 +182,9 @@ describe("minigame first-win", () => {
 });
 
 describe("ward the crossing", () => {
-  it("deploys a copy and does not change overworld HP", () => {
+  it("deploys during setup and does not change overworld HP", () => {
     let state = createWardState();
+    expect(state.status).toBe("setup");
     state = deployDefender(state, "c-1", 0, 1);
     expect(state.defenders).toHaveLength(1);
     state = {
@@ -158,8 +194,16 @@ describe("ward the crossing", () => {
     expect(playerParty.creatures[0].currentHp).toBe(28);
   });
 
+  it("does not march invaders until Start", () => {
+    const idle = stepWard(createWardState());
+    expect(idle.status).toBe("setup");
+    expect(idle.tick).toBe(0);
+    expect(idle.invaders).toEqual([]);
+    expect(startWard(idle).status).toBe("playing");
+  });
+
   it("loses when an invader walks onto the home column", () => {
-    let state = createWardState();
+    let state = startWard(createWardState());
     state = {
       ...state,
       invaders: [
@@ -182,7 +226,7 @@ describe("ward the crossing", () => {
   });
 
   it("wins after the last invader is cleared", () => {
-    let state = createWardState();
+    let state = startWard(createWardState());
     state = {
       ...state,
       spawns: [],
@@ -227,6 +271,24 @@ describe("loom pattern", () => {
       state = tapLoomCell(state, cell);
     }
     expect(state.status).toBe("won");
+  });
+
+  it("does not treat completing a pattern as a miss", () => {
+    const patterns = [
+      [0, 1, 2],
+      [3, 4, 5, 6],
+      [0, 8, 1, 7, 2],
+    ];
+    let state = createLoomState(patterns);
+    state = tapLoomCell(state, 0);
+    expect(loomInputWasMiss(0, 0, state)).toBe(false);
+    const afterWrong = tapLoomCell(state, 8);
+    expect(loomInputWasMiss(0, 1, afterWrong)).toBe(true);
+    state = tapLoomCell(state, 1);
+    const afterComplete = tapLoomCell(state, 2);
+    expect(afterComplete.round).toBe(1);
+    expect(afterComplete.input).toEqual([]);
+    expect(loomInputWasMiss(0, 2, afterComplete)).toBe(false);
   });
 });
 
@@ -276,5 +338,14 @@ describe("hearth lots", () => {
     expect(getItemCount("brook-tonic")).toBe(0);
     expect(getMaterialCount("wild-fiber")).toBe(0);
     expect(lotsNetWorth(state, "player")).toBeGreaterThan(0);
+  });
+
+  it("places sixteen unique ring cells with Hearth at the start corner", () => {
+    const cells = Array.from({ length: HEARTH_LOTS_SPACES }, (_, index) =>
+      hearthLotsBoardCell(index),
+    );
+    expect(new Set(cells.map((cell) => `${cell.col},${cell.row}`)).size).toBe(16);
+    expect(hearthLotsBoardCell(0)).toEqual({ col: 0, row: 4 });
+    expect(hearthLotsBoardCell(8)).toEqual({ col: 4, row: 0 });
   });
 });

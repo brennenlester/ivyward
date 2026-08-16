@@ -33,7 +33,7 @@ export type WardSpawn = {
   wave: number;
 };
 
-export type WardStatus = "playing" | "won" | "lost";
+export type WardStatus = "setup" | "playing" | "won" | "lost";
 
 export type WardState = {
   tick: number;
@@ -74,8 +74,15 @@ export function createWardState(): WardState {
     invaders: [],
     spawns: WAVE_PLAN.map((spawn) => ({ ...spawn })),
     nextInvaderId: 1,
-    status: "playing",
+    status: "setup",
   };
+}
+
+export function startWard(state: WardState): WardState {
+  if (state.status !== "setup") {
+    return state;
+  }
+  return { ...state, status: "playing" };
 }
 
 export function livingPartyForWard(): CreatureInstance[] {
@@ -92,7 +99,7 @@ export function deployDefender(
   lane: number,
   column: number,
 ): WardState {
-  if (state.status !== "playing") {
+  if (state.status !== "setup" && state.status !== "playing") {
     return state;
   }
   if (lane < 0 || lane >= WARD_LANES) {
