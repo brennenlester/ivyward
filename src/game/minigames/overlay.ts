@@ -46,6 +46,7 @@ export function closeMinigameOverlay(scene: Phaser.Scene): void {
     scene.scene.stop();
     scene.scene.resume("IsometricScene");
     setTouchControlsEnabled(true);
+    scene.scene.get("IsometricScene").events.emit("minigame-closed");
   });
 }
 

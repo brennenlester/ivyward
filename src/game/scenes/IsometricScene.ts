@@ -304,6 +304,9 @@ export class IsometricScene extends Phaser.Scene {
       this.syncPlayerToGrid();
       this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     });
+    this.events.on("minigame-closed", () => {
+      this.inMinigame = false;
+    });
 
     this.scale.on("resize", () => this.onResize());
     window.addEventListener("resize", this.onWindowResize);
