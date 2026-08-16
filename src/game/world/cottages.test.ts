@@ -44,20 +44,23 @@ describe("cottage interiors", () => {
     expect(new Set(keys).size).toBe(3);
   });
 
-  it("joins the north wall into one run instead of five separate panels", () => {
+  it("frames each cottage as a square: connecting N/S borders and thin E/W sides", () => {
     const runs = cottageWallRuns(ZONES["warden-cottage"]);
     expect(runs).toContainEqual({
       axis: "h",
-      x0: 1,
+      x0: 0,
       y0: 0,
-      x1: 5,
+      x1: 6,
       y1: 0,
     });
     expect(runs.filter((run) => run.axis === "h" && run.y0 === 0)).toHaveLength(1);
-    const south = runs.filter((run) => run.axis === "h" && run.y0 === 6);
-    expect(south).toEqual([
-      { axis: "h", x0: 1, y0: 6, x1: 2, y1: 6 },
-      { axis: "h", x0: 4, y0: 6, x1: 5, y1: 6 },
+    expect(runs.filter((run) => run.axis === "h" && run.y0 === 6)).toEqual([
+      { axis: "h", x0: 0, y0: 6, x1: 2, y1: 6 },
+      { axis: "h", x0: 4, y0: 6, x1: 6, y1: 6 },
+    ]);
+    expect(runs.filter((run) => run.axis === "v")).toEqual([
+      { axis: "v", x0: 0, y0: 1, x1: 0, y1: 5 },
+      { axis: "v", x0: 6, y0: 1, x1: 6, y1: 5 },
     ]);
   });
 });

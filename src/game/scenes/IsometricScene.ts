@@ -17,6 +17,7 @@ import {
 } from "../isometric";
 import {
   applyNpcSprite,
+  ensureCottageSideTexture,
   ensureWorldTextures,
   getBoatTextureKey,
   getBoundaryTextureKey,
@@ -107,7 +108,7 @@ import {
 } from "../world/zones";
 import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
-import { cottageWallRuns } from "../world/cottageWalls";
+import { cottageWallRuns, COTTAGE_SIDE_WALL_WIDTH } from "../world/cottageWalls";
 import {
   getZoneProps,
   propTextureKey,
@@ -1223,9 +1224,13 @@ export class IsometricScene extends Phaser.Scene {
       this.drawWallsInColumns(zone, 0, zone.width);
       return;
     }
-    const frame = this.textures.get(key).get();
-    const tileScaleX = BOUNDARY_DISPLAY.width / Math.max(1, frame.width);
-    const tileScaleY = BOUNDARY_DISPLAY.height / Math.max(1, frame.height);
+    const facade = this.textures.get(key).get();
+    const facadeScaleX = BOUNDARY_DISPLAY.width / Math.max(1, facade.width);
+    const facadeScaleY = BOUNDARY_DISPLAY.height / Math.max(1, facade.height);
+    const sideKey = ensureCottageSideTexture(this, key);
+    const side = this.textures.get(sideKey).get();
+    const sideScaleX = COTTAGE_SIDE_WALL_WIDTH / Math.max(1, side.width);
+    const sideScaleY = TILE_HEIGHT / Math.max(1, side.height);
 
     for (const run of cottageWallRuns(zone)) {
       if (run.axis === "h") {
@@ -1237,19 +1242,33 @@ export class IsometricScene extends Phaser.Scene {
         const strip = this.add
           .tileSprite(left, footY, width, BOUNDARY_DISPLAY.height, key)
           .setOrigin(0, 1);
-        strip.tileScaleX = tileScaleX;
-        strip.tileScaleY = tileScaleY;
+        strip.tileScaleX = facadeScaleX;
+        strip.tileScaleY = facadeScaleY;
         strip.setDepth(depthForGridCell(run.x0, run.y0, PROP_LAYER));
         continue;
       }
-      for (let y = run.y0; y <= run.y1; y += 1) {
-        const screen = this.toScreen(run.x0, y);
-        const block = this.add
-          .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, key)
-          .setOrigin(0.5, 1);
-        fitDisplay(block, BOUNDARY_DISPLAY);
-        block.setDepth(depthForGridCell(run.x0, y, PROP_LAYER));
-      }
+
+      const top = this.toScreen(run.x0, run.y0);
+      const bot = this.toScreen(run.x0, run.y1);
+      const footY = bot.y + TILE_HEIGHT / 2 - 2;
+      const topY = top.y - TILE_HEIGHT / 2;
+      const height = Math.max(TILE_HEIGHT, footY - topY);
+      const westSide = run.x0 === 0;
+      const innerX = westSide
+        ? top.x + TILE_WIDTH / 2
+        : top.x - TILE_WIDTH / 2;
+      const strip = this.add
+        .tileSprite(
+          innerX,
+          footY,
+          COTTAGE_SIDE_WALL_WIDTH,
+          height,
+          sideKey,
+        )
+        .setOrigin(westSide ? 1 : 0, 1);
+      strip.tileScaleX = sideScaleX;
+      strip.tileScaleY = sideScaleY;
+      strip.setDepth(depthForGridCell(run.x0, run.y1, PROP_LAYER));
     }
   }
 
