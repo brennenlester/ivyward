@@ -2,15 +2,15 @@
 const OVERLAY_SIZE = 640;
 
 export const WARD_BENCH_SLOT = 86;
-export const WARD_BENCH_FIRST_X = 70;
-export const WARD_BENCH_Y = 430;
 export const WARD_BENCH_VIEWPORT_LEFT = 24;
 export const WARD_BENCH_VIEWPORT_RIGHT = OVERLAY_SIZE - 24;
+export const WARD_BENCH_Y = 430;
 export const WARD_BENCH_VIEWPORT_TOP = 390;
 export const WARD_BENCH_VIEWPORT_BOTTOM = 480;
 
 /** Half-width budget so names like "Horizon Sovereign (out)" fit at max scroll. */
 export const WARD_BENCH_SLOT_HALF = 100;
+export const WARD_BENCH_FIRST_X = WARD_BENCH_VIEWPORT_LEFT + WARD_BENCH_SLOT_HALF;
 
 export function wardBenchSlotCenterX(index: number): number {
   return WARD_BENCH_FIRST_X + index * WARD_BENCH_SLOT;

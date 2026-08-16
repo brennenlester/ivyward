@@ -150,6 +150,9 @@ export class WardCrossingScene extends Phaser.Scene {
     });
     this.input.on("pointerup", () => {
       this.dragScrollActive = false;
+      this.time.delayedCall(0, () => {
+        this.pressedBenchButton = null;
+      });
     });
     this.input.on("pointerupoutside", () => {
       this.dragScrollActive = false;

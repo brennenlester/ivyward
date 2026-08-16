@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   WARD_BENCH_SLOT_HALF,
+  WARD_BENCH_VIEWPORT_LEFT,
   WARD_BENCH_VIEWPORT_RIGHT,
   clampWardBenchScroll,
   wardBenchScrollRange,
@@ -12,6 +13,12 @@ describe("ward bench scroll", () => {
     expect(wardBenchScrollRange(1)).toBe(0);
     expect(wardBenchScrollRange(3)).toBe(0);
     expect(clampWardBenchScroll(40, 3)).toBe(0);
+  });
+
+  it("keeps the first slot inside the viewport without scrolling right", () => {
+    expect(wardBenchSlotCenterX(0) - WARD_BENCH_SLOT_HALF).toBeGreaterThanOrEqual(
+      WARD_BENCH_VIEWPORT_LEFT,
+    );
   });
 
   it("lets a 7-slot bench scroll until the last companion is in view", () => {
