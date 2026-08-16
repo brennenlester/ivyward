@@ -1,4 +1,5 @@
 import Phaser from "phaser";
+import { hasWorldTexture } from "./imagineAssets";
 import { TILE_HEIGHT, TILE_WIDTH } from "../isometric";
 import type { ZoneId } from "../world/zoneTypes";
 import { NPC_DISPLAY, fitContainDisplay } from "./displaySizes";
@@ -54,7 +55,7 @@ function generateFloorTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
   for (const variant of ["light", "dark"] as const) {
     const key = `floor-${zoneId}-${variant}`;
     // Keep Imagine-preloaded floors; only synthesize when missing.
-    if (scene.textures.exists(key)) {
+    if (hasWorldTexture(scene, key)) {
       continue;
     }
     const base = variant === "light" ? palette.light : palette.dark;
@@ -156,7 +157,7 @@ function generateFloorTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
 function generateWaterTextures(scene: Phaser.Scene): void {
   for (const variant of ["light", "dark"] as const) {
     const key = `tile-water-${variant}`;
-    if (scene.textures.exists(key)) {
+    if (hasWorldTexture(scene, key)) {
       continue;
     }
     const g = scene.make.graphics({ x: 0, y: 0 });
@@ -176,7 +177,7 @@ function generateWaterTextures(scene: Phaser.Scene): void {
 function generateDockTextures(scene: Phaser.Scene): void {
   for (const variant of ["light", "dark"] as const) {
     const key = `tile-dock-${variant}`;
-    if (scene.textures.exists(key)) {
+    if (hasWorldTexture(scene, key)) {
       continue;
     }
     const g = scene.make.graphics({ x: 0, y: 0 });
@@ -195,7 +196,7 @@ function generateDockTextures(scene: Phaser.Scene): void {
 
 function generateBoatTexture(scene: Phaser.Scene): void {
   const key = "prop-boat";
-  if (scene.textures.exists(key)) {
+  if (hasWorldTexture(scene, key)) {
     return;
   }
   const g = scene.make.graphics({ x: 0, y: 0 });
@@ -218,7 +219,7 @@ function generateBoundaryTexture(
   key: string,
   draw: (g: Phaser.GameObjects.Graphics) => void,
 ): void {
-  if (scene.textures.exists(key)) {
+  if (hasWorldTexture(scene, key)) {
     return;
   }
   const g = scene.make.graphics({ x: 0, y: 0 });
@@ -468,7 +469,7 @@ function generateWallTextures(scene: Phaser.Scene): void {
 }
 
 function generatePropTextures(scene: Phaser.Scene): void {
-  if (!scene.textures.exists("prop-tree")) {
+  if (!hasWorldTexture(scene, "prop-tree")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(0x000000, 0.16);
     g.fillEllipse(25, 47, 28, 6);
@@ -494,7 +495,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-fern")) {
+  if (!hasWorldTexture(scene, "prop-fern")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillTriangle(20, 30, 4, 10, 20, 18);
@@ -510,7 +511,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-shrine-altar")) {
+  if (!hasWorldTexture(scene, "prop-shrine-altar")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillRoundedRect(7, 23, 34, 14, 4);
@@ -530,7 +531,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-standing-stone")) {
+  if (!hasWorldTexture(scene, "prop-standing-stone")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(0x000000, 0.16);
     g.fillEllipse(21, 35, 22, 5);
@@ -547,7 +548,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-pebble-pile")) {
+  if (!hasWorldTexture(scene, "prop-pebble-pile")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillCircle(14, 24, 6);
@@ -568,7 +569,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-hearth")) {
+  if (!hasWorldTexture(scene, "prop-hearth")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillRoundedRect(5, 17, 38, 20, 4);
@@ -586,7 +587,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-cottage")) {
+  if (!hasWorldTexture(scene, "prop-cottage")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillRoundedRect(9, 21, 30, 20, 3);
@@ -607,7 +608,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-gate")) {
+  if (!hasWorldTexture(scene, "prop-gate")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillRoundedRect(7, 7, 8, 34, 2);
@@ -625,7 +626,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-gate-locked")) {
+  if (!hasWorldTexture(scene, "prop-gate-locked")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillRoundedRect(7, 7, 8, 34, 2);
@@ -643,7 +644,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-loom")) {
+  if (!hasWorldTexture(scene, "prop-loom")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(OUTLINE, 1);
     g.fillRoundedRect(6, 6, 34, 36, 3);
@@ -664,7 +665,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("prop-shelf")) {
+  if (!hasWorldTexture(scene, "prop-shelf")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     g.fillStyle(0x000000, 0.16);
     g.fillEllipse(22, 40, 28, 5);
@@ -695,7 +696,7 @@ function generatePropTextures(scene: Phaser.Scene): void {
     g.destroy();
   }
 
-  if (!scene.textures.exists("floor-path")) {
+  if (!hasWorldTexture(scene, "floor-path")) {
     const g = scene.make.graphics({ x: 0, y: 0 });
     drawSquareTile(g, TILE_WIDTH, TILE_HEIGHT, 0xe0d0a8, 0xb09870);
     g.fillStyle(0xf0e4c0, 0.55);
@@ -712,7 +713,7 @@ export const NPC_TEXTURE_KEY = "npc-villager";
  * robe and hood are kept pale enough to take one.
  */
 function generateNpcTexture(scene: Phaser.Scene): void {
-  if (scene.textures.exists(NPC_TEXTURE_KEY)) {
+  if (hasWorldTexture(scene, NPC_TEXTURE_KEY)) {
     return;
   }
   const g = scene.make.graphics({ x: 0, y: 0 });

@@ -44,7 +44,7 @@ import {
   setGodSailEncounterClaimed,
   worldState,
 } from "./worldState";
-import { playerParty } from "../creatures/party";
+import { getNextInstanceId, playerParty } from "../creatures/party";
 import {
   registerStagedCraftingSource,
   resetStagedCraftingSourcesForTest,
@@ -638,5 +638,193 @@ describe("exportWorldSnapshot staged crafting", () => {
     const exported = exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 });
     expect(exported.materials.wood).toBe(3);
     stop();
+  });
+});
+
+describe("party member validation hardening (#192)", () => {
+  beforeEach(() => {
+    resetAchievementsForTest();
+    setInventoryFromSnapshot({}, {});
+    setVisitorMode(false);
+    resetNpcStateForTest();
+    resetMinigameProgressForTest();
+    setGodSailEncounterClaimed(false, false);
+    setGodLandEncounterClaimed(false, false);
+    setGodFusionCompleted(false, false);
+    setEclipseFusionCompleted(false, false);
+  });
+
+  it("accepts a legacy member without speciesId", () => {
+    const member = partyMember();
+    delete (member as Partial<CreatureInstance>).speciesId;
+    expect(isValidWorldSnapshot(validSnapshot({ party: [member] }))).toBe(true);
+  });
+
+  it("rejects a speciesId that names no real creature", () => {
+    const member = partyMember({ speciesId: "not-a-creature" });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [member] }))).toBe(
+      false,
+    );
+  });
+
+  it("rejects malformed secondaryMove fields", () => {
+    const badPower = partyMember({
+      secondaryMove: {
+        id: "m",
+        name: "M",
+        power: "x" as unknown as number,
+        type: "ember",
+        accuracy: 90,
+      },
+    });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [badPower] }))).toBe(
+      false,
+    );
+    const badType = partyMember({
+      secondaryMove: {
+        id: "m",
+        name: "M",
+        power: 5,
+        type: "lava" as unknown as CreatureInstance["secondaryElement"] &
+          string,
+        accuracy: 90,
+      },
+    });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [badType] }))).toBe(
+      false,
+    );
+  });
+
+  it("accepts a well-formed secondaryMove and secondaryElement", () => {
+    const member = partyMember({
+      secondaryElement: "ember",
+      secondaryMove: {
+        id: "cinder-lash",
+        name: "Cinder Lash",
+        power: 7,
+        type: "ember",
+        accuracy: 85,
+      },
+      appliedEffects: ["mossling:ember-charm"],
+    });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [member] }))).toBe(true);
+  });
+
+  it("rejects malformed secondaryElement and appliedEffects", () => {
+    const badElement = partyMember({
+      secondaryElement: "lava" as CreatureInstance["secondaryElement"],
+    });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [badElement] }))).toBe(
+      false,
+    );
+    const badEffects = partyMember({
+      appliedEffects: [42] as unknown as string[],
+    });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [badEffects] }))).toBe(
+      false,
+    );
+  });
+
+  it("backfills speciesId from definitionId on apply", () => {
+    const member = partyMember({ definitionId: "mossling" });
+    delete (member as Partial<CreatureInstance>).speciesId;
+    applyWorldSnapshot(validSnapshot({ party: [member] }));
+    expect(playerParty.creatures[0]?.speciesId).toBe("mossling");
+  });
+
+  it("keeps an evolved member's original speciesId on apply", () => {
+    const member = partyMember({
+      definitionId: "bramblewarden",
+      speciesId: "mossling",
+    });
+    applyWorldSnapshot(validSnapshot({ party: [member] }));
+    expect(playerParty.creatures[0]?.speciesId).toBe("mossling");
+  });
+
+  it("keeps a claimed sovereign claimed when the save lacks speciesId", () => {
+    const sovereign = partyMember({
+      instanceId: "c-9",
+      definitionId: "tide-sovereign",
+    });
+    delete (sovereign as Partial<CreatureInstance>).speciesId;
+    applyWorldSnapshot(
+      validSnapshot({
+        party: [sovereign],
+        godSailEncounterClaimed: true,
+        nextInstanceId: 10,
+      }),
+    );
+    expect(isGodSailEncounterClaimed()).toBe(true);
+  });
+
+  it("never mints an instance id that collides with a loaded c-<n> id", () => {
+    const member = partyMember({ instanceId: "c-5" });
+    applyWorldSnapshot(
+      validSnapshot({ party: [member], nextInstanceId: 2 }),
+    );
+    expect(getNextInstanceId()).toBe(6);
+  });
+
+  it("ignores non-pattern instance ids for the mint floor", () => {
+    const member = partyMember({ instanceId: "legacy-id" });
+    applyWorldSnapshot(
+      validSnapshot({ party: [member], nextInstanceId: 3 }),
+    );
+    expect(getNextInstanceId()).toBe(3);
+  });
+});
+
+describe("mint-floor integrity (#192 gate finding)", () => {
+  it("rejects a non-integer nextInstanceId", () => {
+    expect(isValidWorldSnapshot(validSnapshot({ nextInstanceId: 2.5 }))).toBe(
+      false,
+    );
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ nextInstanceId: 9007199254740993 }),
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects beyond-safe-integer id suffixes at validation", () => {
+    const member = partyMember({ instanceId: "c-9007199254740992" });
+    expect(
+      isValidWorldSnapshot(validSnapshot({ party: [member] })),
+    ).toBe(false);
+  });
+});
+
+describe("mint counter ceiling (#192 round-2 finding)", () => {
+  it("rejects nextInstanceId above the counter ceiling", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ nextInstanceId: 1_000_000_001 })),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ nextInstanceId: 9007199254740991 }),
+      ),
+    ).toBe(false);
+  });
+
+  it("rejects mint-pattern instance ids above the counter ceiling", () => {
+    const boundary = partyMember({ instanceId: "c-9007199254740991" });
+    expect(
+      isValidWorldSnapshot(validSnapshot({ party: [boundary] })),
+    ).toBe(false);
+    const overCap = partyMember({ instanceId: "c-1000000001" });
+    expect(isValidWorldSnapshot(validSnapshot({ party: [overCap] }))).toBe(
+      false,
+    );
+  });
+
+  it("accepts and advances past a large but legitimate suffix", () => {
+    const member = partyMember({ instanceId: "c-999999999" });
+    const snapshot = validSnapshot({
+      party: [member],
+      nextInstanceId: 5,
+    });
+    expect(isValidWorldSnapshot(snapshot)).toBe(true);
+    applyWorldSnapshot(snapshot);
+    expect(getNextInstanceId()).toBe(1_000_000_000);
   });
 });
