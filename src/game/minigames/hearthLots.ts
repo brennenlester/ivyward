@@ -91,12 +91,21 @@ export function lotsNetWorth(state: LotsState, who: LotsPlayerId): number {
   return netWorth(who === "player" ? state.player : state.odd);
 }
 
+export function settleLotsCap(state: LotsState): LotsState {
+  return finishIfCapped({
+    ...state,
+    round: HEARTH_LOTS_ROUNDS,
+    whoseTurn: "player",
+  });
+}
+
 function finishIfCapped(state: LotsState): LotsState {
   if (state.round < HEARTH_LOTS_ROUNDS || state.whoseTurn !== "player") {
     return state;
   }
   const playerWorth = netWorth(state.player);
   const oddWorth = netWorth(state.odd);
+  // ponytail: strict highest wins; a tie pays nothing (same as a loss).
   if (playerWorth > oddWorth) {
     return {
       ...state,
@@ -107,7 +116,10 @@ function finishIfCapped(state: LotsState): LotsState {
   return {
     ...state,
     status: "lost",
-    log: `Twelve rounds. Odd ${oddWorth} to you ${playerWorth}.`,
+    log:
+      playerWorth === oddWorth
+        ? `Twelve rounds. Tied at ${playerWorth}.`
+        : `Twelve rounds. Odd ${oddWorth} to you ${playerWorth}.`,
   };
 }
 

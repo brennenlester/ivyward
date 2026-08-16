@@ -36,6 +36,7 @@ import {
   lotsNetWorth,
   playOddIfNeeded,
   rollLots,
+  settleLotsCap,
   skipPendingLot,
 } from "./hearthLots";
 
@@ -218,6 +219,17 @@ describe("loom pattern", () => {
 });
 
 describe("hearth lots", () => {
+  it("treats a 12-round net-worth tie as a loss with no payout", () => {
+    const state = settleLotsCap({
+      ...createLotsState(),
+      player: { position: 0, marks: 8, owned: [] },
+      odd: { position: 0, marks: 8, owned: [] },
+    });
+    expect(state.status).toBe("lost");
+    expect(state.log).toContain("Tied");
+    expect(getItemCount("brook-tonic")).toBe(0);
+  });
+
   it("lets Odd buy when able and caps the match at 12 rounds", () => {
     let state = createLotsState();
     for (let i = 0; i < 12; i += 1) {

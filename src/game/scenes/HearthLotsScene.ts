@@ -68,6 +68,14 @@ export class HearthLotsScene extends Phaser.Scene {
     this.buyButton.on("pointerdown", () => this.claim());
     this.skipButton = addMinigameButton(this, 350, 580, "Pass");
     this.skipButton.on("pointerdown", () => this.pass());
+    this.input.keyboard?.on("keydown-E", () => {
+      if (this.state.pendingBuy !== null) {
+        this.claim();
+      } else {
+        this.roll();
+      }
+    });
+    this.input.keyboard?.on("keydown-SPACE", () => this.roll());
     this.refresh();
   }
 
