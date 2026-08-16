@@ -34,6 +34,7 @@ export class HearthLotsScene extends Phaser.Scene {
 
   create(): void {
     bootMinigameOverlay(this);
+    this.closing = { current: false };
     this.state = createLotsState();
     this.add
       .text(24, 22, "Hearth Lots", {

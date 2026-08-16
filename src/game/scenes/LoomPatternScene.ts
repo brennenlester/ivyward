@@ -32,6 +32,7 @@ export class LoomPatternScene extends Phaser.Scene {
 
   create(): void {
     bootMinigameOverlay(this);
+    this.closing = { current: false };
     this.state = createLoomState(generateLoomPatterns());
     this.add
       .text(24, 22, "Loom Pattern", {

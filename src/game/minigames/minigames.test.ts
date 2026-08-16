@@ -97,6 +97,18 @@ describe("minigame launch", () => {
     setPartyFromSnapshot([partyMember({ currentHp: 0 })], 2);
     expect(canLaunchMinigame("ward-crossing").ok).toBe(false);
   });
+
+  it("does not launch Ward the Crossing on a living reserve only", () => {
+    setPartyFromSnapshot(
+      [
+        partyMember({ instanceId: "active", currentHp: 0 }),
+        partyMember({ instanceId: "reserve", currentHp: 28 }),
+      ],
+      3,
+      ["active"],
+    );
+    expect(canLaunchMinigame("ward-crossing").ok).toBe(false);
+  });
 });
 
 describe("minigame first-win", () => {

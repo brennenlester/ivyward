@@ -2,9 +2,9 @@ import {
   getCreatureDefinition,
 } from "../creatures/catalog";
 import {
+  getActiveCreatures,
   getEffectiveAttack,
   getEffectiveMaxHp,
-  playerParty,
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 
@@ -79,7 +79,7 @@ export function createWardState(): WardState {
 }
 
 export function livingPartyForWard(): CreatureInstance[] {
-  return playerParty.creatures.filter((creature) => creature.currentHp > 0);
+  return getActiveCreatures().filter((creature) => creature.currentHp > 0);
 }
 
 export function isCellOpen(state: WardState, lane: number, column: number): boolean {
@@ -107,8 +107,8 @@ export function deployDefender(
   if (state.defenders.some((unit) => unit.instanceId === instanceId)) {
     return state;
   }
-  const creature = playerParty.creatures.find((c) => c.instanceId === instanceId);
-  if (!creature || creature.currentHp <= 0) {
+  const creature = livingPartyForWard().find((c) => c.instanceId === instanceId);
+  if (!creature) {
     return state;
   }
   const def = getCreatureDefinition(creature.definitionId);

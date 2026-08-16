@@ -1,6 +1,6 @@
 import { addItem, addMaterial } from "../inventory/playerInventory";
 import { getItemName, getMaterialName } from "../inventory/materials";
-import { playerParty } from "../creatures/party";
+import { hasLivingPartyMembers } from "../creatures/party";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { isVisitorMode } from "../world/worldSession";
 import { formatGift } from "../world/npcState";
@@ -31,7 +31,7 @@ export function setClaimedMinigameWins(ids: string[]): void {
 }
 
 export function hasLivingMinigameParty(): boolean {
-  return playerParty.creatures.some((creature) => creature.currentHp > 0);
+  return hasLivingPartyMembers();
 }
 
 export function canLaunchMinigame(id: MinigameId): {

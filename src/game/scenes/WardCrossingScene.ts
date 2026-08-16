@@ -42,6 +42,7 @@ export class WardCrossingScene extends Phaser.Scene {
   create(): void {
     bootMinigameOverlay(this);
     ensureCreatureTextures(this);
+    this.closing = { current: false };
     this.state = createWardState();
     this.selectedId = null;
 

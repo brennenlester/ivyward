@@ -69,7 +69,7 @@ Stand on the house's signature prop and press **E** for a minigame. Talking stil
 | Weaver's Cottage | Loom | **Loom Pattern** — repeat three thread sequences | Moss Fiber ×2 |
 | Hearthkeep Cottage | Hearth | **Hearth Lots** — 12-round property game vs Odd | Brook Tonic ×1 |
 
-Ward the Crossing needs at least one living companion. Overworld HP does not change. Hearth Lots uses play money; inventory only changes on that first-win tonic.
+Ward the Crossing needs at least one living **active** companion. Overworld HP does not change. Hearth Lots uses play money; inventory only changes on that first-win tonic.
 
 ### Encounters and crafting
 
