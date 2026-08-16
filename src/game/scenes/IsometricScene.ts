@@ -1224,51 +1224,39 @@ export class IsometricScene extends Phaser.Scene {
       this.drawWallsInColumns(zone, 0, zone.width);
       return;
     }
-    const facade = this.textures.get(key).get();
-    const facadeScaleX = BOUNDARY_DISPLAY.width / Math.max(1, facade.width);
-    const facadeScaleY = BOUNDARY_DISPLAY.height / Math.max(1, facade.height);
     const sideKey = ensureCottageSideTexture(this, key);
-    const side = this.textures.get(sideKey).get();
-    const sideScaleX = COTTAGE_SIDE_WALL_WIDTH / Math.max(1, side.width);
-    const sideScaleY = TILE_HEIGHT / Math.max(1, side.height);
+    const northFoot = this.toScreen(1, 0).y + TILE_HEIGHT / 2 - 2;
+    const southFoot =
+      this.toScreen(1, zone.height - 1).y + TILE_HEIGHT / 2 - 2;
 
     for (const run of cottageWallRuns(zone)) {
       if (run.axis === "h") {
         const first = this.toScreen(run.x0, run.y0);
         const last = this.toScreen(run.x1, run.y1);
-        const left = first.x - TILE_WIDTH / 2;
-        const width = last.x - first.x + TILE_WIDTH;
+        const left = first.x - TILE_WIDTH / 2 - 1;
+        const width = last.x - first.x + TILE_WIDTH + 2;
         const footY = first.y + TILE_HEIGHT / 2 - 2;
-        const strip = this.add
-          .tileSprite(left, footY, width, BOUNDARY_DISPLAY.height, key)
-          .setOrigin(0, 1);
-        strip.tileScaleX = facadeScaleX;
-        strip.tileScaleY = facadeScaleY;
-        strip.setDepth(depthForGridCell(run.x0, run.y0, PROP_LAYER));
+        this.add
+          .image(left, footY, key)
+          .setOrigin(0, 1)
+          .setDisplaySize(width, BOUNDARY_DISPLAY.height)
+          .setDepth(depthForGridCell(run.x0, run.y0, PROP_LAYER));
         continue;
       }
 
       const top = this.toScreen(run.x0, run.y0);
-      const bot = this.toScreen(run.x0, run.y1);
-      const footY = bot.y + TILE_HEIGHT / 2 - 2;
-      const topY = top.y - TILE_HEIGHT / 2;
-      const height = Math.max(TILE_HEIGHT, footY - topY);
       const westSide = run.x0 === 0;
       const innerX = westSide
         ? top.x + TILE_WIDTH / 2
         : top.x - TILE_WIDTH / 2;
-      const strip = this.add
-        .tileSprite(
-          innerX,
-          footY,
+      this.add
+        .image(innerX, southFoot + 1, sideKey)
+        .setOrigin(westSide ? 1 : 0, 1)
+        .setDisplaySize(
           COTTAGE_SIDE_WALL_WIDTH,
-          height,
-          sideKey,
+          southFoot - northFoot + 2,
         )
-        .setOrigin(westSide ? 1 : 0, 1);
-      strip.tileScaleX = sideScaleX;
-      strip.tileScaleY = sideScaleY;
-      strip.setDepth(depthForGridCell(run.x0, run.y1, PROP_LAYER));
+        .setDepth(depthForGridCell(run.x0, run.y1, PROP_LAYER));
     }
   }
 

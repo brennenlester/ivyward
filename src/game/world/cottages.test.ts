@@ -48,15 +48,15 @@ describe("cottage interiors", () => {
     const runs = cottageWallRuns(ZONES["warden-cottage"]);
     expect(runs).toContainEqual({
       axis: "h",
-      x0: 0,
+      x0: 1,
       y0: 0,
-      x1: 6,
+      x1: 5,
       y1: 0,
     });
     expect(runs.filter((run) => run.axis === "h" && run.y0 === 0)).toHaveLength(1);
     expect(runs.filter((run) => run.axis === "h" && run.y0 === 6)).toEqual([
-      { axis: "h", x0: 0, y0: 6, x1: 2, y1: 6 },
-      { axis: "h", x0: 4, y0: 6, x1: 6, y1: 6 },
+      { axis: "h", x0: 1, y0: 6, x1: 2, y1: 6 },
+      { axis: "h", x0: 4, y0: 6, x1: 5, y1: 6 },
     ]);
     expect(runs.filter((run) => run.axis === "v")).toEqual([
       { axis: "v", x0: 0, y0: 1, x1: 0, y1: 5 },
