@@ -15,6 +15,17 @@ import {
   stepWard,
 } from "../minigames/wardCrossing";
 import {
+  WARD_BENCH_VIEWPORT_BOTTOM,
+  WARD_BENCH_VIEWPORT_LEFT,
+  WARD_BENCH_VIEWPORT_RIGHT,
+  WARD_BENCH_VIEWPORT_TOP,
+  WARD_BENCH_Y,
+  clampWardBenchScroll,
+  isWardBenchPointer,
+  wardBenchScrollRange,
+  wardBenchSlotCenterX,
+} from "../minigames/wardBenchScroll";
+import {
   MINIGAME_TEXT,
   addMinigameButton,
   bindMinigameQuit,
@@ -32,10 +43,20 @@ export class WardCrossingScene extends Phaser.Scene {
   private selectedId: string | null = null;
   private statusText!: Phaser.GameObjects.Text;
   private board = new Map<string, Phaser.GameObjects.GameObject[]>();
-  private bench: Phaser.GameObjects.GameObject[] = [];
+  private benchHint?: Phaser.GameObjects.Text;
+  private benchStrip!: Phaser.GameObjects.Container;
+  private benchButtons: Phaser.GameObjects.Text[] = [];
+  private benchCount = 0;
+  private benchScroll = 0;
+  private dragScrollActive = false;
+  private dragDidScroll = false;
+  private dragScrollStartX = 0;
+  private dragScrollOrigin = 0;
+  private pressedBenchButton: Phaser.GameObjects.Text | null = null;
   private closing = { current: false };
   private ticker?: Phaser.Time.TimerEvent;
   private startButton!: Phaser.GameObjects.Text;
+  private static readonly DRAG_SCROLL_THRESHOLD = 8;
 
   constructor() {
     super({ key: "WardCrossingScene" });
@@ -69,8 +90,76 @@ export class WardCrossingScene extends Phaser.Scene {
     bindMinigameQuit(this, () => this.quit());
     this.startButton = addMinigameButton(this, DESIGN_SIZE / 2, 580, "Start");
     this.startButton.on("pointerdown", () => this.begin());
+    this.setupBenchScroll();
     this.drawGrid();
     this.drawBench();
+  }
+
+  private pointerToDesign(pointer: Phaser.Input.Pointer): { x: number; y: number } {
+    return this.cameras.main.getWorldPoint(pointer.x, pointer.y);
+  }
+
+  private setupBenchScroll(): void {
+    const maskGfx = this.make.graphics({ x: 0, y: 0 });
+    maskGfx.fillStyle(0xffffff, 1);
+    maskGfx.fillRect(
+      WARD_BENCH_VIEWPORT_LEFT,
+      WARD_BENCH_VIEWPORT_TOP,
+      WARD_BENCH_VIEWPORT_RIGHT - WARD_BENCH_VIEWPORT_LEFT,
+      WARD_BENCH_VIEWPORT_BOTTOM - WARD_BENCH_VIEWPORT_TOP,
+    );
+    this.benchStrip = this.add.container(0, 0);
+    this.benchStrip.setMask(maskGfx.createGeometryMask());
+
+    this.input.on(
+      "wheel",
+      (
+        pointer: Phaser.Input.Pointer,
+        _objects: Phaser.GameObjects.GameObject[],
+        deltaX: number,
+        deltaY: number,
+      ) => {
+        const { x, y } = this.pointerToDesign(pointer);
+        if (!isWardBenchPointer(x, y) || wardBenchScrollRange(this.benchCount) <= 0) {
+          return;
+        }
+        const delta = Math.abs(deltaX) > Math.abs(deltaY) ? deltaX : deltaY;
+        this.setBenchScroll(this.benchScroll + delta * 0.35);
+      },
+    );
+    this.input.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+      const { x, y } = this.pointerToDesign(pointer);
+      if (!isWardBenchPointer(x, y) || wardBenchScrollRange(this.benchCount) <= 0) {
+        return;
+      }
+      this.dragScrollActive = true;
+      this.dragDidScroll = false;
+      this.dragScrollStartX = x;
+      this.dragScrollOrigin = this.benchScroll;
+    });
+    this.input.on("pointermove", (pointer: Phaser.Input.Pointer) => {
+      if (!this.dragScrollActive || !pointer.isDown) {
+        return;
+      }
+      const { x } = this.pointerToDesign(pointer);
+      const delta = this.dragScrollStartX - x;
+      if (Math.abs(delta) >= WardCrossingScene.DRAG_SCROLL_THRESHOLD) {
+        this.dragDidScroll = true;
+      }
+      this.setBenchScroll(this.dragScrollOrigin + delta);
+    });
+    this.input.on("pointerup", () => {
+      this.dragScrollActive = false;
+    });
+    this.input.on("pointerupoutside", () => {
+      this.dragScrollActive = false;
+      this.pressedBenchButton = null;
+    });
+  }
+
+  private setBenchScroll(scroll: number): void {
+    this.benchScroll = clampWardBenchScroll(scroll, this.benchCount);
+    this.benchStrip.setX(-this.benchScroll);
   }
 
   private begin(): void {
@@ -157,31 +246,42 @@ export class WardCrossingScene extends Phaser.Scene {
   }
 
   private drawBench(): void {
-    for (const object of this.bench) {
-      object.destroy();
+    this.benchHint?.destroy();
+    for (const button of this.benchButtons) {
+      button.destroy();
     }
-    this.bench = [];
-    const hint = this.add
-      .text(24, 340, "Companions — tap one, then a left-side tile", {
-        ...MINIGAME_TEXT,
-        color: "#e8d8c0",
-        fontSize: "14px",
-      })
-      .setOrigin(0, 0);
-    this.bench.push(hint);
+    this.benchButtons = [];
+    this.pressedBenchButton = null;
 
-    livingPartyForWard().forEach((creature, index) => {
+    const party = livingPartyForWard();
+    this.benchCount = party.length;
+    const canScroll = wardBenchScrollRange(this.benchCount) > 0;
+    this.benchHint = this.add
+      .text(
+        24,
+        340,
+        canScroll
+          ? "Companions — tap one, then a left-side tile. Scroll for more."
+          : "Companions — tap one, then a left-side tile",
+        {
+          ...MINIGAME_TEXT,
+          color: "#e8d8c0",
+          fontSize: "14px",
+        },
+      )
+      .setOrigin(0, 0);
+
+    party.forEach((creature, index) => {
       const placed = this.state.defenders.some(
         (unit) => unit.instanceId === creature.instanceId,
       );
       const def = getCreatureDefinition(creature.definitionId);
-      const x = 70 + index * 86;
-      const y = 430;
+      const x = wardBenchSlotCenterX(index);
       const selected = this.selectedId === creature.instanceId;
       const button = addMinigameButton(
         this,
         x,
-        y,
+        WARD_BENCH_Y,
         placed ? `${def.name} (out)` : def.name,
       );
       if (placed) {
@@ -190,16 +290,35 @@ export class WardCrossingScene extends Phaser.Scene {
       if (selected) {
         button.setBackgroundColor("#ffe8a8");
       }
-      button.on("pointerdown", () => {
-        if (placed || this.closing.current) {
-          return;
-        }
-        this.selectedId = creature.instanceId;
-        this.statusText.setText(`Place ${def.name}.`);
-        this.drawBench();
-      });
-      this.bench.push(button);
+      if (!placed) {
+        button.on("pointerdown", (pointer: Phaser.Input.Pointer) => {
+          const { x: px, y: py } = this.pointerToDesign(pointer);
+          if (!isWardBenchPointer(px, py) || this.closing.current) {
+            return;
+          }
+          this.pressedBenchButton = button;
+        });
+        button.on("pointerup", (pointer: Phaser.Input.Pointer) => {
+          const wasPressed = this.pressedBenchButton === button;
+          this.pressedBenchButton = null;
+          const { x: px, y: py } = this.pointerToDesign(pointer);
+          if (
+            !wasPressed ||
+            this.dragDidScroll ||
+            !isWardBenchPointer(px, py) ||
+            this.closing.current
+          ) {
+            return;
+          }
+          this.selectedId = creature.instanceId;
+          this.statusText.setText(`Place ${def.name}.`);
+          this.drawBench();
+        });
+      }
+      this.benchStrip.add(button);
+      this.benchButtons.push(button);
     });
+    this.setBenchScroll(this.benchScroll);
   }
 
   private tryDeploy(lane: number, column: number): void {
