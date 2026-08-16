@@ -107,6 +107,7 @@ import {
 } from "../world/zones";
 import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
+import { cottageWallRuns } from "../world/cottageWalls";
 import {
   getZoneProps,
   propTextureKey,
@@ -1209,7 +1210,47 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private drawWalls(zone: ZoneDefinition): void {
+    if (zone.interior) {
+      this.drawCottageWalls(zone);
+      return;
+    }
     this.drawWallsInColumns(zone, 0, zone.width);
+  }
+
+  private drawCottageWalls(zone: ZoneDefinition): void {
+    const key = getBoundaryTextureKey(zone.id);
+    if (!this.textures.exists(key)) {
+      this.drawWallsInColumns(zone, 0, zone.width);
+      return;
+    }
+    const frame = this.textures.get(key).get();
+    const tileScaleX = BOUNDARY_DISPLAY.width / Math.max(1, frame.width);
+    const tileScaleY = BOUNDARY_DISPLAY.height / Math.max(1, frame.height);
+
+    for (const run of cottageWallRuns(zone)) {
+      if (run.axis === "h") {
+        const first = this.toScreen(run.x0, run.y0);
+        const last = this.toScreen(run.x1, run.y1);
+        const left = first.x - TILE_WIDTH / 2;
+        const width = last.x - first.x + TILE_WIDTH;
+        const footY = first.y + TILE_HEIGHT / 2 - 2;
+        const strip = this.add
+          .tileSprite(left, footY, width, BOUNDARY_DISPLAY.height, key)
+          .setOrigin(0, 1);
+        strip.tileScaleX = tileScaleX;
+        strip.tileScaleY = tileScaleY;
+        strip.setDepth(depthForGridCell(run.x0, run.y0, PROP_LAYER));
+        continue;
+      }
+      for (let y = run.y0; y <= run.y1; y += 1) {
+        const screen = this.toScreen(run.x0, y);
+        const block = this.add
+          .image(screen.x, screen.y + TILE_HEIGHT / 2 - 2, key)
+          .setOrigin(0.5, 1);
+        fitDisplay(block, BOUNDARY_DISPLAY);
+        block.setDepth(depthForGridCell(run.x0, y, PROP_LAYER));
+      }
+    }
   }
 
   private drawWallsInColumns(

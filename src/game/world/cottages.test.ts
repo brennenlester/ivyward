@@ -4,6 +4,7 @@ import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import { getZoneNpcs } from "./npcs";
 import { ZONE_PROPS } from "./zoneProps";
+import { cottageWallRuns } from "./cottageWalls";
 
 const INTERIOR_IDS = (Object.keys(ZONES) as ZoneId[]).filter(
   (id) => ZONES[id].interior,
@@ -41,6 +42,23 @@ describe("cottage interiors", () => {
     );
     expect(keys).toHaveLength(3);
     expect(new Set(keys).size).toBe(3);
+  });
+
+  it("joins the north wall into one run instead of five separate panels", () => {
+    const runs = cottageWallRuns(ZONES["warden-cottage"]);
+    expect(runs).toContainEqual({
+      axis: "h",
+      x0: 1,
+      y0: 0,
+      x1: 5,
+      y1: 0,
+    });
+    expect(runs.filter((run) => run.axis === "h" && run.y0 === 0)).toHaveLength(1);
+    const south = runs.filter((run) => run.axis === "h" && run.y0 === 6);
+    expect(south).toEqual([
+      { axis: "h", x0: 1, y0: 6, x1: 2, y1: 6 },
+      { axis: "h", x0: 4, y0: 6, x1: 5, y1: 6 },
+    ]);
   });
 });
 
