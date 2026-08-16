@@ -202,7 +202,7 @@ export class EncounterScene extends Phaser.Scene {
         this.showResult("The Tide Sovereign joined you, fainted. Tide Cleaver obtained!");
       } else if (this.creatureId === CAIRN_SOVEREIGN_ID) {
         resolveCairnSovereignOutcome("befriend");
-        this.showResult("The Cairn Sovereign joined you, fainted. Cairn Maul obtained!");
+        this.showResult("The Stone Sovereign joined you, fainted. Cairn Maul obtained!");
       } else {
         addToParty(this.creatureId);
         this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);

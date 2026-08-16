@@ -11,7 +11,9 @@ import {
 } from "../inventory/playerInventory";
 import {
   isGodLandEncounterClaimed,
+  setCairnSovereignObtained,
   setGodLandEncounterClaimed,
+  setHorizonFusionCount,
 } from "../world/worldState";
 import { TileType } from "../world/zoneTypes";
 import {
@@ -47,6 +49,8 @@ describe("god land encounter", () => {
     setPartyFromSnapshot([], 1);
     setInventoryFromSnapshot({}, {});
     setGodLandEncounterClaimed(false, false);
+    setCairnSovereignObtained(0, false);
+    setHorizonFusionCount(0, false);
   });
 
   it("uses a deterministic 1/100 roll boundary without Monte Carlo", () => {
@@ -105,6 +109,7 @@ describe("god land encounter", () => {
         .flat()
         .some(({ id }) => id === CAIRN_SOVEREIGN_ID),
     ).toBe(false);
+    expect(getCreatureDefinition(CAIRN_SOVEREIGN_ID).name).toBe("Stone Sovereign");
     expect(getCreatureDefinition(CAIRN_SOVEREIGN_ID).excludeFromCodex).toBe(
       true,
     );
@@ -234,11 +239,27 @@ describe("god land encounter", () => {
     });
 
     expect(claimCairnSovereign()).toEqual({
+      creatureAdded: true,
+      weaponGranted: false,
+    });
+    expect(playerParty.creatures).toHaveLength(2);
+    expect(claimCairnSovereign()).toEqual({
       creatureAdded: false,
       weaponGranted: false,
     });
-    expect(playerParty.creatures).toHaveLength(1);
+    expect(playerParty.creatures).toHaveLength(2);
     expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
+  });
+
+  it("does not add a third Stone Sovereign after the two-copy cap", () => {
+    claimCairnSovereign();
+    claimCairnSovereign();
+    expect(playerParty.creatures).toHaveLength(2);
+    expect(claimCairnSovereign()).toEqual({
+      creatureAdded: false,
+      weaponGranted: false,
+    });
+    expect(playerParty.creatures).toHaveLength(2);
   });
 
   it("claims a befriended god with the same fainted one-time outcome", () => {

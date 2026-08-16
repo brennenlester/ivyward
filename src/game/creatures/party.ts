@@ -125,7 +125,13 @@ export function addFusedCreature(
 }
 
 export function hasCreature(definitionId: string): boolean {
-  return playerParty.creatures.some((c) => c.speciesId === definitionId);
+  return countCreatures(definitionId) > 0;
+}
+
+export function countCreatures(definitionId: string): number {
+  return playerParty.creatures.filter(
+    (c) => c.definitionId === definitionId || c.speciesId === definitionId,
+  ).length;
 }
 
 export function getCreatureInstance(

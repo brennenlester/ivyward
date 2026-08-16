@@ -830,7 +830,7 @@ export class BattleScene extends Phaser.Scene {
     } else if (playerWon && this.wildCreatureId === CAIRN_SOVEREIGN_ID) {
       resolveCairnSovereignOutcome("spar-win");
       this.log(
-        "The defeated Cairn Sovereign joined you, fainted. Cairn Maul obtained!",
+        "The defeated Stone Sovereign joined you, fainted. Cairn Maul obtained!",
       );
     } else if (playerWon) {
       const reward = grantSparRewards(

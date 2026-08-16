@@ -11,8 +11,12 @@ export const worldState = {
   discoveredCreatures: [] as string[],
   /** Tide Sovereign was obtained; natural god-sail rolls stop until unclaimed. */
   godSailEncounterClaimed: false,
-  /** Cairn Sovereign was obtained; natural god-land rolls stop until unclaimed. */
+  /** Lifetime Tide Sovereign claims this save (0–2). */
+  tideSovereignObtained: 0,
+  /** Stone Sovereign was obtained; natural god-land rolls stop until unclaimed. */
   godLandEncounterClaimed: false,
+  /** Lifetime Stone Sovereign claims this save (0–2). */
+  cairnSovereignObtained: 0,
   /** At least one Horizon Sovereign has been fused. Legacy saves used this as once-only. */
   godFusionCompleted: false,
   /** Successful Tide+Cairn → Horizon fusions this save (0–2). */
@@ -62,6 +66,52 @@ export function setGodLandEncounterClaimed(
 }
 
 export const MAX_HORIZON_FUSIONS = 2;
+export const MAX_SOVEREIGN_COPIES = 2;
+
+function clampSovereignObtained(count: number): number {
+  return Math.min(MAX_SOVEREIGN_COPIES, Math.max(0, Math.floor(count)));
+}
+
+export function getTideSovereignObtained(): number {
+  return worldState.tideSovereignObtained;
+}
+
+export function setTideSovereignObtained(count: number, notify = true): void {
+  worldState.tideSovereignObtained = clampSovereignObtained(count);
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function recordTideSovereignObtained(notify = true): void {
+  setTideSovereignObtained(worldState.tideSovereignObtained + 1, notify);
+}
+
+export function getCairnSovereignObtained(): number {
+  return worldState.cairnSovereignObtained;
+}
+
+export function setCairnSovereignObtained(count: number, notify = true): void {
+  worldState.cairnSovereignObtained = clampSovereignObtained(count);
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function recordCairnSovereignObtained(notify = true): void {
+  setCairnSovereignObtained(worldState.cairnSovereignObtained + 1, notify);
+}
+
+export function canObtainAnotherParentSovereign(
+  obtained: number,
+  copies: number,
+): boolean {
+  return (
+    canHuntParentSovereigns() &&
+    obtained < MAX_SOVEREIGN_COPIES &&
+    copies < MAX_SOVEREIGN_COPIES
+  );
+}
 
 export function isGodFusionCompleted(): boolean {
   return worldState.godFusionCompleted;

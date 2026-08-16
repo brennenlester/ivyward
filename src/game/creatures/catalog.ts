@@ -465,7 +465,7 @@ export const CREATURES: CreatureDefinition[] = [
   },
   {
     id: "cairn-sovereign",
-    name: "Cairn Sovereign",
+    name: "Stone Sovereign",
     folkloreType: "earth",
     maxHp: 108,
     attack: 14,
