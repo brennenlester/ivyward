@@ -34,10 +34,12 @@ import {
   stepWard,
   WARD_SPAWN_COLUMN,
 } from "./wardCrossing";
-import { createLoomState, tapLoomCell } from "./loomPattern";
+import { createLoomState, loomInputWasMiss, tapLoomCell } from "./loomPattern";
 import {
+  HEARTH_LOTS_SPACES,
   buyPendingLot,
   createLotsState,
+  hearthLotsBoardCell,
   lotsNetWorth,
   playOddIfNeeded,
   rollLots,
@@ -260,6 +262,24 @@ describe("loom pattern", () => {
     }
     expect(state.status).toBe("won");
   });
+
+  it("does not treat completing a pattern as a miss", () => {
+    const patterns = [
+      [0, 1, 2],
+      [3, 4, 5, 6],
+      [0, 8, 1, 7, 2],
+    ];
+    let state = createLoomState(patterns);
+    state = tapLoomCell(state, 0);
+    expect(loomInputWasMiss(0, 0, state)).toBe(false);
+    const afterWrong = tapLoomCell(state, 8);
+    expect(loomInputWasMiss(0, 1, afterWrong)).toBe(true);
+    state = tapLoomCell(state, 1);
+    const afterComplete = tapLoomCell(state, 2);
+    expect(afterComplete.round).toBe(1);
+    expect(afterComplete.input).toEqual([]);
+    expect(loomInputWasMiss(0, 2, afterComplete)).toBe(false);
+  });
 });
 
 describe("hearth lots", () => {
@@ -308,5 +328,14 @@ describe("hearth lots", () => {
     expect(getItemCount("brook-tonic")).toBe(0);
     expect(getMaterialCount("wild-fiber")).toBe(0);
     expect(lotsNetWorth(state, "player")).toBeGreaterThan(0);
+  });
+
+  it("places sixteen unique ring cells with Hearth at the start corner", () => {
+    const cells = Array.from({ length: HEARTH_LOTS_SPACES }, (_, index) =>
+      hearthLotsBoardCell(index),
+    );
+    expect(new Set(cells.map((cell) => `${cell.col},${cell.row}`)).size).toBe(16);
+    expect(hearthLotsBoardCell(0)).toEqual({ col: 0, row: 4 });
+    expect(hearthLotsBoardCell(8)).toEqual({ col: 4, row: 0 });
   });
 });

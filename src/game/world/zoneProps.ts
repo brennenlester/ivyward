@@ -41,8 +41,6 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
     { x: 2, y: 3, kind: "cottage" },
     { x: 7, y: 2, kind: "cottage" },
     { x: 2, y: 7, kind: "cottage" },
-    { x: 4, y: 4, kind: "hearth" },
-    { x: 7, y: 6, kind: "hearth" },
     { x: 5, y: 0, kind: "gate" },
     { x: 6, y: 2, kind: "pebble-pile" },
     { x: 3, y: 6, kind: "fern" },

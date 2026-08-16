@@ -2,6 +2,30 @@ export const HEARTH_LOTS_SPACES = 16;
 export const HEARTH_LOTS_ROUNDS = 12;
 export const HEARTH_STARTING_MARKS = 8;
 
+/** Clockwise ring on a 5×5 grid; space 0 (Hearth) is the bottom-left corner. */
+const HEARTH_LOTS_RING: { col: number; row: number }[] = [
+  { col: 0, row: 4 },
+  { col: 1, row: 4 },
+  { col: 2, row: 4 },
+  { col: 3, row: 4 },
+  { col: 4, row: 4 },
+  { col: 4, row: 3 },
+  { col: 4, row: 2 },
+  { col: 4, row: 1 },
+  { col: 4, row: 0 },
+  { col: 3, row: 0 },
+  { col: 2, row: 0 },
+  { col: 1, row: 0 },
+  { col: 0, row: 0 },
+  { col: 0, row: 1 },
+  { col: 0, row: 2 },
+  { col: 0, row: 3 },
+];
+
+export function hearthLotsBoardCell(index: number): { col: number; row: number } {
+  return HEARTH_LOTS_RING[((index % HEARTH_LOTS_SPACES) + HEARTH_LOTS_SPACES) % HEARTH_LOTS_SPACES];
+}
+
 export type LotsSpaceKind = "start" | "property" | "event" | "tax";
 
 export type LotsSpace = {

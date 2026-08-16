@@ -61,3 +61,17 @@ export function tapLoomCell(state: LoomState, cell: number): LoomState {
     input: [],
   };
 }
+
+/** Completing a pattern also clears `input`; that is not a miss. */
+export function loomInputWasMiss(
+  previousRound: number,
+  previousInputLength: number,
+  next: LoomState,
+): boolean {
+  return (
+    next.status === "input" &&
+    next.round === previousRound &&
+    next.input.length === 0 &&
+    previousInputLength > 0
+  );
+}

@@ -3,6 +3,7 @@ import { ZONES } from "./zones";
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import { getZoneNpcs } from "./npcs";
+import { ZONE_PROPS } from "./zoneProps";
 
 const INTERIOR_IDS = (Object.keys(ZONES) as ZoneId[]).filter(
   (id) => ZONES[id].interior,
@@ -79,5 +80,9 @@ describe("village doors", () => {
   it("gives each cottage its own door", () => {
     const targets = (village.doors ?? []).map((door) => door.targetZone);
     expect(new Set(targets).size).toBe(targets.length);
+  });
+
+  it("does not put hearths in the village square", () => {
+    expect(ZONE_PROPS.village?.some((prop) => prop.kind === "hearth")).toBe(false);
   });
 });
