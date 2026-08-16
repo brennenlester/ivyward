@@ -11,11 +11,11 @@ export const PROP_DISPLAY: Record<string, { width: number; height: number }> = {
   "prop-standing-stone": { width: 42, height: 38 },
   "prop-pebble-pile": { width: 44, height: 32 },
   "prop-hearth": { width: 48, height: 40 },
-  "prop-cottage": { width: 48, height: 44 },
+  "prop-cottage": { width: 56, height: 52 },
   "prop-gate": { width: 48, height: 42 },
   "prop-gate-locked": { width: 48, height: 42 },
   "prop-loom": { width: 46, height: 44 },
-  "prop-shelf": { width: 44, height: 42 },
+  "prop-shelf": { width: 40, height: 72 },
   "prop-boat": { width: 48, height: 40 },
 };
 
