@@ -25,6 +25,7 @@ import {
   canForceGodSailEncounter,
   claimTideSovereign,
   createPendingGodSailEncounter,
+  formatGodClaimJoinLine,
   getBefriendChance,
   getTideSovereignAttack,
   GOD_BEFRIEND_CHANCE,
@@ -264,5 +265,26 @@ describe("god sail encounter", () => {
     });
     expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
     expect(isGodSailEncounterClaimed()).toBe(true);
+  });
+
+  it("omits the weapon from a second-claim join line", () => {
+    expect(
+      formatGodClaimJoinLine(
+        "Tide Sovereign",
+        "Tide Cleaver",
+        { creatureAdded: true, weaponGranted: true },
+        true,
+      ),
+    ).toBe(
+      "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
+    );
+    expect(
+      formatGodClaimJoinLine(
+        "Stone Sovereign",
+        "Cairn Maul",
+        { creatureAdded: true, weaponGranted: false },
+        false,
+      ),
+    ).toBe("The Stone Sovereign joined you, fainted.");
   });
 });

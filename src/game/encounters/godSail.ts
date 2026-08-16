@@ -170,6 +170,21 @@ export type GodClaimResult = {
 
 export type TideSovereignOutcome = "befriend" | "spar-win" | "flee";
 
+export function formatGodClaimJoinLine(
+  name: string,
+  weaponName: string,
+  result: GodClaimResult,
+  defeated: boolean,
+): string {
+  if (!result.creatureAdded) {
+    return result.weaponGranted ? `${weaponName} obtained!` : `${name} already rests with you.`;
+  }
+  const subject = defeated ? `The defeated ${name}` : `The ${name}`;
+  return result.weaponGranted
+    ? `${subject} joined you, fainted. ${weaponName} obtained!`
+    : `${subject} joined you, fainted.`;
+}
+
 /** Grants Tide Sovereign up to two copies per save. */
 export function claimTideSovereign(): GodClaimResult {
   const creatureAdded = canObtainAnotherParentSovereign(

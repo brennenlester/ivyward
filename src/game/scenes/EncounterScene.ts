@@ -12,6 +12,7 @@ import {
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
+  formatGodClaimJoinLine,
   getBefriendChance,
   resolveTideSovereignOutcome,
   TIDE_SOVEREIGN_ID,
@@ -198,11 +199,19 @@ export class EncounterScene extends Phaser.Scene {
     const catchChance = getBefriendChance(this.creatureId);
     if (Math.random() < catchChance) {
       if (this.creatureId === TIDE_SOVEREIGN_ID) {
-        resolveTideSovereignOutcome("befriend");
-        this.showResult("The Tide Sovereign joined you, fainted. Tide Cleaver obtained!");
+        const result = resolveTideSovereignOutcome("befriend");
+        if (result) {
+          this.showResult(
+            formatGodClaimJoinLine("Tide Sovereign", "Tide Cleaver", result, false),
+          );
+        }
       } else if (this.creatureId === CAIRN_SOVEREIGN_ID) {
-        resolveCairnSovereignOutcome("befriend");
-        this.showResult("The Stone Sovereign joined you, fainted. Cairn Maul obtained!");
+        const result = resolveCairnSovereignOutcome("befriend");
+        if (result) {
+          this.showResult(
+            formatGodClaimJoinLine("Stone Sovereign", "Cairn Maul", result, false),
+          );
+        }
       } else {
         addToParty(this.creatureId);
         this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);
