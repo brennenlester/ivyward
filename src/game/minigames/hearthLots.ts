@@ -27,6 +27,21 @@ export function hearthLotsBoardCell(index: number): { col: number; row: number }
   return HEARTH_LOTS_RING[((index % HEARTH_LOTS_SPACES) + HEARTH_LOTS_SPACES) % HEARTH_LOTS_SPACES];
 }
 
+function clampLotsRoll(roll: number): number {
+  return Math.min(6, Math.max(1, Math.floor(roll)));
+}
+
+/** Clockwise cells visited after leaving `from` for a 1–6 roll (wraps at 16). */
+export function hearthLotsHopPath(from: number, roll: number): number[] {
+  const steps = clampLotsRoll(roll);
+  const start = ((from % HEARTH_LOTS_SPACES) + HEARTH_LOTS_SPACES) % HEARTH_LOTS_SPACES;
+  const path: number[] = [];
+  for (let i = 1; i <= steps; i += 1) {
+    path.push((start + i) % HEARTH_LOTS_SPACES);
+  }
+  return path;
+}
+
 export type LotsSpaceKind = "start" | "property" | "event" | "tax";
 
 export type LotsSpace = {
@@ -244,7 +259,7 @@ export function rollLots(state: LotsState, roll: number): LotsState {
   if (state.status !== "playing" || state.pendingBuy !== null) {
     return state;
   }
-  const clamped = Math.min(6, Math.max(1, Math.floor(roll)));
+  const clamped = clampLotsRoll(roll);
   const next = structuredClone(state) as LotsState;
   next.lastRoll = clamped;
   const actor = next.whoseTurn === "player" ? next.player : next.odd;
