@@ -17,6 +17,7 @@ import {
   resetNpcStateForTest,
   setClaimedNpcGifts,
 } from "./npcState";
+import { resetMinigameProgressForTest } from "../minigames/progress";
 import type { CreatureInstance } from "../creatures/types";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
@@ -426,6 +427,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     setInventoryFromSnapshot({}, {});
     setVisitorMode(false);
     resetNpcStateForTest();
+    resetMinigameProgressForTest();
     setGodSailEncounterClaimed(false, false);
     setGodLandEncounterClaimed(false, false);
     setGodFusionCompleted(false, false);
