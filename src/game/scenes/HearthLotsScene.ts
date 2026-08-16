@@ -6,10 +6,12 @@ import {
   buyPendingLot,
   createLotsState,
   hearthLotsBoardCell,
+  hearthLotsHopPath,
   lotsNetWorth,
   playOddIfNeeded,
   rollLots,
   skipPendingLot,
+  type LotsPlayerId,
   type LotsSpace,
   type LotsState,
 } from "../minigames/hearthLots";
@@ -25,6 +27,41 @@ import {
 const CELL = 88;
 const BOARD_LEFT = (DESIGN_SIZE - CELL * 5) / 2;
 const BOARD_TOP = 108;
+const HOP_MS = 170;
+const PIP = 12;
+const PIP_LAYOUT: Record<number, [number, number][]> = {
+  1: [[0, 0]],
+  2: [
+    [-PIP, -PIP],
+    [PIP, PIP],
+  ],
+  3: [
+    [-PIP, -PIP],
+    [0, 0],
+    [PIP, PIP],
+  ],
+  4: [
+    [-PIP, -PIP],
+    [PIP, -PIP],
+    [-PIP, PIP],
+    [PIP, PIP],
+  ],
+  5: [
+    [-PIP, -PIP],
+    [PIP, -PIP],
+    [0, 0],
+    [-PIP, PIP],
+    [PIP, PIP],
+  ],
+  6: [
+    [-PIP, -PIP],
+    [-PIP, 0],
+    [-PIP, PIP],
+    [PIP, -PIP],
+    [PIP, 0],
+    [PIP, PIP],
+  ],
+};
 
 function spaceFill(state: LotsState, space: LotsSpace): number {
   if (space.kind === "start") {
@@ -45,11 +82,37 @@ function spaceFill(state: LotsState, space: LotsSpace): number {
   return 0x5a4038;
 }
 
+function addDieFace(
+  scene: Phaser.Scene,
+  parent: Phaser.GameObjects.Container,
+  value: number | null,
+): void {
+  parent.removeAll(true);
+  const face = scene.add.graphics();
+  face.fillStyle(0xf4ead4, 1);
+  face.fillRoundedRect(-26, -26, 52, 52, 8);
+  face.lineStyle(3, 0x6a4838, 1);
+  face.strokeRoundedRect(-26, -26, 52, 52, 8);
+  parent.add(face);
+  if (value === null) {
+    return;
+  }
+  for (const [px, py] of PIP_LAYOUT[value] ?? []) {
+    parent.add(scene.add.circle(px, py, 4.5, 0x3a2418));
+  }
+}
+
 export class HearthLotsScene extends Phaser.Scene {
   private state: LotsState = createLotsState();
   private statusText!: Phaser.GameObjects.Text;
   private boardRoot!: Phaser.GameObjects.Container;
+  private pieceRoot!: Phaser.GameObjects.Container;
+  private dieFace!: Phaser.GameObjects.Container;
+  private playerToken!: Phaser.GameObjects.Container;
+  private oddToken!: Phaser.GameObjects.Container;
   private closing = { current: false };
+  private moving = false;
+  private shownRoll: number | null = null;
   private rollButton!: Phaser.GameObjects.Text;
   private buyButton!: Phaser.GameObjects.Text;
   private skipButton!: Phaser.GameObjects.Text;
@@ -61,6 +124,8 @@ export class HearthLotsScene extends Phaser.Scene {
   create(): void {
     bootMinigameOverlay(this);
     this.closing = { current: false };
+    this.moving = false;
+    this.shownRoll = null;
     this.state = createLotsState();
     this.add
       .text(24, 22, "Hearth Lots", {
@@ -79,6 +144,12 @@ export class HearthLotsScene extends Phaser.Scene {
       })
       .setOrigin(0, 0);
     this.boardRoot = this.add.container(0, 0);
+    this.pieceRoot = this.add.container(0, 0);
+    this.dieFace = this.add.container(DESIGN_SIZE / 2, BOARD_TOP + CELL * 2.15);
+    this.pieceRoot.add(this.dieFace);
+    this.playerToken = this.makeToken("You", 0xf0c878);
+    this.oddToken = this.makeToken("Odd", 0xc890d8);
+    this.pieceRoot.add([this.playerToken, this.oddToken]);
 
     bindMinigameQuit(this, () => this.quit());
     this.rollButton = addMinigameButton(this, 90, 580, "Roll");
@@ -88,6 +159,9 @@ export class HearthLotsScene extends Phaser.Scene {
     this.skipButton = addMinigameButton(this, 350, 580, "Pass");
     this.skipButton.on("pointerdown", () => this.pass());
     this.input.keyboard?.on("keydown-E", () => {
+      if (this.moving) {
+        return;
+      }
       if (this.state.pendingBuy !== null) {
         this.claim();
       } else {
@@ -98,44 +172,144 @@ export class HearthLotsScene extends Phaser.Scene {
     this.refresh();
   }
 
+  private makeToken(label: string, fill: number): Phaser.GameObjects.Container {
+    const token = this.add.container(0, 0);
+    token.add(this.add.circle(0, 0, 11, fill).setStrokeStyle(2, 0x1a3040, 0.35));
+    token.add(
+      this.add
+        .text(0, 0, label === "You" ? "Y" : "O", {
+          ...MINIGAME_TEXT,
+          color: "#1a3040",
+          fontSize: "11px",
+          fontStyle: "bold",
+        })
+        .setOrigin(0.5, 0.5),
+    );
+    return token;
+  }
+
+  private cellCenter(index: number): { x: number; y: number } {
+    const { col, row } = hearthLotsBoardCell(index);
+    return {
+      x: BOARD_LEFT + col * CELL + CELL / 2,
+      y: BOARD_TOP + row * CELL + CELL / 2,
+    };
+  }
+
+  private tokenPoint(index: number, who: LotsPlayerId): { x: number; y: number } {
+    const { x, y } = this.cellCenter(index);
+    return {
+      x: x + (who === "player" ? -16 : 16),
+      y: y + 22,
+    };
+  }
+
   private roll(): void {
-    if (this.closing.current || this.state.status !== "playing") {
+    if (
+      this.closing.current ||
+      this.moving ||
+      this.state.status !== "playing" ||
+      this.state.whoseTurn !== "player" ||
+      this.state.pendingBuy !== null
+    ) {
       return;
     }
-    if (this.state.whoseTurn !== "player" || this.state.pendingBuy !== null) {
-      return;
-    }
-    this.state = rollLots(this.state, 1 + Math.floor(Math.random() * 6));
-    this.maybeOdd();
-    this.refresh();
+    this.playTurn("player", 1 + Math.floor(Math.random() * 6));
   }
 
   private claim(): void {
-    if (this.closing.current) {
+    if (this.closing.current || this.moving) {
       return;
     }
     this.state = buyPendingLot(this.state);
-    this.maybeOdd();
     this.refresh();
+    this.maybeOdd();
   }
 
   private pass(): void {
-    if (this.closing.current) {
+    if (this.closing.current || this.moving) {
       return;
     }
     this.state = skipPendingLot(this.state);
-    this.maybeOdd();
     this.refresh();
+    this.maybeOdd();
   }
 
   private maybeOdd(): void {
-    if (this.state.status !== "playing" || this.state.whoseTurn !== "odd") {
+    if (
+      this.closing.current ||
+      this.moving ||
+      this.state.status !== "playing" ||
+      this.state.whoseTurn !== "odd"
+    ) {
       return;
     }
-    this.state = playOddIfNeeded(
-      this.state,
-      1 + Math.floor(Math.random() * 6),
+    this.time.delayedCall(220, () => {
+      if (
+        this.closing.current ||
+        this.state.status !== "playing" ||
+        this.state.whoseTurn !== "odd"
+      ) {
+        return;
+      }
+      this.playTurn("odd", 1 + Math.floor(Math.random() * 6));
+    });
+  }
+
+  private playTurn(who: LotsPlayerId, roll: number): void {
+    const from = who === "player" ? this.state.player.position : this.state.odd.position;
+    const path = hearthLotsHopPath(from, roll);
+    const token = who === "player" ? this.playerToken : this.oddToken;
+    this.moving = true;
+    this.shownRoll = path.length;
+    addDieFace(this, this.dieFace, this.shownRoll);
+    this.statusText.setText(
+      `${who === "player" ? "You" : "Odd"} rolled ${this.shownRoll}.`,
     );
+    this.syncButtons();
+    this.hopAlong(token, who, path, () => {
+      this.state =
+        who === "odd" ? playOddIfNeeded(this.state, roll) : rollLots(this.state, roll);
+      this.moving = false;
+      this.refresh();
+      this.maybeOdd();
+    });
+  }
+
+  private hopAlong(
+    token: Phaser.GameObjects.Container,
+    who: LotsPlayerId,
+    path: number[],
+    onDone: () => void,
+  ): void {
+    const step = (i: number) => {
+      if (this.closing.current) {
+        return;
+      }
+      if (i >= path.length) {
+        onDone();
+        return;
+      }
+      const dest = this.tokenPoint(path[i], who);
+      const fromX = token.x;
+      const fromY = token.y;
+      this.tweens.add({
+        targets: { t: 0 },
+        t: 1,
+        duration: HOP_MS,
+        ease: "Sine.easeInOut",
+        onUpdate: (_tween, target: { t: number }) => {
+          const p = target.t;
+          token.x = fromX + (dest.x - fromX) * p;
+          token.y = fromY + (dest.y - fromY) * p - Math.sin(p * Math.PI) * 18;
+        },
+        onComplete: () => {
+          token.setPosition(dest.x, dest.y);
+          step(i + 1);
+        },
+      });
+    };
+    step(0);
   }
 
   private refresh(): void {
@@ -152,9 +326,7 @@ export class HearthLotsScene extends Phaser.Scene {
       this.boardRoot.add(art);
     }
     for (const space of HEARTH_LOTS_BOARD) {
-      const { col, row } = hearthLotsBoardCell(space.index);
-      const x = BOARD_LEFT + col * CELL + CELL / 2;
-      const y = BOARD_TOP + row * CELL + CELL / 2;
+      const { x, y } = this.cellCenter(space.index);
       const pending = this.state.pendingBuy === space.index;
       if (!painted) {
         const cell = this.add
@@ -191,33 +363,12 @@ export class HearthLotsScene extends Phaser.Scene {
         })
         .setOrigin(0.5, 0.5);
       this.boardRoot.add(label);
-      const tokens: string[] = [];
-      if (this.state.player.position === space.index) {
-        tokens.push("You");
-      }
-      if (this.state.odd.position === space.index) {
-        tokens.push("Odd");
-      }
-      tokens.forEach((who, i) => {
-        const tx = x - 16 + i * 32;
-        const ty = y + 22;
-        const token = this.add.circle(tx, ty, 9, who === "You" ? 0xf0c878 : 0xc890d8);
-        const tokenLabel = this.add
-          .text(tx, ty, who === "You" ? "Y" : "O", {
-            ...MINIGAME_TEXT,
-            color: "#1a3040",
-            fontSize: "10px",
-            fontStyle: "bold",
-          })
-          .setOrigin(0.5, 0.5);
-        this.boardRoot.add([token, tokenLabel]);
-      });
     }
 
     const summary = this.add
       .text(
         DESIGN_SIZE / 2,
-        BOARD_TOP + CELL * 2.5,
+        BOARD_TOP + CELL * 2.5 + 44,
         [
           `Round ${Math.min(this.state.round + 1, 12)} / 12`,
           `You ${this.state.player.marks} marks (${lotsNetWorth(this.state, "player")} worth)`,
@@ -233,14 +384,17 @@ export class HearthLotsScene extends Phaser.Scene {
       .setOrigin(0.5, 0.5);
     this.boardRoot.add(summary);
 
+    this.shownRoll = this.state.lastRoll;
+    addDieFace(this, this.dieFace, this.shownRoll);
+    if (!this.moving) {
+      const you = this.tokenPoint(this.state.player.position, "player");
+      const odd = this.tokenPoint(this.state.odd.position, "odd");
+      this.playerToken.setPosition(you.x, you.y);
+      this.oddToken.setPosition(odd.x, odd.y);
+    }
+
     this.statusText.setText(this.state.log);
-    this.rollButton.setVisible(
-      this.state.status === "playing" &&
-        this.state.whoseTurn === "player" &&
-        this.state.pendingBuy === null,
-    );
-    this.buyButton.setVisible(this.state.pendingBuy !== null);
-    this.skipButton.setVisible(this.state.pendingBuy !== null);
+    this.syncButtons();
     if (this.state.status !== "playing") {
       resolveMinigameEnd(
         this,
@@ -252,11 +406,23 @@ export class HearthLotsScene extends Phaser.Scene {
     }
   }
 
+  private syncButtons(): void {
+    this.rollButton.setVisible(
+      !this.moving &&
+        this.state.status === "playing" &&
+        this.state.whoseTurn === "player" &&
+        this.state.pendingBuy === null,
+    );
+    this.buyButton.setVisible(!this.moving && this.state.pendingBuy !== null);
+    this.skipButton.setVisible(!this.moving && this.state.pendingBuy !== null);
+  }
+
   private quit(): void {
     if (this.closing.current) {
       return;
     }
     this.closing.current = true;
+    this.tweens.killAll();
     closeMinigameOverlay(this);
   }
 }

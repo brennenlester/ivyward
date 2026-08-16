@@ -41,6 +41,7 @@ import {
   buyPendingLot,
   createLotsState,
   hearthLotsBoardCell,
+  hearthLotsHopPath,
   lotsNetWorth,
   playOddIfNeeded,
   rollLots,
@@ -347,5 +348,16 @@ describe("hearth lots", () => {
     expect(new Set(cells.map((cell) => `${cell.col},${cell.row}`)).size).toBe(16);
     expect(hearthLotsBoardCell(0)).toEqual({ col: 0, row: 4 });
     expect(hearthLotsBoardCell(8)).toEqual({ col: 4, row: 0 });
+  });
+
+  it("lists clockwise hop cells for a roll and lands where rollLots does", () => {
+    expect(hearthLotsHopPath(0, 4)).toEqual([1, 2, 3, 4]);
+    expect(hearthLotsHopPath(14, 3)).toEqual([15, 0, 1]);
+    expect(hearthLotsHopPath(0, 1)).toEqual([1]);
+    expect(hearthLotsHopPath(0, 9)).toEqual([1, 2, 3, 4, 5, 6]);
+    const start = createLotsState();
+    const path = hearthLotsHopPath(start.player.position, 4);
+    const next = rollLots(start, 4);
+    expect(path.at(-1)).toBe(next.player.position);
   });
 });
