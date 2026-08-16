@@ -18,6 +18,7 @@ import {
   applyGodFusion,
   ECLIPSE_SOVEREIGN_ID,
   HORIZON_SOVEREIGN_ID,
+  reopenParentSovereignEncounters,
   SOVEREIGN_SEAL_ID,
 } from "./godFusion";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
@@ -29,11 +30,13 @@ import {
   isGodFusionCompleted,
   isGodLandEncounterClaimed,
   isGodSailEncounterClaimed,
+  setCairnSovereignObtained,
   setEclipseFusionCompleted,
   setGodFusionCompleted,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   setHorizonFusionCount,
+  setTideSovereignObtained,
 } from "../world/worldState";
 
 function member(
@@ -59,6 +62,8 @@ describe("dual-god fusion", () => {
     setHorizonFusionCount(0, false);
     setGodSailEncounterClaimed(false, false);
     setGodLandEncounterClaimed(false, false);
+    setTideSovereignObtained(0, false);
+    setCairnSovereignObtained(0, false);
   });
 
   it("refuses visitors, missing seal, missing gods, and the wrong item", () => {
@@ -97,7 +102,7 @@ describe("dual-god fusion", () => {
       2,
     );
     expect(applyGodFusion("t", "missing", SOVEREIGN_SEAL_ID).message).toMatch(
-      /Requires Tide Sovereign and Cairn Sovereign/,
+      /Requires Tide Sovereign and Stone Sovereign/,
     );
   });
 
@@ -154,6 +159,35 @@ describe("dual-god fusion", () => {
     expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(1);
   });
 
+  it("refuses Horizon fusion when two Horizons are already in the party", () => {
+    setHorizonFusionCount(1, false);
+    setPartyFromSnapshot(
+      [
+        member({ instanceId: "h1", definitionId: HORIZON_SOVEREIGN_ID }),
+        member({ instanceId: "h2", definitionId: HORIZON_SOVEREIGN_ID }),
+        member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID }),
+        member({ instanceId: "c", definitionId: CAIRN_SOVEREIGN_ID }),
+      ],
+      5,
+    );
+    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID)).toEqual({
+      ok: false,
+      message: "Fuse the two Horizon Sovereigns instead.",
+    });
+  });
+
+  it("does not reopen parent hunts after two of that parent have been obtained", () => {
+    setHorizonFusionCount(1, false);
+    setTideSovereignObtained(2, false);
+    setCairnSovereignObtained(2, false);
+    setGodSailEncounterClaimed(true, false);
+    setGodLandEncounterClaimed(true, false);
+    reopenParentSovereignEncounters();
+    expect(isGodSailEncounterClaimed()).toBe(true);
+    expect(isGodLandEncounterClaimed()).toBe(true);
+  });
+
   it("consumes both parents and the seal, then adds Horizon Sovereign", () => {
     setPartyFromSnapshot(
       [
@@ -181,7 +215,7 @@ describe("dual-god fusion", () => {
     expect(result).toEqual({
       ok: true,
       message:
-        "Tide Sovereign and Cairn Sovereign fused into Horizon Sovereign!",
+        "Tide Sovereign and Stone Sovereign fused into Horizon Sovereign!",
     });
     expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(false);
     expect(hasCreature(CAIRN_SOVEREIGN_ID)).toBe(false);

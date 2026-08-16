@@ -1,9 +1,12 @@
-import { addToPartyFainted, hasCreature } from "../creatures/party";
+import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
 import { addItem, getItemCount } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import {
+  canObtainAnotherParentSovereign,
+  getTideSovereignObtained,
   isGodSailEncounterClaimed,
+  recordTideSovereignObtained,
   setGodSailEncounterClaimed,
 } from "../world/worldState";
 import { CAIRN_SOVEREIGN_ID } from "./godLand";
@@ -167,11 +170,30 @@ export type GodClaimResult = {
 
 export type TideSovereignOutcome = "befriend" | "spar-win" | "flee";
 
-/** Idempotently grants every permanent result of obtaining the god creature. */
+export function formatGodClaimJoinLine(
+  name: string,
+  weaponName: string,
+  result: GodClaimResult,
+  defeated: boolean,
+): string {
+  if (!result.creatureAdded) {
+    return result.weaponGranted ? `${weaponName} obtained!` : `${name} already rests with you.`;
+  }
+  const subject = defeated ? `The defeated ${name}` : `The ${name}`;
+  return result.weaponGranted
+    ? `${subject} joined you, fainted. ${weaponName} obtained!`
+    : `${subject} joined you, fainted.`;
+}
+
+/** Grants Tide Sovereign up to two copies per save. */
 export function claimTideSovereign(): GodClaimResult {
-  const creatureAdded = !hasCreature(TIDE_SOVEREIGN_ID);
+  const creatureAdded = canObtainAnotherParentSovereign(
+    getTideSovereignObtained(),
+    countCreatures(TIDE_SOVEREIGN_ID),
+  );
   if (creatureAdded) {
     addToPartyFainted(TIDE_SOVEREIGN_ID);
+    recordTideSovereignObtained();
   }
 
   const weaponGranted = getItemCount(TIDE_CLEAVER_ID) === 0;

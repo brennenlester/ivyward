@@ -12,6 +12,8 @@ import {
 import {
   isGodSailEncounterClaimed,
   setGodSailEncounterClaimed,
+  setHorizonFusionCount,
+  setTideSovereignObtained,
 } from "../world/worldState";
 import {
   buildArmedWanderer,
@@ -23,6 +25,7 @@ import {
   canForceGodSailEncounter,
   claimTideSovereign,
   createPendingGodSailEncounter,
+  formatGodClaimJoinLine,
   getBefriendChance,
   getTideSovereignAttack,
   GOD_BEFRIEND_CHANCE,
@@ -48,6 +51,8 @@ describe("god sail encounter", () => {
     setPartyFromSnapshot([], 1);
     setInventoryFromSnapshot({}, {});
     setGodSailEncounterClaimed(false, false);
+    setTideSovereignObtained(0, false);
+    setHorizonFusionCount(0, false);
   });
 
   it("uses a deterministic 1/100 roll boundary without Monte Carlo", () => {
@@ -216,11 +221,36 @@ describe("god sail encounter", () => {
     });
 
     expect(claimTideSovereign()).toEqual({
+      creatureAdded: true,
+      weaponGranted: false,
+    });
+    expect(playerParty.creatures).toHaveLength(2);
+    expect(claimTideSovereign()).toEqual({
       creatureAdded: false,
       weaponGranted: false,
     });
-    expect(playerParty.creatures).toHaveLength(1);
+    expect(playerParty.creatures).toHaveLength(2);
     expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
+  });
+
+  it("does not add a third Tide after the two-copy cap", () => {
+    claimTideSovereign();
+    claimTideSovereign();
+    expect(playerParty.creatures).toHaveLength(2);
+    expect(claimTideSovereign()).toEqual({
+      creatureAdded: false,
+      weaponGranted: false,
+    });
+    expect(playerParty.creatures).toHaveLength(2);
+  });
+
+  it("does not add a Tide after two Horizon fusions even if none remain in the party", () => {
+    setHorizonFusionCount(2, false);
+    expect(claimTideSovereign()).toEqual({
+      creatureAdded: false,
+      weaponGranted: true,
+    });
+    expect(playerParty.creatures).toHaveLength(0);
   });
 
   it("claims a befriended god with the same fainted one-time outcome", () => {
@@ -235,5 +265,26 @@ describe("god sail encounter", () => {
     });
     expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
     expect(isGodSailEncounterClaimed()).toBe(true);
+  });
+
+  it("omits the weapon from a second-claim join line", () => {
+    expect(
+      formatGodClaimJoinLine(
+        "Tide Sovereign",
+        "Tide Cleaver",
+        { creatureAdded: true, weaponGranted: true },
+        true,
+      ),
+    ).toBe(
+      "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
+    );
+    expect(
+      formatGodClaimJoinLine(
+        "Stone Sovereign",
+        "Cairn Maul",
+        { creatureAdded: true, weaponGranted: false },
+        false,
+      ),
+    ).toBe("The Stone Sovereign joined you, fainted.");
   });
 });

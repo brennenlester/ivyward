@@ -34,7 +34,9 @@ import {
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
 import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
 import {
+  getCairnSovereignObtained,
   getHorizonFusionCount,
+  getTideSovereignObtained,
   isEclipseFusionCompleted,
   isGodFusionCompleted,
   isGodLandEncounterClaimed,
@@ -463,6 +465,22 @@ describe("applyWorldSnapshot codex achievement", () => {
     expect(isGodLandEncounterClaimed()).toBe(false);
   });
 
+  it("round-trips sovereign obtainment counts and infers two from an eclipse save", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        tideSovereignObtained: 2,
+        cairnSovereignObtained: 1,
+      }),
+    );
+    expect(getTideSovereignObtained()).toBe(2);
+    expect(getCairnSovereignObtained()).toBe(1);
+    expect(exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 }).tideSovereignObtained).toBe(2);
+
+    applyWorldSnapshot(validSnapshot({ eclipseFusionCompleted: true, horizonFusionCount: 2 }));
+    expect(getTideSovereignObtained()).toBe(2);
+    expect(getCairnSovereignObtained()).toBe(2);
+  });
+
   it("restores the god fusion flag and defaults older saves to incomplete", () => {
     applyWorldSnapshot(validSnapshot({ godFusionCompleted: true }));
     expect(isGodFusionCompleted()).toBe(true);
@@ -551,7 +569,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     expect(worldState.discoveredCreatures).not.toContain("tide-sovereign");
   });
 
-  it("does not infer codex discovery from a saved Cairn Sovereign", () => {
+  it("does not infer codex discovery from a saved Stone Sovereign", () => {
     applyWorldSnapshot(
       validSnapshot({
         discoveredCreatures: [],

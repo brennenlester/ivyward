@@ -37,6 +37,7 @@ import {
 } from "../battle/wandererWeapons";
 import {
   appendGodSparKillCheatKey,
+  formatGodClaimJoinLine,
   getTideSovereignAttack,
   isGodCreature,
   resolveTideSovereignOutcome,
@@ -823,15 +824,19 @@ export class BattleScene extends Phaser.Scene {
     this.syncActivePartyHp();
 
     if (playerWon && this.wildCreatureId === TIDE_SOVEREIGN_ID) {
-      resolveTideSovereignOutcome("spar-win");
-      this.log(
-        "The defeated Tide Sovereign joined you, fainted. Tide Cleaver obtained!",
-      );
+      const result = resolveTideSovereignOutcome("spar-win");
+      if (result) {
+        this.log(
+          formatGodClaimJoinLine("Tide Sovereign", "Tide Cleaver", result, true),
+        );
+      }
     } else if (playerWon && this.wildCreatureId === CAIRN_SOVEREIGN_ID) {
-      resolveCairnSovereignOutcome("spar-win");
-      this.log(
-        "The defeated Cairn Sovereign joined you, fainted. Cairn Maul obtained!",
-      );
+      const result = resolveCairnSovereignOutcome("spar-win");
+      if (result) {
+        this.log(
+          formatGodClaimJoinLine("Stone Sovereign", "Cairn Maul", result, true),
+        );
+      }
     } else if (playerWon) {
       const reward = grantSparRewards(
         this.wildCreatureId,

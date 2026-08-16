@@ -1,10 +1,13 @@
-import { addToPartyFainted, hasCreature } from "../creatures/party";
+import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
 import { addItem, getItemCount } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import { TileType } from "../world/zoneTypes";
 import {
+  canObtainAnotherParentSovereign,
+  getCairnSovereignObtained,
   isGodLandEncounterClaimed,
+  recordCairnSovereignObtained,
   setGodLandEncounterClaimed,
 } from "../world/worldState";
 
@@ -149,11 +152,15 @@ export type GodLandClaimResult = {
 
 export type CairnSovereignOutcome = "befriend" | "spar-win" | "flee";
 
-/** Idempotently grants every permanent result of obtaining the land god. */
+/** Grants Stone Sovereign up to two copies per save. */
 export function claimCairnSovereign(): GodLandClaimResult {
-  const creatureAdded = !hasCreature(CAIRN_SOVEREIGN_ID);
+  const creatureAdded = canObtainAnotherParentSovereign(
+    getCairnSovereignObtained(),
+    countCreatures(CAIRN_SOVEREIGN_ID),
+  );
   if (creatureAdded) {
     addToPartyFainted(CAIRN_SOVEREIGN_ID);
+    recordCairnSovereignObtained();
   }
 
   const weaponGranted = getItemCount(CAIRN_MAUL_ID) === 0;

@@ -11,12 +11,14 @@ import {
   applyGodFusion,
   findGodFusionParents,
   findHorizonFusionParents,
+  HORIZON_SOVEREIGN_ID,
   SOVEREIGN_SEAL_ID,
 } from "../shrine/godFusion";
 import {
   isEclipseFusionCompleted,
   getHorizonFusionCount,
   MAX_HORIZON_FUSIONS,
+  MAX_SOVEREIGN_COPIES,
 } from "../world/worldState";
 import { getEffectsForItem } from "../shrine/shrineEffects";
 import {
@@ -31,6 +33,7 @@ import {
 import { recordQuestEvent } from "../story/questProgress";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { isVisitorMode } from "../world/worldSession";
+import { countCreatures } from "../creatures/party";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import {
   hideShrineCraftingHud,
@@ -690,7 +693,10 @@ export class ShrineScene extends Phaser.Scene {
       return;
     }
 
-    if (getHorizonFusionCount() >= MAX_HORIZON_FUSIONS) {
+    if (
+      getHorizonFusionCount() >= MAX_HORIZON_FUSIONS ||
+      countCreatures(HORIZON_SOVEREIGN_ID) >= MAX_SOVEREIGN_COPIES
+    ) {
       const needHorizons = this.add
         .text(cx, contentTop + 56, "Requires two Horizon Sovereigns in your party.", {
           color: MOON_MUTED,
@@ -710,7 +716,7 @@ export class ShrineScene extends Phaser.Scene {
         .text(
           cx,
           contentTop + 56,
-          "Requires Tide Sovereign and Cairn Sovereign in your party.",
+          "Requires Tide Sovereign and Stone Sovereign in your party.",
           {
             color: MOON_MUTED,
             fontFamily: "system-ui, sans-serif",
@@ -728,7 +734,7 @@ export class ShrineScene extends Phaser.Scene {
       .text(
         cx,
         contentTop + 52,
-        `Tide Sovereign Lv.${tide.level} + Cairn Sovereign Lv.${cairn.level}`,
+        `Tide Sovereign Lv.${tide.level} + Stone Sovereign Lv.${cairn.level}`,
         {
           color: MOON_TEXT,
           fontFamily: "system-ui, sans-serif",

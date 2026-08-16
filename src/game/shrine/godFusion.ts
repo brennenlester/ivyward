@@ -1,5 +1,6 @@
 import {
   addFusedCreature,
+  countCreatures,
   getCreatureInstance,
   hasCreature,
   playerParty,
@@ -9,9 +10,12 @@ import { consumeItem, getItemCount } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import {
   canHuntParentSovereigns,
+  getCairnSovereignObtained,
   getHorizonFusionCount,
+  getTideSovereignObtained,
   isEclipseFusionCompleted,
   MAX_HORIZON_FUSIONS,
+  MAX_SOVEREIGN_COPIES,
   recordHorizonFusion,
   setEclipseFusionCompleted,
   setGodLandEncounterClaimed,
@@ -53,15 +57,21 @@ export function findHorizonFusionParents(): {
   return { first: horizons[0], second: horizons[1] };
 }
 
-/** After the first Horizon fusion (or loading that save), allow another Tide/Cairn hunt. */
+/** After the first Horizon fusion (or loading that save), allow another Tide/Stone hunt. */
 export function reopenParentSovereignEncounters(): void {
   if (!canHuntParentSovereigns() || getHorizonFusionCount() < 1) {
     return;
   }
-  if (!hasCreature(TIDE_SOVEREIGN_ID)) {
+  if (
+    !hasCreature(TIDE_SOVEREIGN_ID) &&
+    getTideSovereignObtained() < MAX_SOVEREIGN_COPIES
+  ) {
     setGodSailEncounterClaimed(false, false);
   }
-  if (!hasCreature(CAIRN_SOVEREIGN_ID)) {
+  if (
+    !hasCreature(CAIRN_SOVEREIGN_ID) &&
+    getCairnSovereignObtained() < MAX_SOVEREIGN_COPIES
+  ) {
     setGodLandEncounterClaimed(false, false);
   }
 }
@@ -77,7 +87,10 @@ export function applyGodFusion(
   if (isEclipseFusionCompleted()) {
     return { ok: false, message: "Eclipse Sovereign has already been fused." };
   }
-  if (getHorizonFusionCount() >= MAX_HORIZON_FUSIONS) {
+  if (
+    getHorizonFusionCount() >= MAX_HORIZON_FUSIONS ||
+    countCreatures(HORIZON_SOVEREIGN_ID) >= MAX_SOVEREIGN_COPIES
+  ) {
     return {
       ok: false,
       message: "Fuse the two Horizon Sovereigns instead.",
@@ -101,7 +114,7 @@ export function applyGodFusion(
   ) {
     return {
       ok: false,
-      message: "Requires Tide Sovereign and Cairn Sovereign in your party.",
+      message: "Requires Tide Sovereign and Stone Sovereign in your party.",
     };
   }
 
@@ -118,7 +131,7 @@ export function applyGodFusion(
   return {
     ok: true,
     message:
-      "Tide Sovereign and Cairn Sovereign fused into Horizon Sovereign!",
+      "Tide Sovereign and Stone Sovereign fused into Horizon Sovereign!",
   };
 }
 

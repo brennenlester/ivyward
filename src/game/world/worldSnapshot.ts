@@ -3,6 +3,7 @@ import {
   playerParty,
   setPartyFromSnapshot,
   ACTIVE_PARTY_LIMIT,
+  countCreatures,
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
@@ -15,7 +16,11 @@ import { restoreQuestProgress, questProgress } from "../story/questProgress";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import { reopenParentSovereignEncounters } from "../shrine/godFusion";
+import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
+import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import {
+  MAX_SOVEREIGN_COPIES,
+  setCairnSovereignObtained,
   setDiscoveredCreatures,
   setDiscoveredZones,
   setEclipseFusionCompleted,
@@ -23,6 +28,7 @@ import {
   setGodSailEncounterClaimed,
   setHorizonFusionCount,
   setOverworldUnlocked,
+  setTideSovereignObtained,
   worldState,
 } from "./worldState";
 import {
@@ -98,8 +104,12 @@ export type WorldSnapshot = {
   sailing?: boolean;
   /** Tide Sovereign has been obtained. Optional for older saves. */
   godSailEncounterClaimed?: boolean;
-  /** Cairn Sovereign has been obtained. Optional for older saves. */
+  /** Lifetime Tide Sovereign claims (0–2). Optional for older saves. */
+  tideSovereignObtained?: number;
+  /** Stone Sovereign has been obtained. Optional for older saves. */
   godLandEncounterClaimed?: boolean;
+  /** Lifetime Stone Sovereign claims (0–2). Optional for older saves. */
+  cairnSovereignObtained?: number;
   /** Dual-god Horizon fusion completed at least once. Optional for older saves. */
   godFusionCompleted?: boolean;
   /** Tide+Cairn → Horizon fusion count (0–2). Optional for older saves. */
@@ -585,6 +595,26 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   ) {
     return false;
   }
+  if (s.tideSovereignObtained !== undefined) {
+    if (
+      typeof s.tideSovereignObtained !== "number" ||
+      !Number.isInteger(s.tideSovereignObtained) ||
+      s.tideSovereignObtained < 0 ||
+      s.tideSovereignObtained > MAX_SOVEREIGN_COPIES
+    ) {
+      return false;
+    }
+  }
+  if (s.cairnSovereignObtained !== undefined) {
+    if (
+      typeof s.cairnSovereignObtained !== "number" ||
+      !Number.isInteger(s.cairnSovereignObtained) ||
+      s.cairnSovereignObtained < 0 ||
+      s.cairnSovereignObtained > MAX_SOVEREIGN_COPIES
+    ) {
+      return false;
+    }
+  }
   if (
     s.godFusionCompleted !== undefined &&
     typeof s.godFusionCompleted !== "boolean"
@@ -690,6 +720,26 @@ function nextInstanceIdAfter(
 
 let pendingPosition: PendingWorldPosition | null = null;
 
+function inferSovereignObtained(
+  explicit: number | undefined,
+  claimed: boolean,
+  partyCount: number,
+  horizonCount: number,
+  eclipse: boolean,
+): number {
+  if (explicit !== undefined) {
+    return Math.min(MAX_SOVEREIGN_COPIES, Math.max(0, Math.floor(explicit)));
+  }
+  return Math.min(
+    MAX_SOVEREIGN_COPIES,
+    Math.max(
+      eclipse ? MAX_SOVEREIGN_COPIES : 0,
+      horizonCount + partyCount,
+      claimed || partyCount > 0 ? Math.max(1, partyCount) : 0,
+    ),
+  );
+}
+
 export function takePendingWorldPosition(): PendingWorldPosition | null {
   const position = pendingPosition;
   pendingPosition = null;
@@ -738,7 +788,9 @@ export function exportWorldSnapshot(
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
+    tideSovereignObtained: worldState.tideSovereignObtained,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
+    cairnSovereignObtained: worldState.cairnSovereignObtained,
     godFusionCompleted: worldState.godFusionCompleted,
     horizonFusionCount: worldState.horizonFusionCount,
     eclipseFusionCompleted: worldState.eclipseFusionCompleted,
@@ -793,6 +845,26 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   const horizonCount =
     snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
   setHorizonFusionCount(horizonCount, false);
+  setTideSovereignObtained(
+    inferSovereignObtained(
+      snapshot.tideSovereignObtained,
+      snapshot.godSailEncounterClaimed === true,
+      countCreatures(TIDE_SOVEREIGN_ID),
+      horizonCount,
+      snapshot.eclipseFusionCompleted === true,
+    ),
+    false,
+  );
+  setCairnSovereignObtained(
+    inferSovereignObtained(
+      snapshot.cairnSovereignObtained,
+      snapshot.godLandEncounterClaimed === true,
+      countCreatures(CAIRN_SOVEREIGN_ID),
+      horizonCount,
+      snapshot.eclipseFusionCompleted === true,
+    ),
+    false,
+  );
   reopenParentSovereignEncounters();
   setPlacedBoat(snapshot.placedBoat === true);
   if (snapshot.placedBoat === true) {
