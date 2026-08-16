@@ -5,6 +5,7 @@ import {
   ACTIVE_PARTY_LIMIT,
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
+import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
 import { withStagedCraftingMaterials } from "../crafting/stagedMaterials";
 import {
   playerInventory,
@@ -212,6 +213,33 @@ function isValidCountMap(value: unknown): value is Record<string, number> {
   return true;
 }
 
+const VALID_FOLKLORE_TYPES = new Set<string>(FOLKLORE_TYPES);
+
+/**
+ * Ceiling for the mint counter and `c-<n>` id suffixes. Legitimate counters
+ * grow by one per befriend/fusion and stay far below this; anything above is
+ * a crafted save that could force the floor computation into duplicate-id
+ * territory at the 2^53 precision boundary (#192).
+ */
+const MAX_INSTANCE_COUNTER = 1_000_000_000;
+
+function isValidMoveDefinition(value: unknown): boolean {
+  if (typeof value !== "object" || value === null) {
+    return false;
+  }
+  const move = value as Record<string, unknown>;
+  return (
+    typeof move.id === "string" &&
+    typeof move.name === "string" &&
+    isFiniteNumber(move.power) &&
+    typeof move.type === "string" &&
+    VALID_FOLKLORE_TYPES.has(move.type) &&
+    isFiniteNumber(move.accuracy) &&
+    move.accuracy >= 0 &&
+    move.accuracy <= 100
+  );
+}
+
 function isValidPartyMember(value: unknown): boolean {
   if (typeof value !== "object" || value === null) {
     return false;
@@ -227,6 +255,12 @@ function isValidPartyMember(value: unknown): boolean {
     typeof creature.instanceId !== "string" ||
     creature.instanceId.length === 0
   ) {
+    return false;
+  }
+  // Mint-pattern ids above the counter ceiling can only come from crafted
+  // saves and would push the mint floor into duplicate territory (#192).
+  const mintedId = /^c-(\d+)$/.exec(creature.instanceId);
+  if (mintedId && Number(mintedId[1]) > MAX_INSTANCE_COUNTER) {
     return false;
   }
   if (
@@ -255,6 +289,35 @@ function isValidPartyMember(value: unknown): boolean {
   if (
     creature.attackBonus !== undefined &&
     (!isFiniteNumber(creature.attackBonus) || creature.attackBonus < 0)
+  ) {
+    return false;
+  }
+  // speciesId is optional (pre-evolution saves lack it; applyWorldSnapshot
+  // backfills from definitionId) but must name a real creature when present.
+  if (
+    creature.speciesId !== undefined &&
+    (typeof creature.speciesId !== "string" ||
+      !VALID_CREATURE_IDS.has(creature.speciesId))
+  ) {
+    return false;
+  }
+  if (
+    creature.secondaryElement !== undefined &&
+    (typeof creature.secondaryElement !== "string" ||
+      !VALID_FOLKLORE_TYPES.has(creature.secondaryElement))
+  ) {
+    return false;
+  }
+  if (
+    creature.secondaryMove !== undefined &&
+    !isValidMoveDefinition(creature.secondaryMove)
+  ) {
+    return false;
+  }
+  if (
+    creature.appliedEffects !== undefined &&
+    (!Array.isArray(creature.appliedEffects) ||
+      creature.appliedEffects.some((effect) => typeof effect !== "string"))
   ) {
     return false;
   }
@@ -578,10 +641,43 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
 
-  if (!isFiniteNumber(s.nextInstanceId) || s.nextInstanceId < 0) return false;
+  // Safe integer only: the mint appends this counter into `c-<n>` ids, so a
+  // fractional or precision-lossy value can duplicate an accepted id (#192).
+  if (
+    typeof s.nextInstanceId !== "number" ||
+    !Number.isSafeInteger(s.nextInstanceId) ||
+    s.nextInstanceId < 0 ||
+    s.nextInstanceId > MAX_INSTANCE_COUNTER
+  ) {
+    return false;
+  }
   if (!isValidQuestProgress(s.questProgress)) return false;
   if (!isValidCountMap(s.materials) || !isValidCountMap(s.items)) return false;
   return true;
+}
+
+/**
+ * Never mint an instance id that collides with a loaded `c-<n>` id (#192).
+ * Ids not matching the minted pattern are ignored for the max.
+ */
+function nextInstanceIdAfter(
+  party: readonly { instanceId: string }[],
+  saved: number,
+): number {
+  let next = saved;
+  for (const { instanceId } of party) {
+    const match = /^c-(\d+)$/.exec(instanceId);
+    if (!match) {
+      continue;
+    }
+    const n = Number(match[1]);
+    // Validation caps accepted suffixes at MAX_INSTANCE_COUNTER; the bound
+    // here keeps the floor safe even for callers that skip validation.
+    if (Number.isSafeInteger(n) && n <= MAX_INSTANCE_COUNTER) {
+      next = Math.max(next, n + 1);
+    }
+  }
+  return next;
 }
 
 let pendingPosition: PendingWorldPosition | null = null;
@@ -665,9 +761,16 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     ...(snapshot.discoveredCreatures ?? []),
     ...fromParty,
   ]);
+  // Pre-evolution saves lack speciesId; hasCreature() matches on it, so a
+  // missing value reads owned sovereigns as absent and re-opens their claimed
+  // encounters (#192).
+  const party = snapshot.party.map((member) => ({
+    ...member,
+    speciesId: member.speciesId ?? member.definitionId,
+  }));
   setPartyFromSnapshot(
-    snapshot.party,
-    snapshot.nextInstanceId,
+    party,
+    nextInstanceIdAfter(party, snapshot.nextInstanceId),
     snapshot.activePartyIds,
   );
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
