@@ -6,6 +6,7 @@ import {
 } from "./craftingHud";
 import { closeRecipes, isRecipesOpen } from "./recipePanel";
 import { resetStagedCraftingSourcesForTest } from "../crafting/stagedMaterials";
+import { getMaterialIconSrc } from "../inventory/materials";
 import {
   getItemCount,
   getMaterialCount,
@@ -107,8 +108,8 @@ describe("crafting HUD", () => {
       new PointerEvent("pointerdown", { bubbles: true, clientX: 2, clientY: 2 }),
     );
     cellAt(host, 0, 1).click();
-    expect(cellAt(host, 0, 0).textContent).toBe("Stone");
-    expect(cellAt(host, 0, 1).textContent).toBe("Wood");
+    expect(cellAt(host, 0, 0).getAttribute("aria-label")).toBe("Stone");
+    expect(cellAt(host, 0, 1).getAttribute("aria-label")).toBe("Wood");
     hud.destroy();
   });
 
@@ -163,6 +164,34 @@ describe("crafting HUD", () => {
     expect(isHostPersistSuspended()).toBe(false);
     hideShrineCraftingHud(true);
     expect(getMaterialCount("wood")).toBe(1);
+  });
+
+  it("shows craft-material icons in the list and grid", () => {
+    const { host, hud } = mountHud();
+    const row = listRow(host, "Wood");
+    expect(
+      row.querySelector("img.material-icon")?.getAttribute("src"),
+    ).toBe(getMaterialIconSrc("wood"));
+    row.click();
+    cellAt(host, 0, 0).click();
+    const cell = cellAt(host, 0, 0);
+    expect(cell.querySelector("img.material-icon")?.getAttribute("src")).toBe(
+      getMaterialIconSrc("wood"),
+    );
+    expect(cell.getAttribute("aria-label")).toBe("Wood");
+    hud.destroy();
+  });
+
+  it("clears a grid cell when the material is picked back up", () => {
+    const { host, hud } = mountHud();
+    listRow(host, "Wood").click();
+    cellAt(host, 0, 0).click();
+    expect(cellAt(host, 0, 0).querySelector("img.material-icon")).not.toBeNull();
+    cellAt(host, 0, 0).click();
+    const empty = cellAt(host, 0, 0);
+    expect(empty.querySelector("img.material-icon")).toBeNull();
+    expect(empty.getAttribute("aria-label")).toBeNull();
+    hud.destroy();
   });
 
   it("opens Recipes from the craft HUD", () => {

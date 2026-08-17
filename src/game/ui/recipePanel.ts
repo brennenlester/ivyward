@@ -1,4 +1,5 @@
 import { getMaterialName } from "../inventory/materials";
+import { appendMaterialVisual } from "./materialIcon";
 import {
   CRAFT_RECIPES,
   getRecipeMaterials,
@@ -97,7 +98,9 @@ function renderRecipeGrid(grid: (string | null)[][]): HTMLElement {
     for (const cell of row) {
       const el = document.createElement("span");
       el.className = cell ? "recipe-cell recipe-cell-filled" : "recipe-cell";
-      el.textContent = cell ? getMaterialName(cell) : "";
+      if (cell) {
+        appendMaterialVisual(el, cell, { showName: false });
+      }
       table.appendChild(el);
     }
   }
