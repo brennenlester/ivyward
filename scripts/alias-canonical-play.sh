@@ -6,8 +6,8 @@
 set -euo pipefail
 
 SCOPE="${VERCEL_SCOPE:-brennen1}"
-PROJECT="${VERCEL_PROJECT:-ivyward}"
-CANONICAL_HOST="${CANONICAL_PLAY_HOST:-ivyward-brennen1.vercel.app}"
+PROJECT="${VERCEL_PROJECT:-mainsail}"
+CANONICAL_HOST="${CANONICAL_PLAY_HOST:-mainsail-brennen1.vercel.app}"
 
 resolve_latest_ready_production_url() {
   npx vercel@latest ls "$PROJECT" --prod --status READY --scope "$SCOPE" --format json 2>/dev/null \
