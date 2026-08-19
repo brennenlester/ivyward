@@ -1,6 +1,6 @@
 name: Alias canonical play URL
 
-# Keep https://ivyward-brennen1.vercel.app pointed at the latest Production deploy.
+# Keep https://mainsail-brennen1.vercel.app pointed at the latest Production deploy.
 # Requires repo secret VERCEL_TOKEN (Vercel → Account → Tokens).
 
 on:
@@ -42,7 +42,7 @@ jobs:
         with:
           node-version: "20"
 
-      - name: Alias ivyward-brennen1.vercel.app to latest production
+      - name: Alias mainsail-brennen1.vercel.app to latest production
         id: alias
         env:
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
@@ -54,7 +54,7 @@ jobs:
           # cannot leave the canonical hostname on an older build.
           ./scripts/alias-canonical-play.sh
           resolved="$(
-            npx vercel@latest ls ivyward --prod --status READY --scope brennen1 --format json 2>/dev/null \
+            npx vercel@latest ls mainsail --prod --status READY --scope brennen1 --format json 2>/dev/null \
               | node -e '
                 const fs = require("fs");
                 const data = JSON.parse(fs.readFileSync(0, "utf8"));
@@ -72,7 +72,7 @@ jobs:
         run: |
           set -euo pipefail
           sleep 3
-          canon_js="$(curl -fsSL https://ivyward-brennen1.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
+          canon_js="$(curl -fsSL https://mainsail-brennen1.vercel.app/ | grep -oE 'assets/index-[^"]+\.js' | head -1)"
           if [ -z "${TARGET_URL:-}" ]; then
             echo "Missing target_url from alias step" >&2
             exit 1

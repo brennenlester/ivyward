@@ -4,10 +4,10 @@ This repository follows the shared agent baseline supplied by the active harness
 
 ## Project links
 
-- **GitHub repo / issues (tracker of record):** [brennenlester/ivyward](https://github.com/brennenlester/ivyward)
-- **Play (canonical):** [https://ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app) — after merge, share only this URL (not `*-git-codex-*` or other hashed preview URLs) unless the user asks for a pre-merge preview.
+- **GitHub repo / issues (tracker of record):** [brennenlester/mainsail](https://github.com/brennenlester/mainsail)
+- **Play (canonical):** [https://mainsail-brennen1.vercel.app](https://mainsail-brennen1.vercel.app) — after merge, share only this URL (not `*-git-codex-*` or other hashed preview URLs) unless the user asks for a pre-merge preview.
   - This hostname must track latest Production. GitHub Action `Alias canonical play URL` re-aliases it when `VERCEL_TOKEN` is set; otherwise run `./scripts/alias-canonical-play.sh` after a production deploy.
-  - Auto-updating fallbacks (if the branded alias is temporarily stale): [ivyward-git-main-brennen1.vercel.app](https://ivyward-git-main-brennen1.vercel.app) or [poke-wine-kappa.vercel.app](https://poke-wine-kappa.vercel.app).
+  - Auto-updating fallbacks (if the branded alias is temporarily stale): [mainsail-git-main-brennen1.vercel.app](https://mainsail-git-main-brennen1.vercel.app) or [poke-wine-kappa.vercel.app](https://poke-wine-kappa.vercel.app).
 - **Linear project (historical, read-only):** [Ivyward](https://linear.app/brennen-lester/project/ivyward-f73601c7fa30) — BRE-* history only; never create or mutate Linear work for this project
 
 ## GitHub-Issues-first workflow
@@ -32,9 +32,9 @@ Rules:
 ## Git conventions
 
 - **Default branch:** `main`
-- **Canonical checkout:** the `[main]` entry from `git worktree list` (today `/Users/brennen/dev/poke`). Treat it as read-only orchestration space — do not implement issues there.
+- **Canonical checkout:** the `[main]` entry from `git worktree list` (today `/Users/brennen/dev/mainsail`). Treat it as read-only orchestration space — do not implement issues there.
 - **Feature branches:** `cursor/<issue-slug>` (e.g. `cursor/81-agents-linear-read-only`). Do **not** use the legacy `codex/` prefix for new branches.
-- **Issue worktrees:** create as siblings under `/Users/brennen/dev/` named `ivyward-<short-slug>` (e.g. `/Users/brennen/dev/ivyward-81-agents-linear`). Prefer a dedicated worktree when `main` is dirty or the issue is non-trivial; move the agent root into that worktree before editing.
+- **Issue worktrees:** create as siblings under `/Users/brennen/dev/` named `mainsail-<short-slug>` (e.g. `/Users/brennen/dev/mainsail-81-agents-linear`). Prefer a dedicated worktree when `main` is dirty or the issue is non-trivial; move the agent root into that worktree before editing.
 - Commit messages should reference the GitHub issue number (e.g. `#81`).
 
 ## Documentation
