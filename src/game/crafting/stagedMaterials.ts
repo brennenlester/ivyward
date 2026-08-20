@@ -1,4 +1,4 @@
-import { isCraftItemIngredient } from "./recipes";
+import { isCraftItemIngredient } from "../inventory/materials";
 
 const sources = new Set<() => Record<string, number>>();
 

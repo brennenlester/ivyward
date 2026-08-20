@@ -21,6 +21,7 @@ import {
   setEclipseFusionCompleted,
   setGodFusionCompleted,
 } from "../world/worldState";
+import { registerStagedCraftingSource } from "./stagedMaterials";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
@@ -187,6 +188,17 @@ describe("sovereign crown and seal recipes", () => {
     expect(craftItem(boulderRecipe)).toBe(true);
     expect(getItemCount("boulder-crown")).toBe(1);
     expect(canCraft(boulderRecipe)).toBe(false);
+  });
+
+  it("treats a crown staged on the grid as already owned", () => {
+    setInventoryFromSnapshot(
+      { "brook-pearl": 3, "folklore-dust": 1, "wild-fiber": 1 },
+      {},
+    );
+    const stop = registerStagedCraftingSource(() => ({ "tide-crown": 1 }));
+    expect(canCraft(tideRecipe)).toBe(false);
+    stop();
+    expect(canCraft(tideRecipe)).toBe(true);
   });
 
   it("forms a Sovereign Seal from the original materials plus both crowns", () => {

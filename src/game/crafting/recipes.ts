@@ -1,4 +1,4 @@
-import { ITEM_NAMES } from "../inventory/materials";
+import { isCraftItemIngredient } from "../inventory/materials";
 import {
   addItem,
   addMaterial,
@@ -8,10 +8,12 @@ import {
   consumeMaterial,
   getItemCount,
   getMaterialCount,
+  playerInventory,
   TIDE_CROWN_ID,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import { isEclipseFusionCompleted } from "../world/worldState";
+import { withStagedCraftingItems } from "./stagedMaterials";
 
 export const GRID_SIZE = 4;
 
@@ -148,10 +150,7 @@ export type MatchResult =
   | { status: "blocked"; recipe: CraftRecipe; message: string }
   | { status: "none" };
 
-export function isCraftItemIngredient(id: string): boolean {
-  return Object.prototype.hasOwnProperty.call(ITEM_NAMES, id);
-}
-
+export { isCraftItemIngredient };
 export function takeCraftIngredient(id: string): boolean {
   return isCraftItemIngredient(id) ? consumeItem(id) : consumeMaterial(id, 1);
 }
@@ -272,6 +271,10 @@ function uniqueOwnedBlockedMessage(recipe: CraftRecipe): string {
   return `Already have a ${recipe.name}`;
 }
 
+function ownedItemCount(itemId: string): number {
+  return withStagedCraftingItems(playerInventory.items)[itemId] ?? 0;
+}
+
 function fusionPathCraftBlock(recipe: CraftRecipe): string | null {
   if (!isEclipseFusionCompleted()) {
     return null;
@@ -320,7 +323,7 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
     if (!patternMatchesBox(grid, box, recipe.pattern)) {
       continue;
     }
-    if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
+    if (recipe.uniqueOwned && ownedItemCount(recipe.outputItemId) >= 1) {
       return {
         status: "blocked",
         recipe,
@@ -367,7 +370,7 @@ export function canCraft(
   if (recipe.altarOnly && context !== "altar") {
     return false;
   }
-  if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
+  if (recipe.uniqueOwned && ownedItemCount(recipe.outputItemId) >= 1) {
     return false;
   }
   if (fusionPathCraftBlock(recipe)) {

@@ -119,3 +119,7 @@ export function getMaterialIconSrc(materialId: string): string | undefined {
 export function getItemName(itemId: string): string {
   return ITEM_NAMES[itemId] ?? itemId;
 }
+
+export function isCraftItemIngredient(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(ITEM_NAMES, id);
+}
