@@ -10,28 +10,27 @@ import { openInventory } from "./inventoryPanel";
 import { openRecipes } from "./recipePanel";
 
 let inviteFeedbackActive = false;
+let copyInviteHandler: (() => void | Promise<void>) | null = null;
 let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 function defaultSessionText(): string {
-  return isVisitorMode() ? "Visitor mode — explore only" : "";
+  return isVisitorMode()
+    ? "Visitor mode — explore only"
+    : "Use Copy invite link to share your world";
 }
 
-function hideHostInviteButton(): void {
+/** Scene registers live-position invite copy (keyboard I + panel button). */
+export function setCopyInviteHandler(
+  handler: (() => void | Promise<void>) | null,
+): void {
+  copyInviteHandler = handler;
   const copyInviteBtn = document.getElementById(
     "copy-invite-btn",
   ) as HTMLButtonElement | null;
-  if (!copyInviteBtn) {
+  if (!copyInviteBtn || isVisitorMode()) {
     return;
   }
-  copyInviteBtn.hidden = true;
-  copyInviteBtn.disabled = true;
-}
-
-/** Kept so callers compile; host invite chrome is off for this slice. */
-export function setCopyInviteHandler(
-  _handler: (() => void | Promise<void>) | null,
-): void {
-  hideHostInviteButton();
+  copyInviteBtn.disabled = handler === null;
 }
 
 function defaultSessionColor(): string {
@@ -39,7 +38,6 @@ function defaultSessionColor(): string {
 }
 
 export function updateStatusPanel(zone: ZoneDefinition): void {
-  hideHostInviteButton();
   const zoneEl = document.getElementById("status-zone");
   const questEl = document.getElementById("status-quest");
   const questHintEl = document.getElementById("status-quest-hint");
@@ -169,11 +167,16 @@ export function initStatusPanelControls(): void {
   }
   statusControlsInitialized = true;
 
-  hideHostInviteButton();
   const copyInviteBtn = document.getElementById("copy-invite-btn");
   if (copyInviteBtn instanceof HTMLButtonElement) {
+    copyInviteBtn.hidden = isVisitorMode();
+    // Disabled until IsometricScene registers the live-position handler.
+    copyInviteBtn.disabled = isVisitorMode() || copyInviteHandler === null;
     copyInviteBtn.addEventListener("click", () => {
-      // Host invite chrome is off; do not copy a join link.
+      if (isVisitorMode() || copyInviteBtn.disabled) {
+        return;
+      }
+      void copyInviteHandler?.();
     });
   }
 
