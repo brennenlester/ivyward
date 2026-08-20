@@ -1,10 +1,12 @@
 import {
   addItem,
   addMaterial,
+  BOULDER_CROWN_ID,
   canAddItem,
   consumeMaterial,
   getItemCount,
   getMaterialCount,
+  TIDE_CROWN_ID,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import { isEclipseFusionCompleted } from "../world/worldState";
@@ -37,11 +39,20 @@ export const PATTERN_GLYPHS: Record<string, string> = {
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
   {
-    id: "sovereign-seal",
-    name: "Sovereign Seal",
-    outputItemId: "sovereign-seal",
+    id: TIDE_CROWN_ID,
+    name: "Tide Crown",
+    outputItemId: TIDE_CROWN_ID,
     outputCount: 1,
-    pattern: ["PBP", "BDB", "PDF", ".F."],
+    pattern: ["PPP", ".D.", ".F."],
+    uniqueOwned: true,
+  },
+  {
+    id: BOULDER_CROWN_ID,
+    name: "Boulder Crown",
+    outputItemId: BOULDER_CROWN_ID,
+    outputCount: 1,
+    pattern: ["BBB", ".D.", ".F."],
+    uniqueOwned: true,
   },
   {
     id: "wood-cudgel",
@@ -214,6 +225,17 @@ export function placePattern(
   return next;
 }
 
+function isSovereignCrown(itemId: string): boolean {
+  return itemId === TIDE_CROWN_ID || itemId === BOULDER_CROWN_ID;
+}
+
+function uniqueOwnedBlockedMessage(recipe: CraftRecipe): string {
+  if (recipe.id === "portable-moonshrine") {
+    return "Already have a Moonshrine";
+  }
+  return `Already have a ${recipe.name}`;
+}
+
 function patternMatchesBox(
   grid: CraftGrid,
   box: GridBox,
@@ -252,10 +274,10 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
       return {
         status: "blocked",
         recipe,
-        message: "Already have a Moonshrine",
+        message: uniqueOwnedBlockedMessage(recipe),
       };
     }
-    if (recipe.outputItemId === "sovereign-seal" && isEclipseFusionCompleted()) {
+    if (isSovereignCrown(recipe.outputItemId) && isEclipseFusionCompleted()) {
       return {
         status: "blocked",
         recipe,
@@ -301,7 +323,7 @@ export function canCraft(
   if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
     return false;
   }
-  if (recipe.outputItemId === "sovereign-seal" && isEclipseFusionCompleted()) {
+  if (isSovereignCrown(recipe.outputItemId) && isEclipseFusionCompleted()) {
     return false;
   }
   return (

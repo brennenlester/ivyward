@@ -6,10 +6,38 @@ export const playerInventory = {
   items: {} as Record<string, number>,
 };
 
+export const TIDE_CROWN_ID = "tide-crown";
+export const BOULDER_CROWN_ID = "boulder-crown";
+export const LEGACY_SOVEREIGN_SEAL_ID = "sovereign-seal";
+
 const ITEM_HOLD_CAPS: Record<string, number> = {
   "brook-crystal": 20,
-  "sovereign-seal": 1,
+  [TIDE_CROWN_ID]: 1,
+  [BOULDER_CROWN_ID]: 1,
 };
+
+/** Convert a leftover Sovereign Seal from pre-#219 saves into the next needed crown. */
+export function migrateSovereignSealItems(
+  items: Record<string, number>,
+  options: { canHorizonFuse: boolean; eclipseFusionCompleted: boolean },
+): Record<string, number> {
+  const next = { ...items };
+  const seals = next[LEGACY_SOVEREIGN_SEAL_ID] ?? 0;
+  delete next[LEGACY_SOVEREIGN_SEAL_ID];
+  if (seals < 1 || options.eclipseFusionCompleted) {
+    return next;
+  }
+  if (options.canHorizonFuse) {
+    if ((next[TIDE_CROWN_ID] ?? 0) < 1) {
+      next[TIDE_CROWN_ID] = 1;
+    }
+    return next;
+  }
+  if ((next[BOULDER_CROWN_ID] ?? 0) < 1) {
+    next[BOULDER_CROWN_ID] = 1;
+  }
+  return next;
+}
 
 export function getMaterialCount(materialId: string): number {
   return playerInventory.materials[materialId] ?? 0;

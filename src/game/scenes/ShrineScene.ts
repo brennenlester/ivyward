@@ -12,7 +12,8 @@ import {
   findGodFusionParents,
   findHorizonFusionParents,
   HORIZON_SOVEREIGN_ID,
-  SOVEREIGN_SEAL_ID,
+  TIDE_CROWN_ID,
+  BOULDER_CROWN_ID,
 } from "../shrine/godFusion";
 import {
   isEclipseFusionCompleted,
@@ -517,8 +518,12 @@ export class ShrineScene extends Phaser.Scene {
     }
 
     const itemId = this.selectedItemId;
-    if (itemId === SOVEREIGN_SEAL_ID) {
-      this.renderGodFusion(itemId, contentTop, cx);
+    if (itemId === TIDE_CROWN_ID) {
+      this.renderTideCrownFusion(contentTop, cx);
+      return;
+    }
+    if (itemId === BOULDER_CROWN_ID) {
+      this.renderBoulderCrownFusion(contentTop, cx);
       return;
     }
 
@@ -604,22 +609,7 @@ export class ShrineScene extends Phaser.Scene {
     this.contentHeight = shrineTabContentHeight(y, contentTop);
   }
 
-  private renderGodFusion(
-    itemId: string,
-    contentTop: number,
-    cx: number,
-  ): void {
-    const header = this.add
-      .text(cx, contentTop + 8, `${getItemName(itemId)} — fuse the two sovereigns`, {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "12px",
-        align: "center",
-        wordWrap: { width: 400 },
-      })
-      .setOrigin(0.5);
-    this.contentContainer.add(header);
-
+  private addFusionBackButton(contentTop: number, cx: number): void {
     const back = this.add
       .text(cx - 180, contentTop + 8, "← Back", {
         color: MOON_TEXT,
@@ -633,6 +623,20 @@ export class ShrineScene extends Phaser.Scene {
       this.renderTabContent();
     });
     this.contentContainer.add(back);
+  }
+
+  private renderTideCrownFusion(contentTop: number, cx: number): void {
+    const header = this.add
+      .text(cx, contentTop + 8, "Tide Crown — fuse Tide Sovereign and Stone Sovereign", {
+        color: MOON_MUTED,
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "12px",
+        align: "center",
+        wordWrap: { width: 400 },
+      })
+      .setOrigin(0.5);
+    this.contentContainer.add(header);
+    this.addFusionBackButton(contentTop, cx);
 
     if (isEclipseFusionCompleted()) {
       const done = this.add
@@ -648,65 +652,25 @@ export class ShrineScene extends Phaser.Scene {
       return;
     }
 
-    const { first, second } = findHorizonFusionParents();
-    if (first && second) {
-      const summary = this.add
-        .text(
-          cx,
-          contentTop + 52,
-          `Horizon Sovereign Lv.${first.level} + Horizon Sovereign Lv.${second.level}`,
-          {
-            color: MOON_TEXT,
-            fontFamily: "system-ui, sans-serif",
-            fontSize: "14px",
-            align: "center",
-          },
-        )
-        .setOrigin(0.5);
-      this.contentContainer.add(summary);
-
-      const btn = this.add
-        .text(cx, contentTop + 96, "Fuse into Eclipse Sovereign", {
-          color: "#1a1a2e",
-          backgroundColor: "#e0d4f0",
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "14px",
-          padding: { x: 12, y: 8 },
-        })
-        .setOrigin(0.5)
-        .setInteractive({ useHandCursor: true });
-
-      this.onContentTap(btn, () => {
-        const result = applyEclipseFusion(
-          first.instanceId,
-          second.instanceId,
-          itemId,
-        );
-        this.setStatus(result.message);
-        if (result.ok) {
-          notifyWorldChanged();
-          this.selectedItemId = null;
-        }
-        this.renderTabContent();
-      });
-      this.contentContainer.add(btn);
-      return;
-    }
-
     if (
       getHorizonFusionCount() >= MAX_HORIZON_FUSIONS ||
       countCreatures(HORIZON_SOVEREIGN_ID) >= MAX_SOVEREIGN_COPIES
     ) {
-      const needHorizons = this.add
-        .text(cx, contentTop + 56, "Requires two Horizon Sovereigns in your party.", {
-          color: MOON_MUTED,
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "14px",
-          align: "center",
-          wordWrap: { width: 400 },
-        })
+      const needBoulder = this.add
+        .text(
+          cx,
+          contentTop + 56,
+          "Fuse the two Horizon Sovereigns with a Boulder Crown instead.",
+          {
+            color: MOON_MUTED,
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "14px",
+            align: "center",
+            wordWrap: { width: 400 },
+          },
+        )
         .setOrigin(0.5);
-      this.contentContainer.add(needHorizons);
+      this.contentContainer.add(needBoulder);
       return;
     }
 
@@ -757,7 +721,7 @@ export class ShrineScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.onContentTap(btn, () => {
-      const result = applyGodFusion(tide.instanceId, cairn.instanceId, itemId);
+      const result = applyGodFusion(tide.instanceId, cairn.instanceId, TIDE_CROWN_ID);
       this.setStatus(result.message);
       if (result.ok) {
         notifyWorldChanged();
@@ -766,6 +730,90 @@ export class ShrineScene extends Phaser.Scene {
       this.renderTabContent();
     });
     this.contentContainer.add(btn);
+  }
+
+  private renderBoulderCrownFusion(contentTop: number, cx: number): void {
+    const header = this.add
+      .text(cx, contentTop + 8, "Boulder Crown — fuse two Horizon Sovereigns", {
+        color: MOON_MUTED,
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "12px",
+        align: "center",
+        wordWrap: { width: 400 },
+      })
+      .setOrigin(0.5);
+    this.contentContainer.add(header);
+    this.addFusionBackButton(contentTop, cx);
+
+    if (isEclipseFusionCompleted()) {
+      const done = this.add
+        .text(cx, contentTop + 56, "Eclipse Sovereign has already been fused.", {
+          color: MOON_MUTED,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          align: "center",
+          wordWrap: { width: 400 },
+        })
+        .setOrigin(0.5);
+      this.contentContainer.add(done);
+      return;
+    }
+
+    const { first, second } = findHorizonFusionParents();
+    if (first && second) {
+      const summary = this.add
+        .text(
+          cx,
+          contentTop + 52,
+          `Horizon Sovereign Lv.${first.level} + Horizon Sovereign Lv.${second.level}`,
+          {
+            color: MOON_TEXT,
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "14px",
+            align: "center",
+          },
+        )
+        .setOrigin(0.5);
+      this.contentContainer.add(summary);
+
+      const btn = this.add
+        .text(cx, contentTop + 96, "Fuse into Eclipse Sovereign", {
+          color: "#1a1a2e",
+          backgroundColor: "#e0d4f0",
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          padding: { x: 12, y: 8 },
+        })
+        .setOrigin(0.5)
+        .setInteractive({ useHandCursor: true });
+
+      this.onContentTap(btn, () => {
+        const result = applyEclipseFusion(
+          first.instanceId,
+          second.instanceId,
+          BOULDER_CROWN_ID,
+        );
+        this.setStatus(result.message);
+        if (result.ok) {
+          notifyWorldChanged();
+          this.selectedItemId = null;
+        }
+        this.renderTabContent();
+      });
+      this.contentContainer.add(btn);
+      return;
+    }
+
+    const needHorizons = this.add
+      .text(cx, contentTop + 56, "Requires two Horizon Sovereigns in your party.", {
+        color: MOON_MUTED,
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "14px",
+        align: "center",
+        wordWrap: { width: 400 },
+      })
+      .setOrigin(0.5);
+    this.contentContainer.add(needHorizons);
   }
 
   private renderUseTab(): void {

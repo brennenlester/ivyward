@@ -16,10 +16,11 @@ import { applyShrineFusion } from "./fusion";
 import {
   applyEclipseFusion,
   applyGodFusion,
+  BOULDER_CROWN_ID,
   ECLIPSE_SOVEREIGN_ID,
   HORIZON_SOVEREIGN_ID,
   reopenParentSovereignEncounters,
-  SOVEREIGN_SEAL_ID,
+  TIDE_CROWN_ID,
 } from "./godFusion";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
@@ -66,7 +67,7 @@ describe("dual-god fusion", () => {
     setCairnSovereignObtained(0, false);
   });
 
-  it("refuses visitors, missing seal, missing gods, and the wrong item", () => {
+  it("refuses visitors, missing Tide Crown, missing gods, and the wrong item", () => {
     setPartyFromSnapshot(
       [
         member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID, level: 40 }),
@@ -74,14 +75,14 @@ describe("dual-god fusion", () => {
       ],
       3,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
 
     setVisitorMode(true);
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(false);
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID).ok).toBe(false);
     setVisitorMode(false);
 
     expect(applyGodFusion("t", "c", "ember-charm").ok).toBe(false);
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID).ok).toBe(true);
 
     setGodFusionCompleted(false, false);
     setInventoryFromSnapshot({}, {});
@@ -92,16 +93,16 @@ describe("dual-god fusion", () => {
       ],
       3,
     );
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).message).toBe(
-      "You need a Sovereign Seal.",
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID).message).toBe(
+      "You need a Tide Crown.",
     );
 
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
     setPartyFromSnapshot(
       [member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID })],
       2,
     );
-    expect(applyGodFusion("t", "missing", SOVEREIGN_SEAL_ID).message).toMatch(
+    expect(applyGodFusion("t", "missing", TIDE_CROWN_ID).message).toMatch(
       /Requires Tide Sovereign and Stone Sovereign/,
     );
   });
@@ -116,8 +117,8 @@ describe("dual-god fusion", () => {
       ],
       3,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID).ok).toBe(true);
     expect(getHorizonFusionCount()).toBe(1);
     expect(isGodSailEncounterClaimed()).toBe(false);
     expect(isGodLandEncounterClaimed()).toBe(false);
@@ -130,10 +131,10 @@ describe("dual-god fusion", () => {
       ],
       6,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
     setGodSailEncounterClaimed(true, false);
     setGodLandEncounterClaimed(true, false);
-    expect(applyGodFusion("t2", "c2", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    expect(applyGodFusion("t2", "c2", TIDE_CROWN_ID).ok).toBe(true);
     expect(getHorizonFusionCount()).toBe(2);
     expect(
       playerParty.creatures.filter((c) => c.definitionId === HORIZON_SOVEREIGN_ID),
@@ -151,12 +152,12 @@ describe("dual-god fusion", () => {
       ],
       3,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID)).toEqual({
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID)).toEqual({
       ok: false,
       message: "Fuse the two Horizon Sovereigns instead.",
     });
-    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(1);
+    expect(getItemCount(TIDE_CROWN_ID)).toBe(1);
   });
 
   it("refuses Horizon fusion when two Horizons are already in the party", () => {
@@ -170,8 +171,8 @@ describe("dual-god fusion", () => {
       ],
       5,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID)).toEqual({
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID)).toEqual({
       ok: false,
       message: "Fuse the two Horizon Sovereigns instead.",
     });
@@ -188,7 +189,7 @@ describe("dual-god fusion", () => {
     expect(isGodLandEncounterClaimed()).toBe(true);
   });
 
-  it("consumes both parents and the seal, then adds Horizon Sovereign", () => {
+  it("consumes both parents and the Tide Crown, then adds Horizon Sovereign", () => {
     setPartyFromSnapshot(
       [
         member({
@@ -208,10 +209,10 @@ describe("dual-god fusion", () => {
     );
     setInventoryFromSnapshot(
       {},
-      { [SOVEREIGN_SEAL_ID]: 1, "tide-cleaver": 1, "cairn-maul": 1 },
+      { [TIDE_CROWN_ID]: 1, "tide-cleaver": 1, "cairn-maul": 1 },
     );
 
-    const result = applyGodFusion("t", "c", SOVEREIGN_SEAL_ID);
+    const result = applyGodFusion("t", "c", TIDE_CROWN_ID);
     expect(result).toEqual({
       ok: true,
       message:
@@ -220,7 +221,7 @@ describe("dual-god fusion", () => {
     expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(false);
     expect(hasCreature(CAIRN_SOVEREIGN_ID)).toBe(false);
     expect(hasCreature(HORIZON_SOVEREIGN_ID)).toBe(true);
-    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(0);
+    expect(getItemCount(TIDE_CROWN_ID)).toBe(0);
     expect(getItemCount("tide-cleaver")).toBe(1);
     expect(getItemCount("cairn-maul")).toBe(1);
     expect(isGodFusionCompleted()).toBe(true);
@@ -257,16 +258,16 @@ describe("dual-god fusion", () => {
       ],
       4,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    setInventoryFromSnapshot({}, { [BOULDER_CROWN_ID]: 1 });
 
-    const result = applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID);
+    const result = applyEclipseFusion("h1", "h2", BOULDER_CROWN_ID);
     expect(result).toEqual({
       ok: true,
       message: "Horizon Sovereigns fused into Eclipse Sovereign!",
     });
     expect(hasCreature(HORIZON_SOVEREIGN_ID)).toBe(false);
     expect(hasCreature(ECLIPSE_SOVEREIGN_ID)).toBe(true);
-    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(0);
+    expect(getItemCount(BOULDER_CROWN_ID)).toBe(0);
     expect(isEclipseFusionCompleted()).toBe(true);
 
     const fused = playerParty.creatures[0];
@@ -285,7 +286,7 @@ describe("dual-god fusion", () => {
     });
   });
 
-  it("refuses Eclipse fusion for visitors, missing seal, same instance, and a second Eclipse", () => {
+  it("refuses Eclipse fusion for visitors, missing crown, same instance, and a second Eclipse", () => {
     setPartyFromSnapshot(
       [
         member({ instanceId: "h1", definitionId: HORIZON_SOVEREIGN_ID }),
@@ -293,27 +294,30 @@ describe("dual-god fusion", () => {
       ],
       4,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
+    setInventoryFromSnapshot({}, { [BOULDER_CROWN_ID]: 1 });
 
     setVisitorMode(true);
-    expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID).ok).toBe(false);
+    expect(applyEclipseFusion("h1", "h2", BOULDER_CROWN_ID).ok).toBe(false);
     setVisitorMode(false);
 
-    expect(applyEclipseFusion("h1", "h1", SOVEREIGN_SEAL_ID).message).toMatch(
+    expect(applyEclipseFusion("h1", "h1", BOULDER_CROWN_ID).message).toMatch(
       /Requires two Horizon Sovereigns/,
     );
 
     setEclipseFusionCompleted(true, false);
-    expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID)).toEqual({
+    expect(applyEclipseFusion("h1", "h2", BOULDER_CROWN_ID)).toEqual({
       ok: false,
       message: "Eclipse Sovereign has already been fused.",
     });
-    expect(getItemCount(SOVEREIGN_SEAL_ID)).toBe(1);
+    expect(getItemCount(BOULDER_CROWN_ID)).toBe(1);
 
     setEclipseFusionCompleted(false, false);
     setInventoryFromSnapshot({}, {});
-    expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID).message).toBe(
-      "You need a Sovereign Seal.",
+    expect(applyEclipseFusion("h1", "h2", BOULDER_CROWN_ID).message).toBe(
+      "You need a Boulder Crown.",
+    );
+    expect(applyEclipseFusion("h1", "h2", TIDE_CROWN_ID).message).toBe(
+      "That item cannot fuse the sovereigns.",
     );
   });
 
@@ -328,8 +332,8 @@ describe("dual-god fusion", () => {
       ],
       3,
     );
-    setInventoryFromSnapshot({}, { [SOVEREIGN_SEAL_ID]: 1 });
-    expect(applyGodFusion("t", "c", SOVEREIGN_SEAL_ID).ok).toBe(true);
+    setInventoryFromSnapshot({}, { [TIDE_CROWN_ID]: 1 });
+    expect(applyGodFusion("t", "c", TIDE_CROWN_ID).ok).toBe(true);
     expect(getHorizonFusionCount()).toBe(2);
   });
 

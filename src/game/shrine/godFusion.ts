@@ -6,7 +6,12 @@ import {
   playerParty,
   removeFromParty,
 } from "../creatures/party";
-import { consumeItem, getItemCount } from "../inventory/playerInventory";
+import {
+  BOULDER_CROWN_ID,
+  consumeItem,
+  getItemCount,
+  TIDE_CROWN_ID,
+} from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import {
   canHuntParentSovereigns,
@@ -25,7 +30,7 @@ import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import type { CreatureInstance } from "../creatures/types";
 
-export const SOVEREIGN_SEAL_ID = "sovereign-seal";
+export { TIDE_CROWN_ID, BOULDER_CROWN_ID } from "../inventory/playerInventory";
 export const HORIZON_SOVEREIGN_ID = "horizon-sovereign";
 export const ECLIPSE_SOVEREIGN_ID = "eclipse-sovereign";
 
@@ -96,11 +101,11 @@ export function applyGodFusion(
       message: "Fuse the two Horizon Sovereigns instead.",
     };
   }
-  if (itemId !== SOVEREIGN_SEAL_ID) {
+  if (itemId !== TIDE_CROWN_ID) {
     return { ok: false, message: "That item cannot fuse the sovereigns." };
   }
-  if (getItemCount(SOVEREIGN_SEAL_ID) < 1) {
-    return { ok: false, message: "You need a Sovereign Seal." };
+  if (getItemCount(TIDE_CROWN_ID) < 1) {
+    return { ok: false, message: "You need a Tide Crown." };
   }
 
   const tide = getCreatureInstance(tideInstanceId);
@@ -118,8 +123,8 @@ export function applyGodFusion(
     };
   }
 
-  if (!consumeItem(SOVEREIGN_SEAL_ID)) {
-    return { ok: false, message: "You need a Sovereign Seal." };
+  if (!consumeItem(TIDE_CROWN_ID)) {
+    return { ok: false, message: "You need a Tide Crown." };
   }
 
   const level = Math.max(tide.level, cairn.level);
@@ -146,11 +151,11 @@ export function applyEclipseFusion(
   if (isEclipseFusionCompleted()) {
     return { ok: false, message: "Eclipse Sovereign has already been fused." };
   }
-  if (itemId !== SOVEREIGN_SEAL_ID) {
+  if (itemId !== BOULDER_CROWN_ID) {
     return { ok: false, message: "That item cannot fuse the sovereigns." };
   }
-  if (getItemCount(SOVEREIGN_SEAL_ID) < 1) {
-    return { ok: false, message: "You need a Sovereign Seal." };
+  if (getItemCount(BOULDER_CROWN_ID) < 1) {
+    return { ok: false, message: "You need a Boulder Crown." };
   }
 
   const first = getCreatureInstance(firstInstanceId);
@@ -168,8 +173,8 @@ export function applyEclipseFusion(
     };
   }
 
-  if (!consumeItem(SOVEREIGN_SEAL_ID)) {
-    return { ok: false, message: "You need a Sovereign Seal." };
+  if (!consumeItem(BOULDER_CROWN_ID)) {
+    return { ok: false, message: "You need a Boulder Crown." };
   }
 
   const level = Math.max(first.level, second.level);

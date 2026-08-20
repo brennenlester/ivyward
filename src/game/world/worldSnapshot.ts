@@ -9,6 +9,7 @@ import type { CreatureInstance } from "../creatures/types";
 import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
 import { withStagedCraftingMaterials } from "../crafting/stagedMaterials";
 import {
+  migrateSovereignSealItems,
   playerInventory,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
@@ -19,6 +20,7 @@ import { reopenParentSovereignEncounters } from "../shrine/godFusion";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import {
+  MAX_HORIZON_FUSIONS,
   MAX_SOVEREIGN_COPIES,
   setCairnSovereignObtained,
   setDiscoveredCreatures,
@@ -834,16 +836,23 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     nextInstanceIdAfter(party, snapshot.nextInstanceId),
     snapshot.activePartyIds,
   );
-  setInventoryFromSnapshot(snapshot.materials, snapshot.items);
+  const eclipseDone = snapshot.eclipseFusionCompleted === true;
+  const horizonCount =
+    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
+  setInventoryFromSnapshot(
+    snapshot.materials,
+    migrateSovereignSealItems(snapshot.items, {
+      canHorizonFuse: horizonCount < MAX_HORIZON_FUSIONS,
+      eclipseFusionCompleted: eclipseDone,
+    }),
+  );
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
-  setEclipseFusionCompleted(snapshot.eclipseFusionCompleted === true, false);
-  const horizonCount =
-    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
+  setEclipseFusionCompleted(eclipseDone, false);
   setHorizonFusionCount(horizonCount, false);
   setTideSovereignObtained(
     inferSovereignObtained(

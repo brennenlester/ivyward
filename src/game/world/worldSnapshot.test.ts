@@ -5,8 +5,12 @@ import {
   resetAchievementsForTest,
 } from "../progression/achievements";
 import {
+  BOULDER_CROWN_ID,
   getItemCount,
+  LEGACY_SOVEREIGN_SEAL_ID,
+  migrateSovereignSealItems,
   setInventoryFromSnapshot,
+  TIDE_CROWN_ID,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "./worldSession";
 import { getNpcById } from "./npcs";
@@ -433,6 +437,73 @@ describe("isValidWorldSnapshot inventory and discovery", () => {
         validSnapshot({ unlockedAchievements: ["not-an-achievement"] }),
       ),
     ).toBe(false);
+  });
+});
+
+describe("sovereign seal save migration (#219)", () => {
+  beforeEach(() => {
+    resetAchievementsForTest();
+    setInventoryFromSnapshot({}, {});
+    setVisitorMode(false);
+    resetNpcStateForTest();
+    resetMinigameProgressForTest();
+    setGodFusionCompleted(false, false);
+    setEclipseFusionCompleted(false, false);
+  });
+
+  it("converts a leftover seal to Tide Crown when Horizon fusions remain", () => {
+    expect(
+      migrateSovereignSealItems(
+        { [LEGACY_SOVEREIGN_SEAL_ID]: 1, "brook-tonic": 2 },
+        { canHorizonFuse: true, eclipseFusionCompleted: false },
+      ),
+    ).toEqual({ [TIDE_CROWN_ID]: 1, "brook-tonic": 2 });
+  });
+
+  it("converts a leftover seal to Boulder Crown after Horizon fusions are done", () => {
+    expect(
+      migrateSovereignSealItems(
+        { [LEGACY_SOVEREIGN_SEAL_ID]: 1 },
+        { canHorizonFuse: false, eclipseFusionCompleted: false },
+      ),
+    ).toEqual({ [BOULDER_CROWN_ID]: 1 });
+  });
+
+  it("drops a leftover seal after Eclipse fusion and never grants both crowns", () => {
+    expect(
+      migrateSovereignSealItems(
+        { [LEGACY_SOVEREIGN_SEAL_ID]: 1 },
+        { canHorizonFuse: false, eclipseFusionCompleted: true },
+      ),
+    ).toEqual({});
+    expect(
+      migrateSovereignSealItems(
+        { [LEGACY_SOVEREIGN_SEAL_ID]: 1, [TIDE_CROWN_ID]: 1 },
+        { canHorizonFuse: true, eclipseFusionCompleted: false },
+      ),
+    ).toEqual({ [TIDE_CROWN_ID]: 1 });
+  });
+
+  it("applies seal migration when loading a host snapshot", () => {
+    applyWorldSnapshot(
+      validSnapshot({
+        items: { [LEGACY_SOVEREIGN_SEAL_ID]: 1 },
+        horizonFusionCount: 0,
+      }),
+    );
+    expect(getItemCount(TIDE_CROWN_ID)).toBe(1);
+    expect(getItemCount(LEGACY_SOVEREIGN_SEAL_ID)).toBe(0);
+
+    applyWorldSnapshot(
+      validSnapshot({
+        items: { [LEGACY_SOVEREIGN_SEAL_ID]: 1 },
+        horizonFusionCount: 2,
+        eclipseFusionCompleted: false,
+      }),
+    );
+    expect(getItemCount(BOULDER_CROWN_ID)).toBe(1);
+    expect(getItemCount(TIDE_CROWN_ID)).toBe(0);
+    expect(getItemCount(LEGACY_SOVEREIGN_SEAL_ID)).toBe(0);
   });
 });
 
