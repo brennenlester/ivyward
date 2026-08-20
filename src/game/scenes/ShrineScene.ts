@@ -625,9 +625,10 @@ export class ShrineScene extends Phaser.Scene {
     this.contentContainer.add(back);
   }
 
-  private renderTideCrownFusion(contentTop: number, cx: number): void {
+  private addFusionChrome(contentTop: number, cx: number, title: string): void {
+    this.addFusionBackButton(contentTop, cx);
     const header = this.add
-      .text(cx, contentTop + 8, "Tide Crown — fuse Tide Sovereign and Stone Sovereign", {
+      .text(cx, contentTop + 32, title, {
         color: MOON_MUTED,
         fontFamily: "system-ui, sans-serif",
         fontSize: "12px",
@@ -636,11 +637,18 @@ export class ShrineScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
     this.contentContainer.add(header);
-    this.addFusionBackButton(contentTop, cx);
+  }
+
+  private renderTideCrownFusion(contentTop: number, cx: number): void {
+    this.addFusionChrome(
+      contentTop,
+      cx,
+      "Tide Crown — fuse Tide Sovereign and Stone Sovereign",
+    );
 
     if (isEclipseFusionCompleted()) {
       const done = this.add
-        .text(cx, contentTop + 56, "Eclipse Sovereign has already been fused.", {
+        .text(cx, contentTop + 76, "Eclipse Sovereign has already been fused.", {
           color: MOON_MUTED,
           fontFamily: "system-ui, sans-serif",
           fontSize: "14px",
@@ -659,7 +667,7 @@ export class ShrineScene extends Phaser.Scene {
       const needBoulder = this.add
         .text(
           cx,
-          contentTop + 56,
+          contentTop + 76,
           "Fuse the two Horizon Sovereigns with a Boulder Crown instead.",
           {
             color: MOON_MUTED,
@@ -679,7 +687,7 @@ export class ShrineScene extends Phaser.Scene {
       const none = this.add
         .text(
           cx,
-          contentTop + 56,
+          contentTop + 76,
           "Requires Tide Sovereign and Stone Sovereign in your party.",
           {
             color: MOON_MUTED,
@@ -697,7 +705,7 @@ export class ShrineScene extends Phaser.Scene {
     const summary = this.add
       .text(
         cx,
-        contentTop + 52,
+        contentTop + 72,
         `Tide Sovereign Lv.${tide.level} + Stone Sovereign Lv.${cairn.level}`,
         {
           color: MOON_TEXT,
@@ -710,7 +718,7 @@ export class ShrineScene extends Phaser.Scene {
     this.contentContainer.add(summary);
 
     const btn = this.add
-      .text(cx, contentTop + 96, "Fuse into Horizon Sovereign", {
+      .text(cx, contentTop + 116, "Fuse into Horizon Sovereign", {
         color: "#1a1a2e",
         backgroundColor: "#e0d4f0",
         fontFamily: "system-ui, sans-serif",
@@ -733,21 +741,15 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private renderBoulderCrownFusion(contentTop: number, cx: number): void {
-    const header = this.add
-      .text(cx, contentTop + 8, "Boulder Crown — fuse two Horizon Sovereigns", {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "12px",
-        align: "center",
-        wordWrap: { width: 400 },
-      })
-      .setOrigin(0.5);
-    this.contentContainer.add(header);
-    this.addFusionBackButton(contentTop, cx);
+    this.addFusionChrome(
+      contentTop,
+      cx,
+      "Boulder Crown — fuse two Horizon Sovereigns",
+    );
 
     if (isEclipseFusionCompleted()) {
       const done = this.add
-        .text(cx, contentTop + 56, "Eclipse Sovereign has already been fused.", {
+        .text(cx, contentTop + 76, "Eclipse Sovereign has already been fused.", {
           color: MOON_MUTED,
           fontFamily: "system-ui, sans-serif",
           fontSize: "14px",
@@ -764,7 +766,7 @@ export class ShrineScene extends Phaser.Scene {
       const summary = this.add
         .text(
           cx,
-          contentTop + 52,
+          contentTop + 72,
           `Horizon Sovereign Lv.${first.level} + Horizon Sovereign Lv.${second.level}`,
           {
             color: MOON_TEXT,
@@ -777,7 +779,7 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(summary);
 
       const btn = this.add
-        .text(cx, contentTop + 96, "Fuse into Eclipse Sovereign", {
+        .text(cx, contentTop + 116, "Fuse into Eclipse Sovereign", {
           color: "#1a1a2e",
           backgroundColor: "#e0d4f0",
           fontFamily: "system-ui, sans-serif",
@@ -805,7 +807,7 @@ export class ShrineScene extends Phaser.Scene {
     }
 
     const needHorizons = this.add
-      .text(cx, contentTop + 56, "Requires two Horizon Sovereigns in your party.", {
+      .text(cx, contentTop + 76, "Requires two Horizon Sovereigns in your party.", {
         color: MOON_MUTED,
         fontFamily: "system-ui, sans-serif",
         fontSize: "14px",
