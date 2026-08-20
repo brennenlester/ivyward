@@ -21,7 +21,6 @@ import {
   setEclipseFusionCompleted,
   setGodFusionCompleted,
 } from "../world/worldState";
-import { registerStagedCraftingSource } from "./stagedMaterials";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
@@ -156,9 +155,7 @@ describe("brook crystal hold cap on snapshot restore", () => {
   });
 });
 
-describe("sovereign crown and seal recipes", () => {
-  const tideRecipe = CRAFT_RECIPES.find((r) => r.id === "tide-crown")!;
-  const boulderRecipe = CRAFT_RECIPES.find((r) => r.id === "boulder-crown")!;
+describe("sovereign seal recipe", () => {
   const sealRecipe = CRAFT_RECIPES.find((r) => r.id === "sovereign-seal")!;
   const sealMats = {
     "brook-pearl": 3,
@@ -166,40 +163,6 @@ describe("sovereign crown and seal recipes", () => {
     "folklore-dust": 2,
     "wild-fiber": 2,
   };
-
-  it("crafts exclusive Tide Crown and Boulder Crown from their own patterns", () => {
-    expect(getRecipeMaterials(tideRecipe)).toEqual([
-      { materialId: "brook-pearl", count: 3 },
-      { materialId: "folklore-dust", count: 1 },
-      { materialId: "wild-fiber", count: 1 },
-    ]);
-    setInventoryFromSnapshot(
-      { "brook-pearl": 3, "folklore-dust": 1, "wild-fiber": 1 },
-      {},
-    );
-    expect(craftItem(tideRecipe)).toBe(true);
-    expect(getItemCount("tide-crown")).toBe(1);
-    expect(canCraft(tideRecipe)).toBe(false);
-
-    setInventoryFromSnapshot(
-      { pebble: 3, "folklore-dust": 1, "wild-fiber": 1 },
-      {},
-    );
-    expect(craftItem(boulderRecipe)).toBe(true);
-    expect(getItemCount("boulder-crown")).toBe(1);
-    expect(canCraft(boulderRecipe)).toBe(false);
-  });
-
-  it("treats a crown staged on the grid as already owned", () => {
-    setInventoryFromSnapshot(
-      { "brook-pearl": 3, "folklore-dust": 1, "wild-fiber": 1 },
-      {},
-    );
-    const stop = registerStagedCraftingSource(() => ({ "tide-crown": 1 }));
-    expect(canCraft(tideRecipe)).toBe(false);
-    stop();
-    expect(canCraft(tideRecipe)).toBe(true);
-  });
 
   it("forms a Sovereign Seal from the original materials plus both crowns", () => {
     expect(sealRecipe).toMatchObject({
@@ -223,18 +186,18 @@ describe("sovereign crown and seal recipes", () => {
     });
     expect(craftItem(sealRecipe)).toBe(true);
     expect(getItemCount("sovereign-seal")).toBe(1);
-    expect(getItemCount("tide-crown")).toBe(0);
-    expect(getItemCount("boulder-crown")).toBe(0);
+    expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
     expect(getMaterialCount("brook-pearl")).toBe(0);
   });
 
-  it("crafts a seal from the grid by consuming placed crowns", () => {
+  it("crafts a seal from the grid and returns the placed crowns", () => {
     const grid = placePattern(emptyGrid(), sealRecipe.pattern, 0, 0);
     const result = craftFromGrid(grid, "altar");
     expect(result.ok).toBe(true);
     expect(getItemCount("sovereign-seal")).toBe(1);
-    expect(getItemCount("tide-crown")).toBe(0);
-    expect(getItemCount("boulder-crown")).toBe(0);
+    expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
     if (result.ok) {
       expect(result.grid).toEqual(emptyGrid());
     }
@@ -266,6 +229,8 @@ describe("sovereign crown and seal recipes", () => {
       "boulder-crown": 1,
     });
     expect(craftItem(sealRecipe)).toBe(true);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+    expect(getItemCount("tide-crown")).toBe(1);
     setInventoryFromSnapshot(sealMats, {
       "tide-crown": 1,
       "boulder-crown": 1,
@@ -275,19 +240,12 @@ describe("sovereign crown and seal recipes", () => {
     expect(getItemCount("sovereign-seal")).toBe(1);
   });
 
-  it("blocks crown and seal crafts after Eclipse fusion is complete", () => {
+  it("blocks the seal recipe after Eclipse fusion is complete", () => {
     setEclipseFusionCompleted(true, false);
-    setInventoryFromSnapshot(
-      {
-        "brook-pearl": 3,
-        pebble: 3,
-        "folklore-dust": 2,
-        "wild-fiber": 2,
-      },
-      { "tide-crown": 1, "boulder-crown": 1 },
-    );
-    expect(canCraft(tideRecipe)).toBe(false);
-    expect(canCraft(boulderRecipe)).toBe(false);
+    setInventoryFromSnapshot(sealMats, {
+      "tide-crown": 1,
+      "boulder-crown": 1,
+    });
     expect(canCraft(sealRecipe)).toBe(false);
     expect(craftItem(sealRecipe)).toBe(false);
     expect(getItemCount("sovereign-seal")).toBe(0);
@@ -298,16 +256,6 @@ describe("sovereign crown and seal recipes", () => {
       expect(match.message).toBe("Eclipse Sovereign has already been fused.");
     }
     setEclipseFusionCompleted(false, false);
-  });
-
-  it("blocks a second Tide Crown on the grid with a named message", () => {
-    setInventoryFromSnapshot({}, { "tide-crown": 1 });
-    const grid = placePattern(emptyGrid(), tideRecipe.pattern, 0, 0);
-    const match = matchGrid(grid, "altar");
-    expect(match.status).toBe("blocked");
-    if (match.status === "blocked") {
-      expect(match.message).toBe("Already have a Tide Crown");
-    }
   });
 });
 

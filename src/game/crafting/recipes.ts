@@ -45,27 +45,12 @@ export const PATTERN_GLYPHS: Record<string, string> = {
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
   {
-    id: TIDE_CROWN_ID,
-    name: "Tide Crown",
-    outputItemId: TIDE_CROWN_ID,
-    outputCount: 1,
-    pattern: ["PPP", ".D.", ".F."],
-    uniqueOwned: true,
-  },
-  {
-    id: BOULDER_CROWN_ID,
-    name: "Boulder Crown",
-    outputItemId: BOULDER_CROWN_ID,
-    outputCount: 1,
-    pattern: ["BBB", ".D.", ".F."],
-    uniqueOwned: true,
-  },
-  {
     id: "sovereign-seal",
     name: "Sovereign Seal",
     outputItemId: "sovereign-seal",
     outputCount: 1,
     // Original seal materials, plus both exclusive crowns in the empty corners.
+    // ponytail: crowns are earned by defeating sovereigns and are returned after craft.
     pattern: ["PBP", "BDB", "PDF", "TFC"],
   },
   {
@@ -202,9 +187,10 @@ function hasCraftIngredient(id: string, count: number): boolean {
 }
 
 function consumeCraftIngredient(id: string, count: number): boolean {
-  return isCraftItemIngredient(id)
-    ? consumeItem(id, count)
-    : consumeMaterial(id, count);
+  if (isCraftItemIngredient(id)) {
+    return true;
+  }
+  return consumeMaterial(id, count);
 }
 
 export function patternToMaterialRows(pattern: string[]): (string | null)[][] {
@@ -279,11 +265,7 @@ function fusionPathCraftBlock(recipe: CraftRecipe): string | null {
   if (!isEclipseFusionCompleted()) {
     return null;
   }
-  if (
-    recipe.outputItemId === "sovereign-seal" ||
-    recipe.outputItemId === TIDE_CROWN_ID ||
-    recipe.outputItemId === BOULDER_CROWN_ID
-  ) {
+  if (recipe.outputItemId === "sovereign-seal") {
     return "Eclipse Sovereign has already been fused.";
   }
   return null;
@@ -422,11 +404,23 @@ export function craftFromGrid(
   if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
     return { ok: false, grid, message: "You can't hold more of that." };
   }
+  const returnedItems: string[] = [];
+  for (let r = 0; r < match.box.height; r++) {
+    for (let c = 0; c < match.box.width; c++) {
+      const id = grid[match.box.row + r][match.box.col + c];
+      if (id && isCraftItemIngredient(id)) {
+        returnedItems.push(id);
+      }
+    }
+  }
   const next = clearBox(grid, match.box);
   onConsumed?.(next);
   if (!addItem(match.recipe.outputItemId, match.recipe.outputCount)) {
     onConsumed?.(grid);
     return { ok: false, grid, message: "You can't hold more of that." };
+  }
+  for (const id of returnedItems) {
+    returnCraftIngredient(id);
   }
   return { ok: true, grid: next, recipe: match.recipe };
 }

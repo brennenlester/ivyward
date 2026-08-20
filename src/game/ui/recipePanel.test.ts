@@ -7,9 +7,9 @@ describe("listRecipePages", () => {
     const pages = listRecipePages();
     expect(pages.map((p) => p.id)).toContain("brook-tonic");
     expect(pages.map((p) => p.id)).toContain("portable-moonshrine");
-    expect(pages.map((p) => p.id)).toContain("tide-crown");
-    expect(pages.map((p) => p.id)).toContain("boulder-crown");
     expect(pages.map((p) => p.id)).toContain("sovereign-seal");
+    expect(pages.map((p) => p.id)).not.toContain("tide-crown");
+    expect(pages.map((p) => p.id)).not.toContain("boulder-crown");
     const tonic = pages.find((p) => p.id === "brook-tonic")!;
     expect(tonic.outputCount).toBe(3);
     expect(tonic.grid).toEqual([

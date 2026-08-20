@@ -222,10 +222,12 @@ describe("god land encounter", () => {
     expect(resolveCairnSovereignOutcome("spar-win")).toEqual({
       creatureAdded: true,
       weaponGranted: true,
+      crownGranted: true,
     });
     expect(hasCreature(CAIRN_SOVEREIGN_ID)).toBe(true);
     expect(playerParty.creatures[0]?.currentHp).toBe(0);
     expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
     expect(isGodLandEncounterClaimed()).toBe(true);
     expect(getBestWeaponId()).toBe(CAIRN_MAUL_ID);
     expect(buildArmedWanderer(CAIRN_MAUL_ID)).toMatchObject({
@@ -241,11 +243,13 @@ describe("god land encounter", () => {
     expect(claimCairnSovereign()).toEqual({
       creatureAdded: true,
       weaponGranted: false,
+      crownGranted: false,
     });
     expect(playerParty.creatures).toHaveLength(2);
     expect(claimCairnSovereign()).toEqual({
       creatureAdded: false,
       weaponGranted: false,
+      crownGranted: false,
     });
     expect(playerParty.creatures).toHaveLength(2);
     expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
@@ -258,6 +262,7 @@ describe("god land encounter", () => {
     expect(claimCairnSovereign()).toEqual({
       creatureAdded: false,
       weaponGranted: false,
+      crownGranted: false,
     });
     expect(playerParty.creatures).toHaveLength(2);
   });
@@ -266,6 +271,7 @@ describe("god land encounter", () => {
     expect(resolveCairnSovereignOutcome("befriend")).toEqual({
       creatureAdded: true,
       weaponGranted: true,
+      crownGranted: false,
     });
     expect(playerParty.creatures).toHaveLength(1);
     expect(playerParty.creatures[0]).toMatchObject({
@@ -273,6 +279,7 @@ describe("god land encounter", () => {
       currentHp: 0,
     });
     expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(0);
     expect(isGodLandEncounterClaimed()).toBe(true);
   });
 
