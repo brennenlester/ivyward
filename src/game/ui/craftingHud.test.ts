@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  craftedConfirmation,
   hideShrineCraftingHud,
   mountCraftingHud,
   showShrineCraftingHud,
@@ -46,24 +45,6 @@ function cellAt(host: HTMLElement, row: number, col: number): HTMLButtonElement 
   return cell;
 }
 
-describe("craftedConfirmation", () => {
-  it("keeps stacked single outputs as name plus count", () => {
-    expect(craftedConfirmation([{ itemId: "brook-tonic", count: 3 }])).toEqual({
-      name: "Brook Tonic",
-      count: 3,
-    });
-  });
-
-  it("joins multi-output crafts so the shrine does not say Sovereign Seal", () => {
-    expect(
-      craftedConfirmation([
-        { itemId: "tide-crown", count: 1 },
-        { itemId: "boulder-crown", count: 1 },
-      ]),
-    ).toEqual({ name: "Tide Crown + Boulder Crown", count: 1 });
-  });
-});
-
 describe("crafting HUD", () => {
   beforeEach(() => {
     setVisitorMode(false);
@@ -91,6 +72,18 @@ describe("crafting HUD", () => {
     );
     hud.destroy();
     expect(getMaterialCount("wood")).toBe(3);
+  });
+
+  it("lists exclusive crowns so they can be placed on the seal recipe", () => {
+    setInventoryFromSnapshot({}, { "tide-crown": 1, "boulder-crown": 1 });
+    const { host, hud } = mountHud();
+    listRow(host, "Tide Crown").click();
+    cellAt(host, 0, 0).click();
+    expect(cellAt(host, 0, 0).getAttribute("aria-label")).toBe("Tide Crown");
+    expect(getItemCount("tide-crown")).toBe(0);
+    hud.destroy();
+    expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
   });
 
   it("places from the list and crafts with click (keyboard path)", () => {

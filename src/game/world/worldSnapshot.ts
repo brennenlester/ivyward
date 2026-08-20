@@ -7,9 +7,8 @@ import {
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
-import { withStagedCraftingMaterials } from "../crafting/stagedMaterials";
+import { withStagedCraftingItems, withStagedCraftingMaterials } from "../crafting/stagedMaterials";
 import {
-  migrateSovereignSealItems,
   playerInventory,
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
@@ -20,7 +19,6 @@ import { reopenParentSovereignEncounters } from "../shrine/godFusion";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import {
-  MAX_HORIZON_FUSIONS,
   MAX_SOVEREIGN_COPIES,
   setCairnSovereignObtained,
   setDiscoveredCreatures,
@@ -801,7 +799,7 @@ export function exportWorldSnapshot(
     activePartyIds: [...playerParty.activeInstanceIds],
     nextInstanceId: getNextInstanceId(),
     materials: withStagedCraftingMaterials(playerInventory.materials),
-    items: { ...playerInventory.items },
+    items: withStagedCraftingItems(playerInventory.items),
     position,
   };
 }
@@ -839,13 +837,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   const eclipseDone = snapshot.eclipseFusionCompleted === true;
   const horizonCount =
     snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
-  setInventoryFromSnapshot(
-    snapshot.materials,
-    migrateSovereignSealItems(snapshot.items, {
-      canHorizonFuse: horizonCount < MAX_HORIZON_FUSIONS,
-      eclipseFusionCompleted: eclipseDone,
-    }),
-  );
+  setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);

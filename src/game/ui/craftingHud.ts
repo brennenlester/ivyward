@@ -2,8 +2,7 @@ import { getItemName, getMaterialName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
 import {
-  addMaterial,
-  consumeMaterial,
+  canAddItem,
   playerInventory,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
@@ -14,34 +13,20 @@ import {
   cloneGrid,
   craftFromGrid,
   emptyGrid,
-  getGrantableRecipeOutputs,
+  isCraftItemIngredient,
   matchGrid,
+  PATTERN_GLYPHS,
+  returnCraftIngredient,
   returnGridToInventory,
+  takeCraftIngredient,
   type CraftContext,
   type CraftGrid,
 } from "../crafting/recipes";
 
 const DRAG_THRESHOLD = 8;
-
-function grantableOutputLabel(
-  outputs: { itemId: string; count: number }[],
-): string {
-  return outputs
-    .map((output) => {
-      const countLabel = output.count > 1 ? ` ×${output.count}` : "";
-      return `${getItemName(output.itemId)}${countLabel}`;
-    })
-    .join(" + ");
-}
-
-export function craftedConfirmation(
-  outputs: { itemId: string; count: number }[],
-): { name: string; count: number } {
-  if (outputs.length === 1) {
-    return { name: getItemName(outputs[0].itemId), count: outputs[0].count };
-  }
-  return { name: grantableOutputLabel(outputs), count: 1 };
-}
+const PLACEABLE_ITEM_IDS = new Set(
+  Object.values(PATTERN_GLYPHS).filter((id) => isCraftItemIngredient(id)),
+);
 
 export type CraftingHudHandle = {
   refresh: () => void;
@@ -104,11 +89,14 @@ type HudOptions = {
   onInventoryChange?: () => void;
 };
 
-function ownedMaterials(): { id: string; name: string; count: number }[] {
-  return Object.entries(playerInventory.materials)
+function ownedIngredients(): { id: string; name: string; count: number }[] {
+  const mats = Object.entries(playerInventory.materials)
     .filter(([, count]) => count > 0)
-    .map(([id, count]) => ({ id, name: getMaterialName(id), count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .map(([id, count]) => ({ id, name: getMaterialName(id), count }));
+  const items = Object.entries(playerInventory.items)
+    .filter(([id, count]) => count > 0 && PLACEABLE_ITEM_IDS.has(id))
+    .map(([id, count]) => ({ id, name: getItemName(id), count }));
+  return [...mats, ...items].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function mountCraftingHud(
@@ -166,11 +154,12 @@ export function mountCraftingHud(
       return match.message;
     }
     if (match.status === "match") {
-      const grantable = getGrantableRecipeOutputs(match.recipe);
-      if (grantable.length === 0) {
+      if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
         return "You can't hold more of that.";
       }
-      return grantableOutputLabel(grantable);
+      const count =
+        match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
+      return `${match.recipe.name}${count}`;
     }
     return "Drag materials onto the 4×4, then tap the result.";
   }
@@ -183,7 +172,7 @@ export function mountCraftingHud(
       if (pickup.from === "list") {
         const id = pickup.materialId;
         pickup = null;
-        addMaterial(id, 1);
+        returnCraftIngredient(id);
       } else {
         grid = cloneGrid(grid);
         grid[pickup.from.row][pickup.from.col] = pickup.materialId;
@@ -203,9 +192,6 @@ export function mountCraftingHud(
     if (!interactive || pickup) {
       return;
     }
-    const match = matchGrid(grid, options.context);
-    const grantable =
-      match.status === "match" ? getGrantableRecipeOutputs(match.recipe) : [];
     const result = craftFromGrid(grid, options.context, (next) => {
       grid = next;
     });
@@ -216,17 +202,7 @@ export function mountCraftingHud(
     }
     lastError = null;
     grid = result.grid;
-    const confirmation = craftedConfirmation(
-      grantable.length > 0
-        ? grantable
-        : [
-            {
-              itemId: result.recipe.outputItemId,
-              count: result.recipe.outputCount,
-            },
-          ],
-    );
-    options.onCrafted?.(confirmation.name, confirmation.count);
+    options.onCrafted?.(result.recipe.name, result.recipe.outputCount);
     inventoryChanged();
     render();
   }
@@ -248,7 +224,7 @@ export function mountCraftingHud(
       if (pickup.from === "list") {
         grid[row][col] = pickup.materialId;
         pickup = null;
-        addMaterial(existing, 1);
+        returnCraftIngredient(existing);
         inventoryChanged();
         render();
         return;
@@ -267,7 +243,7 @@ export function mountCraftingHud(
     }
     const id = pickup.materialId;
     pickup = null;
-    addMaterial(id, 1);
+    returnCraftIngredient(id);
     inventoryChanged();
     render();
   }
@@ -286,7 +262,7 @@ export function mountCraftingHud(
     dragging = false;
     suppressPlace = Boolean(event);
     if (next.from === "list") {
-      if (!consumeMaterial(next.materialId, 1)) {
+      if (!takeCraftIngredient(next.materialId)) {
         pickup = null;
         tapSelect = null;
         dragStart = null;
@@ -426,7 +402,7 @@ export function mountCraftingHud(
     const listTitle = document.createElement("h3");
     listTitle.textContent = "Materials";
     list.appendChild(listTitle);
-    const mats = ownedMaterials();
+    const mats = ownedIngredients();
     if (mats.length === 0) {
       const empty = document.createElement("p");
       empty.className = "crafting-empty";
@@ -532,11 +508,15 @@ export function mountCraftingHud(
     result.dataset.craftResult = "1";
     const match = matchGrid(grid, options.context);
     if (match.status === "match") {
-      const grantable = getGrantableRecipeOutputs(match.recipe);
-      const atCap = grantable.length === 0;
+      const atCap = !canAddItem(
+        match.recipe.outputItemId,
+        match.recipe.outputCount,
+      );
+      const countLabel =
+        match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
       result.textContent = atCap
         ? "You can't hold more of that."
-        : grantableOutputLabel(grantable);
+        : `${getItemName(match.recipe.outputItemId)}${countLabel}`;
       result.disabled = !interactive || atCap;
       if (interactive && !atCap) {
         result.addEventListener("click", () => {

@@ -33,8 +33,7 @@ export const CONSUMABLE_ITEMS: ConsumableDefinition[] = [
 ];
 
 export const FUSION_ITEM_IDS = [
-  "tide-crown",
-  "boulder-crown",
+  "sovereign-seal",
   "ember-charm",
   "moss-salve",
 ] as const;

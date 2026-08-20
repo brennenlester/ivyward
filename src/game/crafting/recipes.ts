@@ -1,19 +1,17 @@
+import { ITEM_NAMES } from "../inventory/materials";
 import {
   addItem,
   addMaterial,
   BOULDER_CROWN_ID,
   canAddItem,
+  consumeItem,
   consumeMaterial,
   getItemCount,
   getMaterialCount,
   TIDE_CROWN_ID,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
-import {
-  getHorizonFusionCount,
-  isEclipseFusionCompleted,
-  MAX_HORIZON_FUSIONS,
-} from "../world/worldState";
+import { isEclipseFusionCompleted } from "../world/worldState";
 
 export const GRID_SIZE = 4;
 
@@ -24,8 +22,6 @@ export type CraftRecipe = {
   name: string;
   outputItemId: string;
   outputCount: number;
-  /** Extra items granted with the primary output (Sovereign Seal → both crowns). */
-  extraOutputs?: { itemId: string; count: number }[];
   /** Minimal bounding-box rows. `.` = empty; other glyphs map via PATTERN_GLYPHS. */
   pattern: string[];
   altarOnly?: boolean;
@@ -41,17 +37,34 @@ export const PATTERN_GLYPHS: Record<string, string> = {
   P: "brook-pearl",
   B: "pebble",
   D: "folklore-dust",
+  T: TIDE_CROWN_ID,
+  C: BOULDER_CROWN_ID,
 };
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
   {
-    id: "sovereign-seal",
-    name: "Sovereign Seal",
+    id: TIDE_CROWN_ID,
+    name: "Tide Crown",
     outputItemId: TIDE_CROWN_ID,
     outputCount: 1,
-    extraOutputs: [{ itemId: BOULDER_CROWN_ID, count: 1 }],
-    pattern: ["PBP", "BDB", "PDF", ".F."],
+    pattern: ["PPP", ".D.", ".F."],
     uniqueOwned: true,
+  },
+  {
+    id: BOULDER_CROWN_ID,
+    name: "Boulder Crown",
+    outputItemId: BOULDER_CROWN_ID,
+    outputCount: 1,
+    pattern: ["BBB", ".D.", ".F."],
+    uniqueOwned: true,
+  },
+  {
+    id: "sovereign-seal",
+    name: "Sovereign Seal",
+    outputItemId: "sovereign-seal",
+    outputCount: 1,
+    // Original seal materials, plus both exclusive crowns in the empty corners.
+    pattern: ["PBP", "BDB", "PDF", "TFC"],
   },
   {
     id: "wood-cudgel",
@@ -135,6 +148,22 @@ export type MatchResult =
   | { status: "blocked"; recipe: CraftRecipe; message: string }
   | { status: "none" };
 
+export function isCraftItemIngredient(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(ITEM_NAMES, id);
+}
+
+export function takeCraftIngredient(id: string): boolean {
+  return isCraftItemIngredient(id) ? consumeItem(id) : consumeMaterial(id, 1);
+}
+
+export function returnCraftIngredient(id: string): void {
+  if (isCraftItemIngredient(id)) {
+    addItem(id, 1);
+    return;
+  }
+  addMaterial(id, 1);
+}
+
 export function emptyGrid(): CraftGrid {
   return Array.from({ length: GRID_SIZE }, () =>
     Array.from({ length: GRID_SIZE }, () => null),
@@ -165,6 +194,18 @@ export function getRecipeMaterials(
     materialId,
     count,
   }));
+}
+
+function hasCraftIngredient(id: string, count: number): boolean {
+  return isCraftItemIngredient(id)
+    ? getItemCount(id) >= count
+    : getMaterialCount(id) >= count;
+}
+
+function consumeCraftIngredient(id: string, count: number): boolean {
+  return isCraftItemIngredient(id)
+    ? consumeItem(id, count)
+    : consumeMaterial(id, count);
 }
 
 export function patternToMaterialRows(pattern: string[]): (string | null)[][] {
@@ -224,56 +265,23 @@ export function placePattern(
   return next;
 }
 
-function isSovereignCrown(itemId: string): boolean {
-  return itemId === TIDE_CROWN_ID || itemId === BOULDER_CROWN_ID;
-}
-
 function uniqueOwnedBlockedMessage(recipe: CraftRecipe): string {
   if (recipe.id === "portable-moonshrine") {
     return "Already have a Moonshrine";
   }
-  if (recipe.id === "sovereign-seal") {
-    return "Already have a Tide Crown and Boulder Crown";
-  }
   return `Already have a ${recipe.name}`;
 }
 
-export function getRecipeOutputs(
-  recipe: CraftRecipe,
-): { itemId: string; count: number }[] {
-  return [
-    { itemId: recipe.outputItemId, count: recipe.outputCount },
-    ...(recipe.extraOutputs ?? []),
-  ];
-}
-
-export function getGrantableRecipeOutputs(
-  recipe: CraftRecipe,
-): { itemId: string; count: number }[] {
-  return getRecipeOutputs(recipe).filter((output) => {
-    if (sovereignCrownCraftBlock(output.itemId)) {
-      return false;
-    }
-    if (!canAddItem(output.itemId, output.count)) {
-      return false;
-    }
-    // Recraft can top up missing extra outputs (Seal → only the missing crown).
-    if (recipe.uniqueOwned && getItemCount(output.itemId) > 0) {
-      return false;
-    }
-    return true;
-  });
-}
-
-function sovereignCrownCraftBlock(itemId: string): string | null {
-  if (!isSovereignCrown(itemId)) {
+function fusionPathCraftBlock(recipe: CraftRecipe): string | null {
+  if (!isEclipseFusionCompleted()) {
     return null;
   }
-  if (isEclipseFusionCompleted()) {
+  if (
+    recipe.outputItemId === "sovereign-seal" ||
+    recipe.outputItemId === TIDE_CROWN_ID ||
+    recipe.outputItemId === BOULDER_CROWN_ID
+  ) {
     return "Eclipse Sovereign has already been fused.";
-  }
-  if (itemId === TIDE_CROWN_ID && getHorizonFusionCount() >= MAX_HORIZON_FUSIONS) {
-    return "Fuse the two Horizon Sovereigns with a Boulder Crown instead.";
   }
   return null;
 }
@@ -312,21 +320,16 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
     if (!patternMatchesBox(grid, box, recipe.pattern)) {
       continue;
     }
-    const grantable = getGrantableRecipeOutputs(recipe);
-    if (grantable.length === 0) {
-      const crownBlock = getRecipeOutputs(recipe)
-        .map((output) => sovereignCrownCraftBlock(output.itemId))
-        .find((message): message is string => Boolean(message));
-      if (crownBlock) {
-        return { status: "blocked", recipe, message: crownBlock };
-      }
-      if (recipe.uniqueOwned) {
-        return {
-          status: "blocked",
-          recipe,
-          message: uniqueOwnedBlockedMessage(recipe),
-        };
-      }
+    if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
+      return {
+        status: "blocked",
+        recipe,
+        message: uniqueOwnedBlockedMessage(recipe),
+      };
+    }
+    const fusionBlock = fusionPathCraftBlock(recipe);
+    if (fusionBlock) {
+      return { status: "blocked", recipe, message: fusionBlock };
     }
     return { status: "match", recipe, box };
   }
@@ -347,7 +350,7 @@ export function returnGridToInventory(grid: CraftGrid): CraftGrid {
   for (const row of grid) {
     for (const cell of row) {
       if (cell) {
-        addMaterial(cell, 1);
+        returnCraftIngredient(cell);
       }
     }
   }
@@ -364,10 +367,16 @@ export function canCraft(
   if (recipe.altarOnly && context !== "altar") {
     return false;
   }
+  if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
+    return false;
+  }
+  if (fusionPathCraftBlock(recipe)) {
+    return false;
+  }
   return (
-    getGrantableRecipeOutputs(recipe).length > 0 &&
-    getRecipeMaterials(recipe).every(
-      (m) => getMaterialCount(m.materialId) >= m.count,
+    canAddItem(recipe.outputItemId, recipe.outputCount) &&
+    getRecipeMaterials(recipe).every((m) =>
+      hasCraftIngredient(m.materialId, m.count),
     )
   );
 }
@@ -376,13 +385,12 @@ export function craftItem(recipe: CraftRecipe): boolean {
   if (!canCraft(recipe)) {
     return false;
   }
-  const grantable = getGrantableRecipeOutputs(recipe);
   for (const m of getRecipeMaterials(recipe)) {
-    if (!consumeMaterial(m.materialId, m.count)) {
+    if (!consumeCraftIngredient(m.materialId, m.count)) {
       return false;
     }
   }
-  return grantable.every((output) => addItem(output.itemId, output.count));
+  return addItem(recipe.outputItemId, recipe.outputCount);
 }
 
 export type CraftFromGridResult =
@@ -408,13 +416,12 @@ export function craftFromGrid(
   if (match.status === "blocked") {
     return { ok: false, grid, message: match.message };
   }
-  const grantable = getGrantableRecipeOutputs(match.recipe);
-  if (grantable.length === 0) {
+  if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
     return { ok: false, grid, message: "You can't hold more of that." };
   }
   const next = clearBox(grid, match.box);
   onConsumed?.(next);
-  if (!grantable.every((output) => addItem(output.itemId, output.count))) {
+  if (!addItem(match.recipe.outputItemId, match.recipe.outputCount)) {
     onConsumed?.(grid);
     return { ok: false, grid, message: "You can't hold more of that." };
   }

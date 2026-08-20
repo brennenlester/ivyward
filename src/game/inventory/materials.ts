@@ -67,6 +67,7 @@ export const MATERIAL_NAMES: Record<string, string> = {
 export const ITEM_NAMES: Record<string, string> = {
   "tide-cleaver": "Tide Cleaver",
   "cairn-maul": "Cairn Maul",
+  "sovereign-seal": "Sovereign Seal",
   "tide-crown": "Tide Crown",
   "boulder-crown": "Boulder Crown",
   "wood-cudgel": "Wood Cudgel",
@@ -96,8 +97,12 @@ export const CRAFT_MATERIAL_ICON_IDS = [
   "folklore-dust",
 ] as const;
 
+export function getIngredientName(id: string): string {
+  return MATERIAL_NAMES[id] ?? ITEM_NAMES[id] ?? id;
+}
+
 export function getMaterialName(materialId: string): string {
-  return MATERIAL_NAMES[materialId] ?? materialId;
+  return getIngredientName(materialId);
 }
 
 export function getMaterialIconSrc(materialId: string): string | undefined {
