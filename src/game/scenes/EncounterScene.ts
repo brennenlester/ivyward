@@ -14,6 +14,7 @@ import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
   BEFRIEND_MISS_TEXT,
   befriendButtonLabel,
+  canAttemptBefriend,
   formatGodClaimJoinLine,
   getBefriendChance,
   resolveTideSovereignOutcome,
@@ -37,7 +38,9 @@ const TEXT_STYLE = {
 export class EncounterScene extends Phaser.Scene {
   private creatureId!: string;
   private actionTaken = false;
+  private befriendAttempted = false;
   private missText?: Phaser.GameObjects.Text;
+  private befriendBtn?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "EncounterScene" });
@@ -46,6 +49,7 @@ export class EncounterScene extends Phaser.Scene {
   init(data: { creatureId: string }): void {
     this.creatureId = data.creatureId;
     this.actionTaken = false;
+    this.befriendAttempted = false;
   }
 
   create(): void {
@@ -142,7 +146,16 @@ export class EncounterScene extends Phaser.Scene {
 
     buttonLabels.forEach((label, index) => {
       const buttonX = innerLeft + buttonSlotWidth * (index + 0.5);
-      this.addButton(buttonX, buttonY, label, buttonActions[index], index);
+      const btn = this.addButton(
+        buttonX,
+        buttonY,
+        label,
+        buttonActions[index],
+        index,
+      );
+      if (index === 0) {
+        this.befriendBtn = btn;
+      }
     });
   }
 
@@ -171,7 +184,7 @@ export class EncounterScene extends Phaser.Scene {
     label: string,
     onClick: () => void,
     index: number,
-  ): void {
+  ): Phaser.GameObjects.Text {
     const tones = ["#7ed6a8", "#7ec8e8", "#f0c878"] as const;
     const btn = this.add
       .text(x, y, label, {
@@ -188,13 +201,19 @@ export class EncounterScene extends Phaser.Scene {
     btn.on("pointerover", () => btn.setAlpha(0.88));
     btn.on("pointerout", () => btn.setAlpha(1));
     btn.on("pointerdown", onClick);
+    return btn;
   }
 
   private tryBefriend(): void {
-    if (this.actionTaken || isVisitorMode()) {
+    if (
+      this.actionTaken ||
+      isVisitorMode() ||
+      !canAttemptBefriend(this.befriendAttempted)
+    ) {
       return;
     }
     this.actionTaken = true;
+    this.befriendAttempted = true;
 
     if (hasCreature(this.creatureId)) {
       this.showResult(
@@ -225,6 +244,11 @@ export class EncounterScene extends Phaser.Scene {
       }
     } else {
       this.actionTaken = false;
+      this.befriendBtn
+        ?.off("pointerover")
+        .off("pointerout")
+        .disableInteractive()
+        .setAlpha(0.5);
       this.showMiss(BEFRIEND_MISS_TEXT);
     }
   }

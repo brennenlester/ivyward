@@ -24,6 +24,7 @@ import {
   appendGodSparKillCheatKey,
   BEFRIEND_MISS_TEXT,
   befriendButtonLabel,
+  canAttemptBefriend,
   canForceGodSailEncounter,
   claimTideSovereign,
   createPendingGodSailEncounter,
@@ -188,6 +189,11 @@ describe("god sail encounter", () => {
   it("uses a miss line that is not the old slip copy and not empty", () => {
     expect(BEFRIEND_MISS_TEXT.length).toBeGreaterThan(0);
     expect(BEFRIEND_MISS_TEXT.toLowerCase()).not.toMatch(/slipped away/);
+  });
+
+  it("allows only one befriend roll per encounter", () => {
+    expect(canAttemptBefriend(false)).toBe(true);
+    expect(canAttemptBefriend(true)).toBe(false);
   });
 
   it("cycles flat sovereign attacks as 10, 15, 10, 20", () => {

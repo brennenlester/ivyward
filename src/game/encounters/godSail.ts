@@ -174,6 +174,11 @@ export function befriendButtonLabel(chance: number): string {
 /** Distinct from Flee (no copy, leaves immediately). */
 export const BEFRIEND_MISS_TEXT = "Not this time.";
 
+/** One befriend roll per encounter. Spar/Flee stay available after a miss. */
+export function canAttemptBefriend(alreadyAttempted: boolean): boolean {
+  return !alreadyAttempted;
+}
+
 export type GodClaimResult = {
   creatureAdded: boolean;
   weaponGranted: boolean;
