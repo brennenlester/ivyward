@@ -6,7 +6,7 @@ describe("Copy invite link status control", () => {
     vi.resetModules();
   });
 
-  it("hosts can click Copy invite link to run the registered handler", async () => {
+  it("keeps Copy invite hidden for hosts even after a handler is registered", async () => {
     document.body.innerHTML = `
       <button id="copy-invite-btn" type="button">Copy invite link</button>
       <button id="reset-game-btn" type="button">Reset game</button>
@@ -20,17 +20,18 @@ describe("Copy invite link status control", () => {
     mod.initStatusPanelControls();
 
     const btn = document.getElementById("copy-invite-btn") as HTMLButtonElement;
-    expect(btn.hidden).toBe(false);
+    expect(btn.hidden).toBe(true);
     expect(btn.disabled).toBe(true);
 
     const handler = vi.fn();
     mod.setCopyInviteHandler(handler);
-    expect(btn.disabled).toBe(false);
+    expect(btn.hidden).toBe(true);
+    expect(btn.disabled).toBe(true);
     btn.click();
-    expect(handler).toHaveBeenCalledTimes(1);
+    expect(handler).not.toHaveBeenCalled();
   });
 
-  it("stays disabled before a handler is registered", async () => {
+  it("does not enable Copy invite when a handler is registered first", async () => {
     document.body.innerHTML = `
       <button id="copy-invite-btn" type="button">Copy invite link</button>
       <button id="reset-game-btn" type="button">Reset game</button>
@@ -42,9 +43,11 @@ describe("Copy invite link status control", () => {
     const mod = await import("./statusPanel");
     session.setVisitorMode(false);
     const handler = vi.fn();
+    mod.setCopyInviteHandler(handler);
     mod.initStatusPanelControls();
 
     const btn = document.getElementById("copy-invite-btn") as HTMLButtonElement;
+    expect(btn.hidden).toBe(true);
     expect(btn.disabled).toBe(true);
     btn.click();
     expect(handler).not.toHaveBeenCalled();
@@ -69,5 +72,20 @@ describe("Copy invite link status control", () => {
     expect(btn.hidden).toBe(true);
     btn.click();
     expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("does not tell hosts to copy an invite link", async () => {
+    document.body.innerHTML = `
+      <button id="copy-invite-btn" type="button">Copy invite link</button>
+      <div id="status-session"></div>
+    `;
+    const session = await import("../world/worldSession");
+    const { getZone } = await import("../world/zones");
+    const mod = await import("./statusPanel");
+    session.setVisitorMode(false);
+    mod.initStatusPanelControls();
+    mod.updateStatusPanel(getZone("grove"));
+    const sessionEl = document.getElementById("status-session");
+    expect(sessionEl?.textContent ?? "").not.toMatch(/invite|share your world/i);
   });
 });
