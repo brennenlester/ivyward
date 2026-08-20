@@ -9,7 +9,11 @@ import {
   TIDE_CROWN_ID,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
-import { isEclipseFusionCompleted } from "../world/worldState";
+import {
+  getHorizonFusionCount,
+  isEclipseFusionCompleted,
+  MAX_HORIZON_FUSIONS,
+} from "../world/worldState";
 
 export const GRID_SIZE = 4;
 
@@ -236,6 +240,19 @@ function uniqueOwnedBlockedMessage(recipe: CraftRecipe): string {
   return `Already have a ${recipe.name}`;
 }
 
+function sovereignCrownCraftBlock(itemId: string): string | null {
+  if (!isSovereignCrown(itemId)) {
+    return null;
+  }
+  if (isEclipseFusionCompleted()) {
+    return "Eclipse Sovereign has already been fused.";
+  }
+  if (itemId === TIDE_CROWN_ID && getHorizonFusionCount() >= MAX_HORIZON_FUSIONS) {
+    return "Fuse the two Horizon Sovereigns with a Boulder Crown instead.";
+  }
+  return null;
+}
+
 function patternMatchesBox(
   grid: CraftGrid,
   box: GridBox,
@@ -277,11 +294,12 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
         message: uniqueOwnedBlockedMessage(recipe),
       };
     }
-    if (isSovereignCrown(recipe.outputItemId) && isEclipseFusionCompleted()) {
+    const crownBlock = sovereignCrownCraftBlock(recipe.outputItemId);
+    if (crownBlock) {
       return {
         status: "blocked",
         recipe,
-        message: "Eclipse Sovereign has already been fused.",
+        message: crownBlock,
       };
     }
     return { status: "match", recipe, box };
@@ -323,7 +341,7 @@ export function canCraft(
   if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
     return false;
   }
-  if (isSovereignCrown(recipe.outputItemId) && isEclipseFusionCompleted()) {
+  if (sovereignCrownCraftBlock(recipe.outputItemId)) {
     return false;
   }
   return (

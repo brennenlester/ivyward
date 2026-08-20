@@ -17,7 +17,11 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "../world/worldSession";
-import { setEclipseFusionCompleted, setGodFusionCompleted } from "../world/worldState";
+import {
+  setEclipseFusionCompleted,
+  setGodFusionCompleted,
+  setHorizonFusionCount,
+} from "../world/worldState";
 
 const boatRecipe = CRAFT_RECIPES.find((r) => r.id === "boat")!;
 const brookCrystalRecipe = CRAFT_RECIPES.find((r) => r.id === "brook-crystal")!;
@@ -231,6 +235,30 @@ describe("sovereign crown recipes", () => {
     expect(canCraft(tideRecipe)).toBe(true);
     expect(craftItem(tideRecipe)).toBe(true);
     expect(getItemCount("tide-crown")).toBe(1);
+  });
+
+  it("blocks Tide Crown after two Horizon fusions but still allows Boulder Crown", () => {
+    setHorizonFusionCount(2, false);
+    setInventoryFromSnapshot(
+      {
+        "brook-pearl": 3,
+        pebble: 3,
+        "folklore-dust": 2,
+        "wild-fiber": 2,
+      },
+      {},
+    );
+    expect(canCraft(tideRecipe)).toBe(false);
+    expect(canCraft(boulderRecipe)).toBe(true);
+    const grid = placePattern(emptyGrid(), tideRecipe.pattern, 0, 0);
+    const match = matchGrid(grid, "altar");
+    expect(match.status).toBe("blocked");
+    if (match.status === "blocked") {
+      expect(match.message).toBe(
+        "Fuse the two Horizon Sovereigns with a Boulder Crown instead.",
+      );
+    }
+    setHorizonFusionCount(0, false);
   });
 
   it("blocks crafting either crown after Eclipse fusion is complete", () => {
