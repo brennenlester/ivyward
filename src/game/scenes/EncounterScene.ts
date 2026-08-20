@@ -12,6 +12,8 @@ import {
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
+  BEFRIEND_MISS_TEXT,
+  befriendButtonLabel,
   formatGodClaimJoinLine,
   getBefriendChance,
   resolveTideSovereignOutcome,
@@ -35,6 +37,7 @@ const TEXT_STYLE = {
 export class EncounterScene extends Phaser.Scene {
   private creatureId!: string;
   private actionTaken = false;
+  private missText?: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: "EncounterScene" });
@@ -125,7 +128,11 @@ export class EncounterScene extends Phaser.Scene {
     );
 
     const buttonY = panelY + 162;
-    const buttonLabels = ["Befriend", "Spar", "Flee"] as const;
+    const buttonLabels = [
+      befriendButtonLabel(getBefriendChance(this.creatureId)),
+      "Spar",
+      "Flee",
+    ] as const;
     const buttonActions = [
       () => this.tryBefriend(),
       () => this.startSpar(),
@@ -217,11 +224,29 @@ export class EncounterScene extends Phaser.Scene {
         this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);
       }
     } else {
-      this.showResult("It slipped away...");
+      this.actionTaken = false;
+      this.showMiss(BEFRIEND_MISS_TEXT);
     }
   }
 
+  private showMiss(message: string): void {
+    this.missText?.destroy();
+    this.missText = this.addPanelText(
+      DESIGN_SIZE / 2,
+      DESIGN_SIZE / 2 + 210,
+      message,
+      PANEL_WIDTH - PANEL_PADDING * 2,
+      {
+        color: "#2a4050",
+        fontSize: "18px",
+        fontStyle: "bold",
+      },
+    );
+  }
+
   private showResult(message: string): void {
+    this.missText?.destroy();
+    this.missText = undefined;
     const text = this.addPanelText(
       DESIGN_SIZE / 2,
       DESIGN_SIZE / 2 + 210,

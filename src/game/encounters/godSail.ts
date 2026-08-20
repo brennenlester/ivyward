@@ -163,6 +163,17 @@ export function getBefriendChance(creatureId: string): number {
     : NORMAL_BEFRIEND_CHANCE;
 }
 
+export function formatBefriendOddsPercent(chance: number): string {
+  return `${Math.round(chance * 100)}%`;
+}
+
+export function befriendButtonLabel(chance: number): string {
+  return `Befriend ${formatBefriendOddsPercent(chance)}`;
+}
+
+/** Distinct from Flee (no copy, leaves immediately). */
+export const BEFRIEND_MISS_TEXT = "Not this time.";
+
 export type GodClaimResult = {
   creatureAdded: boolean;
   weaponGranted: boolean;
