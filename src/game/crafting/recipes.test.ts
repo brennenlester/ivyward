@@ -186,6 +186,7 @@ describe("sovereign crown and seal recipes", () => {
     );
     expect(craftItem(boulderRecipe)).toBe(true);
     expect(getItemCount("boulder-crown")).toBe(1);
+    expect(canCraft(boulderRecipe)).toBe(false);
   });
 
   it("forms a Sovereign Seal from the original materials plus both crowns", () => {
@@ -213,6 +214,18 @@ describe("sovereign crown and seal recipes", () => {
     expect(getItemCount("tide-crown")).toBe(0);
     expect(getItemCount("boulder-crown")).toBe(0);
     expect(getMaterialCount("brook-pearl")).toBe(0);
+  });
+
+  it("crafts a seal from the grid by consuming placed crowns", () => {
+    const grid = placePattern(emptyGrid(), sealRecipe.pattern, 0, 0);
+    const result = craftFromGrid(grid, "altar");
+    expect(result.ok).toBe(true);
+    expect(getItemCount("sovereign-seal")).toBe(1);
+    expect(getItemCount("tide-crown")).toBe(0);
+    expect(getItemCount("boulder-crown")).toBe(0);
+    if (result.ok) {
+      expect(result.grid).toEqual(emptyGrid());
+    }
   });
 
   it("enforces a hold cap of 1 on the seal and each crown", () => {
