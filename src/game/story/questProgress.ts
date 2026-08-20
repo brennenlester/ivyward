@@ -64,8 +64,8 @@ export function getQuestHint(): string {
     }
     // Subtle nudge only — the codex reward is never named before it is earned.
     return isCodexComplete(worldState.discoveredCreatures)
-      ? "All story beats finished — explore freely."
-      : "All story beats finished — explore freely. Your codex still has blank pages.";
+      ? "All story beats finished — explore freely or press I to invite friends."
+      : "All story beats finished — explore freely or press I to invite friends. Your codex still has blank pages.";
   }
   return `Next: ${QUESTS[activeId].hint}`;
 }

@@ -74,14 +74,14 @@ import {
 } from "../story/questProgress";
 import { consumeAchievementToast } from "../progression/achievements";
 import {
+  flashInviteStatus,
+  hideManualInviteUrl,
   measureStatusPanelHeight,
   measureStatusPanelWidth,
+  setCopyInviteHandler,
+  showManualInviteUrl,
   updateStatusPanel,
 } from "../ui/statusPanel";
-import {
-  WALK_HINT_TEXT,
-  shouldShowWalkHint,
-} from "../ui/walkHint";
 import {
   computeBoardDisplaySize,
   playfieldLayoutMode,
@@ -94,6 +94,7 @@ import {
   setTouchControlsEnabled,
 } from "../ui/touchControls";
 import { canOccupy } from "../world/collision";
+import { shareOrCopyInviteLink } from "../world/invite";
 import { takePendingWorldPosition } from "../world/worldSnapshot";
 import { isVisitorMode } from "../world/worldSession";
 import {
@@ -199,11 +200,9 @@ export class IsometricScene extends Phaser.Scene {
     D: Phaser.Input.Keyboard.Key;
   };
   private unlockKey!: Phaser.Input.Keyboard.Key;
+  private inviteKey!: Phaser.Input.Keyboard.Key;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private travelSinceEncounter = 0;
-  /** Successful walk distance used to consume the first-step WASD ghost. */
-  private walkHintTravel = 0;
-  private walkHint?: Phaser.GameObjects.Text;
   private godSailTravelSinceEncounter = 0;
   private godLandTravelSinceEncounter = 0;
   private inEncounter = false;
@@ -289,10 +288,12 @@ export class IsometricScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys("W,A,S,D") as typeof this.wasd;
     this.unlockKey = this.input.keyboard!.addKey("U");
+    this.inviteKey = this.input.keyboard!.addKey("I");
     this.interactKey = this.input.keyboard!.addKey("E");
     this.input.keyboard!.on("keydown", this.onGodCheatKeyDown);
     initTouchControls();
     initMuteControl(this);
+    setCopyInviteHandler(() => this.tryCopyInvite());
     ensureGroveMusic(this);
     this.input.on("pointerdown", () => unlockAudioFromGesture(this));
 
@@ -360,6 +361,10 @@ export class IsometricScene extends Phaser.Scene {
       this.loadZone(this.currentZoneId);
     }
 
+    if (Phaser.Input.Keyboard.JustDown(this.inviteKey)) {
+      void this.tryCopyInvite();
+    }
+
     this.updateQuestToast();
     this.updateAchievementToast();
 
@@ -424,8 +429,6 @@ export class IsometricScene extends Phaser.Scene {
     if (moved) {
       this.playerGridX = nextX;
       this.playerGridY = nextY;
-      this.walkHintTravel += step;
-      this.syncWalkHint();
       const prevPhase = this.walkPhase;
       this.walkPhase += step * WALK_CYCLES_PER_TILE;
       if (walkFootfallsSince(prevPhase, this.walkPhase) > 0) {
@@ -896,7 +899,6 @@ export class IsometricScene extends Phaser.Scene {
 
     this.children.removeAll(true);
     this.shrinePrompt = undefined;
-    this.walkHint = undefined;
     this.dockBoat = undefined;
     this.sailingBoat = undefined;
 
@@ -942,7 +944,6 @@ export class IsometricScene extends Phaser.Scene {
       this.layoutPlayfield(zone);
       this.snapCameraToPlayer();
       this.updateInteractPrompt();
-      this.syncWalkHint();
       updateHostPosition(
         this.currentZoneId,
         this.playerGridX,
@@ -1072,9 +1073,6 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private layoutWorldHudTexts(): void {
-    if (this.walkHint) {
-      placeWorldHudText(this, this.walkHint, "top", 56);
-    }
     if (this.shrinePrompt) {
       placeWorldHudText(this, this.shrinePrompt, "bottom", 48);
     }
@@ -1405,30 +1403,6 @@ export class IsometricScene extends Phaser.Scene {
     return (
       tileX === zone.shrineInteract.x && tileY === zone.shrineInteract.y
     );
-  }
-
-  private syncWalkHint(): void {
-    if (!shouldShowWalkHint(this.walkHintTravel)) {
-      this.walkHint?.destroy();
-      this.walkHint = undefined;
-      return;
-    }
-    if (this.walkHint) {
-      placeWorldHudText(this, this.walkHint, "top", 56);
-      return;
-    }
-    this.walkHint = this.add
-      .text(0, 0, WALK_HINT_TEXT, {
-        color: "#1f4050",
-        backgroundColor: "#fff8ecdd",
-        fontFamily: "Source Sans 3, system-ui, sans-serif",
-        fontSize: "18px",
-        fontStyle: "bold",
-        padding: { x: 16, y: 10 },
-      })
-      .setOrigin(0.5)
-      .setDepth(hudDepthAbovePlayer(this.playerDepth));
-    placeWorldHudText(this, this.walkHint, "top", 56);
   }
 
   private updateInteractPrompt(): void {
@@ -1923,4 +1897,42 @@ export class IsometricScene extends Phaser.Scene {
     });
   }
 
+  private async tryCopyInvite(): Promise<void> {
+    if (isVisitorMode()) {
+      return;
+    }
+
+    hideManualInviteUrl();
+    try {
+      const result = await shareOrCopyInviteLink(
+        this.currentZoneId,
+        this.playerGridX,
+        this.playerGridY,
+      );
+      if (result.status === "copied") {
+        flashInviteStatus("Invite link copied!", "#d8f0c0");
+      } else if (result.status === "shared") {
+        flashInviteStatus("Invite shared!", "#d8f0c0");
+      } else if (result.status === "manual" || result.status === "cancelled") {
+        showManualInviteUrl(result.url);
+        flashInviteStatus(
+          result.status === "cancelled"
+            ? "Share cancelled — select the invite link to copy"
+            : "Select the invite link to copy",
+          "#d8f0c0",
+        );
+      } else {
+        console.error(result.error);
+        if (result.url) {
+          showManualInviteUrl(result.url);
+          flashInviteStatus("Select the invite link to copy", "#f08080");
+        } else {
+          flashInviteStatus("Failed to share invite", "#f08080");
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      flashInviteStatus("Failed to share invite", "#f08080");
+    }
+  }
 }
