@@ -34,6 +34,15 @@ function grantableOutputLabel(
     .join(" + ");
 }
 
+export function craftedConfirmation(
+  outputs: { itemId: string; count: number }[],
+): { name: string; count: number } {
+  if (outputs.length === 1) {
+    return { name: getItemName(outputs[0].itemId), count: outputs[0].count };
+  }
+  return { name: grantableOutputLabel(outputs), count: 1 };
+}
+
 export type CraftingHudHandle = {
   refresh: () => void;
   returnMaterials: () => void;
@@ -194,6 +203,9 @@ export function mountCraftingHud(
     if (!interactive || pickup) {
       return;
     }
+    const match = matchGrid(grid, options.context);
+    const grantable =
+      match.status === "match" ? getGrantableRecipeOutputs(match.recipe) : [];
     const result = craftFromGrid(grid, options.context, (next) => {
       grid = next;
     });
@@ -204,7 +216,17 @@ export function mountCraftingHud(
     }
     lastError = null;
     grid = result.grid;
-    options.onCrafted?.(result.recipe.name, result.recipe.outputCount);
+    const confirmation = craftedConfirmation(
+      grantable.length > 0
+        ? grantable
+        : [
+            {
+              itemId: result.recipe.outputItemId,
+              count: result.recipe.outputCount,
+            },
+          ],
+    );
+    options.onCrafted?.(confirmation.name, confirmation.count);
     inventoryChanged();
     render();
   }
