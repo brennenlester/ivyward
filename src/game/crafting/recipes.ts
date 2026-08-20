@@ -24,6 +24,8 @@ export type CraftRecipe = {
   name: string;
   outputItemId: string;
   outputCount: number;
+  /** Extra items granted with the primary output (Sovereign Seal → both crowns). */
+  extraOutputs?: { itemId: string; count: number }[];
   /** Minimal bounding-box rows. `.` = empty; other glyphs map via PATTERN_GLYPHS. */
   pattern: string[];
   altarOnly?: boolean;
@@ -43,19 +45,12 @@ export const PATTERN_GLYPHS: Record<string, string> = {
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
   {
-    id: TIDE_CROWN_ID,
-    name: "Tide Crown",
+    id: "sovereign-seal",
+    name: "Sovereign Seal",
     outputItemId: TIDE_CROWN_ID,
     outputCount: 1,
-    pattern: ["PPP", ".D.", ".F."],
-    uniqueOwned: true,
-  },
-  {
-    id: BOULDER_CROWN_ID,
-    name: "Boulder Crown",
-    outputItemId: BOULDER_CROWN_ID,
-    outputCount: 1,
-    pattern: ["BBB", ".D.", ".F."],
+    extraOutputs: [{ itemId: BOULDER_CROWN_ID, count: 1 }],
+    pattern: ["PBP", "BDB", "PDF", ".F."],
     uniqueOwned: true,
   },
   {
@@ -237,7 +232,37 @@ function uniqueOwnedBlockedMessage(recipe: CraftRecipe): string {
   if (recipe.id === "portable-moonshrine") {
     return "Already have a Moonshrine";
   }
+  if (recipe.id === "sovereign-seal") {
+    return "Already have a Tide Crown and Boulder Crown";
+  }
   return `Already have a ${recipe.name}`;
+}
+
+export function getRecipeOutputs(
+  recipe: CraftRecipe,
+): { itemId: string; count: number }[] {
+  return [
+    { itemId: recipe.outputItemId, count: recipe.outputCount },
+    ...(recipe.extraOutputs ?? []),
+  ];
+}
+
+export function getGrantableRecipeOutputs(
+  recipe: CraftRecipe,
+): { itemId: string; count: number }[] {
+  return getRecipeOutputs(recipe).filter((output) => {
+    if (sovereignCrownCraftBlock(output.itemId)) {
+      return false;
+    }
+    if (!canAddItem(output.itemId, output.count)) {
+      return false;
+    }
+    // Recraft can top up missing extra outputs (Seal → only the missing crown).
+    if (recipe.uniqueOwned && getItemCount(output.itemId) > 0) {
+      return false;
+    }
+    return true;
+  });
 }
 
 function sovereignCrownCraftBlock(itemId: string): string | null {
@@ -287,20 +312,21 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
     if (!patternMatchesBox(grid, box, recipe.pattern)) {
       continue;
     }
-    if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
-      return {
-        status: "blocked",
-        recipe,
-        message: uniqueOwnedBlockedMessage(recipe),
-      };
-    }
-    const crownBlock = sovereignCrownCraftBlock(recipe.outputItemId);
-    if (crownBlock) {
-      return {
-        status: "blocked",
-        recipe,
-        message: crownBlock,
-      };
+    const grantable = getGrantableRecipeOutputs(recipe);
+    if (grantable.length === 0) {
+      const crownBlock = getRecipeOutputs(recipe)
+        .map((output) => sovereignCrownCraftBlock(output.itemId))
+        .find((message): message is string => Boolean(message));
+      if (crownBlock) {
+        return { status: "blocked", recipe, message: crownBlock };
+      }
+      if (recipe.uniqueOwned) {
+        return {
+          status: "blocked",
+          recipe,
+          message: uniqueOwnedBlockedMessage(recipe),
+        };
+      }
     }
     return { status: "match", recipe, box };
   }
@@ -338,14 +364,8 @@ export function canCraft(
   if (recipe.altarOnly && context !== "altar") {
     return false;
   }
-  if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
-    return false;
-  }
-  if (sovereignCrownCraftBlock(recipe.outputItemId)) {
-    return false;
-  }
   return (
-    canAddItem(recipe.outputItemId, recipe.outputCount) &&
+    getGrantableRecipeOutputs(recipe).length > 0 &&
     getRecipeMaterials(recipe).every(
       (m) => getMaterialCount(m.materialId) >= m.count,
     )
@@ -356,12 +376,13 @@ export function craftItem(recipe: CraftRecipe): boolean {
   if (!canCraft(recipe)) {
     return false;
   }
+  const grantable = getGrantableRecipeOutputs(recipe);
   for (const m of getRecipeMaterials(recipe)) {
     if (!consumeMaterial(m.materialId, m.count)) {
       return false;
     }
   }
-  return addItem(recipe.outputItemId, recipe.outputCount);
+  return grantable.every((output) => addItem(output.itemId, output.count));
 }
 
 export type CraftFromGridResult =
@@ -387,12 +408,13 @@ export function craftFromGrid(
   if (match.status === "blocked") {
     return { ok: false, grid, message: match.message };
   }
-  if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
+  const grantable = getGrantableRecipeOutputs(match.recipe);
+  if (grantable.length === 0) {
     return { ok: false, grid, message: "You can't hold more of that." };
   }
   const next = clearBox(grid, match.box);
   onConsumed?.(next);
-  if (!addItem(match.recipe.outputItemId, match.recipe.outputCount)) {
+  if (!grantable.every((output) => addItem(output.itemId, output.count))) {
     onConsumed?.(grid);
     return { ok: false, grid, message: "You can't hold more of that." };
   }

@@ -156,101 +156,69 @@ describe("brook crystal hold cap on snapshot restore", () => {
   });
 });
 
-describe("sovereign crown recipes", () => {
-  const tideRecipe = CRAFT_RECIPES.find((r) => r.id === "tide-crown")!;
-  const boulderRecipe = CRAFT_RECIPES.find((r) => r.id === "boulder-crown")!;
+describe("sovereign seal recipe", () => {
+  const sealRecipe = CRAFT_RECIPES.find((r) => r.id === "sovereign-seal")!;
+  const sealMats = {
+    "brook-pearl": 3,
+    pebble: 3,
+    "folklore-dust": 2,
+    "wild-fiber": 2,
+  };
 
-  it("crafts one Tide Crown from pearls, dust, and fiber", () => {
-    expect(tideRecipe).toMatchObject({
-      name: "Tide Crown",
+  it("crafts exclusive Tide Crown and Boulder Crown from the Sovereign Seal pattern", () => {
+    expect(sealRecipe).toMatchObject({
+      name: "Sovereign Seal",
       outputItemId: "tide-crown",
       uniqueOwned: true,
+      extraOutputs: [{ itemId: "boulder-crown", count: 1 }],
     });
-    expect(getRecipeMaterials(tideRecipe)).toEqual([
+    expect(getRecipeMaterials(sealRecipe)).toEqual([
       { materialId: "brook-pearl", count: 3 },
-      { materialId: "folklore-dust", count: 1 },
-      { materialId: "wild-fiber", count: 1 },
+      { materialId: "pebble", count: 3 },
+      { materialId: "folklore-dust", count: 2 },
+      { materialId: "wild-fiber", count: 2 },
     ]);
-    setInventoryFromSnapshot(
-      {
-        "brook-pearl": 3,
-        "folklore-dust": 1,
-        "wild-fiber": 1,
-      },
-      {},
-    );
-    expect(craftItem(tideRecipe)).toBe(true);
+    setInventoryFromSnapshot(sealMats, {});
+    expect(craftItem(sealRecipe)).toBe(true);
     expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
+    expect(getItemCount("sovereign-seal")).toBe(0);
     expect(getMaterialCount("brook-pearl")).toBe(0);
   });
 
-  it("crafts one Boulder Crown from pebbles, dust, and fiber", () => {
-    expect(getRecipeMaterials(boulderRecipe)).toEqual([
-      { materialId: "pebble", count: 3 },
-      { materialId: "folklore-dust", count: 1 },
-      { materialId: "wild-fiber", count: 1 },
-    ]);
-    setInventoryFromSnapshot(
-      {
-        pebble: 3,
-        "folklore-dust": 1,
-        "wild-fiber": 1,
-      },
-      {},
-    );
-    expect(craftItem(boulderRecipe)).toBe(true);
-    expect(getItemCount("boulder-crown")).toBe(1);
-  });
-
   it("enforces a hold cap of 1 on each crown", () => {
-    setInventoryFromSnapshot(
-      {
-        "brook-pearl": 3,
-        "folklore-dust": 1,
-        "wild-fiber": 1,
-      },
-      { "tide-crown": 1 },
-    );
-    expect(canCraft(tideRecipe)).toBe(false);
-    expect(craftItem(tideRecipe)).toBe(false);
-    expect(getItemCount("tide-crown")).toBe(1);
+    setInventoryFromSnapshot(sealMats, {
+      "tide-crown": 1,
+      "boulder-crown": 1,
+    });
+    expect(canCraft(sealRecipe)).toBe(false);
+    expect(craftItem(sealRecipe)).toBe(false);
     expect(getMaterialCount("brook-pearl")).toBe(3);
 
-    setInventoryFromSnapshot({}, { "tide-crown": 4 });
+    setInventoryFromSnapshot({}, { "tide-crown": 4, "boulder-crown": 4 });
     expect(getItemCount("tide-crown")).toBe(1);
-    setInventoryFromSnapshot({}, { "boulder-crown": 4 });
     expect(getItemCount("boulder-crown")).toBe(1);
   });
 
-  it("still crafts a Tide Crown after Horizon fusion", () => {
+  it("still grants a missing Tide Crown after Horizon fusion", () => {
     setGodFusionCompleted(true, false);
-    setInventoryFromSnapshot(
-      {
-        "brook-pearl": 3,
-        "folklore-dust": 1,
-        "wild-fiber": 1,
-      },
-      {},
-    );
-    expect(canCraft(tideRecipe)).toBe(true);
-    expect(craftItem(tideRecipe)).toBe(true);
+    setInventoryFromSnapshot(sealMats, { "boulder-crown": 1 });
+    expect(canCraft(sealRecipe)).toBe(true);
+    expect(craftItem(sealRecipe)).toBe(true);
     expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
   });
 
-  it("blocks Tide Crown after two Horizon fusions but still allows Boulder Crown", () => {
+  it("after two Horizon fusions grants only Boulder Crown", () => {
     setHorizonFusionCount(2, false);
-    setInventoryFromSnapshot(
-      {
-        "brook-pearl": 3,
-        pebble: 3,
-        "folklore-dust": 2,
-        "wild-fiber": 2,
-      },
-      {},
-    );
-    expect(canCraft(tideRecipe)).toBe(false);
-    expect(canCraft(boulderRecipe)).toBe(true);
-    const grid = placePattern(emptyGrid(), tideRecipe.pattern, 0, 0);
+    setInventoryFromSnapshot(sealMats, {});
+    expect(canCraft(sealRecipe)).toBe(true);
+    expect(craftItem(sealRecipe)).toBe(true);
+    expect(getItemCount("tide-crown")).toBe(0);
+    expect(getItemCount("boulder-crown")).toBe(1);
+    setInventoryFromSnapshot(sealMats, { "boulder-crown": 1 });
+    expect(canCraft(sealRecipe)).toBe(false);
+    const grid = placePattern(emptyGrid(), sealRecipe.pattern, 0, 0);
     const match = matchGrid(grid, "altar");
     expect(match.status).toBe("blocked");
     if (match.status === "blocked") {
@@ -261,32 +229,23 @@ describe("sovereign crown recipes", () => {
     setHorizonFusionCount(0, false);
   });
 
-  it("blocks crafting either crown after Eclipse fusion is complete", () => {
+  it("blocks the seal recipe after Eclipse fusion is complete", () => {
     setEclipseFusionCompleted(true, false);
-    setInventoryFromSnapshot(
-      {
-        "brook-pearl": 3,
-        pebble: 3,
-        "folklore-dust": 2,
-        "wild-fiber": 2,
-      },
-      {},
-    );
-    expect(canCraft(tideRecipe)).toBe(false);
-    expect(craftItem(tideRecipe)).toBe(false);
-    expect(canCraft(boulderRecipe)).toBe(false);
+    setInventoryFromSnapshot(sealMats, {});
+    expect(canCraft(sealRecipe)).toBe(false);
+    expect(craftItem(sealRecipe)).toBe(false);
     expect(getItemCount("tide-crown")).toBe(0);
     expect(getItemCount("boulder-crown")).toBe(0);
     setEclipseFusionCompleted(false, false);
   });
 
-  it("blocks a second Tide Crown on the grid with a named message", () => {
-    setInventoryFromSnapshot({}, { "tide-crown": 1 });
-    const grid = placePattern(emptyGrid(), tideRecipe.pattern, 0, 0);
+  it("blocks the grid when both exclusive crowns are already owned", () => {
+    setInventoryFromSnapshot({}, { "tide-crown": 1, "boulder-crown": 1 });
+    const grid = placePattern(emptyGrid(), sealRecipe.pattern, 0, 0);
     const match = matchGrid(grid, "altar");
     expect(match.status).toBe("blocked");
     if (match.status === "blocked") {
-      expect(match.message).toBe("Already have a Tide Crown");
+      expect(match.message).toBe("Already have a Tide Crown and Boulder Crown");
     }
   });
 });

@@ -3,7 +3,6 @@ import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
 import {
   addMaterial,
-  canAddItem,
   consumeMaterial,
   playerInventory,
 } from "../inventory/playerInventory";
@@ -15,6 +14,7 @@ import {
   cloneGrid,
   craftFromGrid,
   emptyGrid,
+  getGrantableRecipeOutputs,
   matchGrid,
   returnGridToInventory,
   type CraftContext,
@@ -22,6 +22,17 @@ import {
 } from "../crafting/recipes";
 
 const DRAG_THRESHOLD = 8;
+
+function grantableOutputLabel(
+  outputs: { itemId: string; count: number }[],
+): string {
+  return outputs
+    .map((output) => {
+      const countLabel = output.count > 1 ? ` ×${output.count}` : "";
+      return `${getItemName(output.itemId)}${countLabel}`;
+    })
+    .join(" + ");
+}
 
 export type CraftingHudHandle = {
   refresh: () => void;
@@ -146,12 +157,11 @@ export function mountCraftingHud(
       return match.message;
     }
     if (match.status === "match") {
-      if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
+      const grantable = getGrantableRecipeOutputs(match.recipe);
+      if (grantable.length === 0) {
         return "You can't hold more of that.";
       }
-      const count =
-        match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
-      return `${match.recipe.name}${count}`;
+      return grantableOutputLabel(grantable);
     }
     return "Drag materials onto the 4×4, then tap the result.";
   }
@@ -500,15 +510,11 @@ export function mountCraftingHud(
     result.dataset.craftResult = "1";
     const match = matchGrid(grid, options.context);
     if (match.status === "match") {
-      const atCap = !canAddItem(
-        match.recipe.outputItemId,
-        match.recipe.outputCount,
-      );
-      const countLabel =
-        match.recipe.outputCount > 1 ? ` ×${match.recipe.outputCount}` : "";
+      const grantable = getGrantableRecipeOutputs(match.recipe);
+      const atCap = grantable.length === 0;
       result.textContent = atCap
         ? "You can't hold more of that."
-        : `${getItemName(match.recipe.outputItemId)}${countLabel}`;
+        : grantableOutputLabel(grantable);
       result.disabled = !interactive || atCap;
       if (interactive && !atCap) {
         result.addEventListener("click", () => {

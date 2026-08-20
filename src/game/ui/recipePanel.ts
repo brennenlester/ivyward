@@ -1,8 +1,9 @@
-import { getMaterialName } from "../inventory/materials";
+import { getItemName, getMaterialName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
 import {
   CRAFT_RECIPES,
   getRecipeMaterials,
+  getRecipeOutputs,
   patternToMaterialRows,
   type CraftRecipe,
 } from "../crafting/recipes";
@@ -12,6 +13,7 @@ export type RecipePage = {
   name: string;
   outputItemId: string;
   outputCount: number;
+  outputs: { itemId: string; name: string; count: number }[];
   altarOnly: boolean;
   uniqueOwned: boolean;
   materials: { materialId: string; name: string; count: number }[];
@@ -26,6 +28,10 @@ export function listRecipePages(
     name: recipe.name,
     outputItemId: recipe.outputItemId,
     outputCount: recipe.outputCount,
+    outputs: getRecipeOutputs(recipe).map((output) => ({
+      ...output,
+      name: getItemName(output.itemId),
+    })),
     altarOnly: Boolean(recipe.altarOnly),
     uniqueOwned: Boolean(recipe.uniqueOwned),
     materials: getRecipeMaterials(recipe).map((m) => ({
@@ -117,8 +123,14 @@ function renderRecipesBody(): void {
     const section = document.createElement("section");
     section.className = "recipe-card";
     const heading = document.createElement("h3");
-    const count = page.outputCount > 1 ? ` ×${page.outputCount}` : "";
-    heading.textContent = `${page.name}${count}`;
+    const outputNames = page.outputs
+      .map((output) => {
+        const count = output.count > 1 ? ` ×${output.count}` : "";
+        return `${output.name}${count}`;
+      })
+      .join(" + ");
+    heading.textContent =
+      page.outputs.length > 1 ? `${page.name} — ${outputNames}` : outputNames;
     section.appendChild(heading);
     if (page.altarOnly) {
       const note = document.createElement("p");

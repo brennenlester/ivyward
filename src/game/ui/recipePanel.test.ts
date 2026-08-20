@@ -7,6 +7,8 @@ describe("listRecipePages", () => {
     const pages = listRecipePages();
     expect(pages.map((p) => p.id)).toContain("brook-tonic");
     expect(pages.map((p) => p.id)).toContain("portable-moonshrine");
+    expect(pages.map((p) => p.id)).toContain("sovereign-seal");
+    expect(pages.map((p) => p.id)).not.toContain("tide-crown");
     const tonic = pages.find((p) => p.id === "brook-tonic")!;
     expect(tonic.outputCount).toBe(3);
     expect(tonic.grid).toEqual([
@@ -16,6 +18,12 @@ describe("listRecipePages", () => {
     const portable = pages.find((p) => p.id === "portable-moonshrine")!;
     expect(portable.altarOnly).toBe(true);
     expect(portable.uniqueOwned).toBe(true);
+    const seal = pages.find((p) => p.id === "sovereign-seal")!;
+    expect(seal.name).toBe("Sovereign Seal");
+    expect(seal.outputs.map((o) => o.itemId)).toEqual([
+      "tide-crown",
+      "boulder-crown",
+    ]);
   });
 });
 
