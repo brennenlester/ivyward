@@ -8,6 +8,7 @@ import {
 import { isVisitorMode } from "../world/worldSession";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { registerStagedCraftingSource } from "../crafting/stagedMaterials";
+import { applyShrineCraftOverlayRect } from "./shrinePanel";
 import {
   GRID_SIZE,
   cloneGrid,
@@ -53,13 +54,16 @@ export function showShrineCraftingHud(options: {
     shrineHost = document.createElement("div");
     shrineHost.id = "shrine-craft-overlay";
     shrineHost.className = "shrine-craft-overlay";
-    document.getElementById("app")?.appendChild(shrineHost);
+    const parent =
+      document.getElementById("game") ?? document.getElementById("app");
+    parent?.appendChild(shrineHost);
     shrineHud = mountCraftingHud(shrineHost, {
       context: options.context,
       interactive: !isVisitorMode(),
       onCrafted: options.onCrafted,
     });
   }
+  applyShrineCraftOverlayRect(shrineHost);
   shrineHost.hidden = false;
 }
 

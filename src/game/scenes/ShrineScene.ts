@@ -41,14 +41,18 @@ import {
 } from "../ui/craftingHud";
 import { openRecipes } from "../ui/recipePanel";
 import { shrineTabContentHeight } from "../ui/shrineContentScroll";
+import {
+  SHRINE_PANEL_HEIGHT,
+  SHRINE_PANEL_WIDTH,
+} from "../ui/shrinePanel";
 
 const MOON_PANEL = 0x354d78;
 const MOON_STROKE = 0xffedb0;
 const MOON_ACCENT = 0x8ed8cf;
 const MOON_TEXT = "#fff8dc";
 const MOON_MUTED = "#c9eee1";
-const PANEL_WIDTH = 480;
-const PANEL_HEIGHT = 420;
+const PANEL_WIDTH = SHRINE_PANEL_WIDTH;
+const PANEL_HEIGHT = SHRINE_PANEL_HEIGHT;
 
 function getUseEffectLabel(
   effectType: ConsumableEffectType,
@@ -456,15 +460,6 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private renderCraftTab(): void {
-    const cx = this.panelCenter.x;
-    const hint = this.add
-      .text(cx, this.contentBounds.top + 8, "Place materials in the grid.", {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "13px",
-      })
-      .setOrigin(0.5);
-    this.contentContainer.add(hint);
     this.contentHeight = 24;
     showShrineCraftingHud({
       context: this.shrineMode,
