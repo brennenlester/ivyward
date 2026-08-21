@@ -85,7 +85,7 @@ export function getMaterialForCreature(creatureId: string): string | undefined {
   return CREATURE_MATERIALS[creatureId];
 }
 
-/** Recipe-grid materials that have HUD icons. Other owned mats stay name-only. */
+/** Recipe-grid ingredients that have HUD icons. Other owned mats stay name-only. */
 export const CRAFT_MATERIAL_ICON_IDS = [
   "wood",
   "stone",
@@ -95,6 +95,9 @@ export const CRAFT_MATERIAL_ICON_IDS = [
   "brook-pearl",
   "pebble",
   "folklore-dust",
+  // ponytail: crowns share materials/ with craft mats until #218 splits item art.
+  "tide-crown",
+  "boulder-crown",
 ] as const;
 
 export function getIngredientName(id: string): string {

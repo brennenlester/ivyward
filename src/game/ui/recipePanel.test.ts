@@ -42,6 +42,43 @@ describe("recipe overlay icons", () => {
     expect(filled?.querySelector(".material-icon-name")?.textContent).toBe(
       "Brook Pearl",
     );
+    expect(
+      filled
+        ?.querySelector(".material-icon-name")
+        ?.classList.contains("visually-hidden"),
+    ).toBe(false);
+    closeRecipes();
+    document.body.replaceChildren();
+  });
+
+  it("shows Tide Crown and Boulder Crown on the Sovereign Seal pattern", () => {
+    document.body.replaceChildren();
+    const app = document.createElement("div");
+    app.id = "app";
+    document.body.appendChild(app);
+    openRecipes();
+    const seal = [...document.querySelectorAll(".recipe-card")].find((card) =>
+      card.querySelector("h3")?.textContent?.includes("Sovereign Seal"),
+    );
+    expect(seal).toBeTruthy();
+    expect(seal?.querySelector(".recipe-note")?.textContent).toContain(
+      "Tide Crown",
+    );
+    expect(seal?.querySelector(".recipe-note")?.textContent).toContain(
+      "Boulder Crown",
+    );
+    for (const id of ["tide-crown", "boulder-crown"] as const) {
+      const img = seal?.querySelector(
+        `img.material-icon[src="${getMaterialIconSrc(id)}"]`,
+      );
+      expect(img).toBeInstanceOf(HTMLImageElement);
+      const cell = img?.closest(".recipe-cell-filled");
+      const name = id === "tide-crown" ? "Tide Crown" : "Boulder Crown";
+      expect(cell?.getAttribute("aria-label")).toBe(name);
+      const label = cell?.querySelector(".material-icon-name");
+      expect(label?.textContent).toBe(name);
+      expect(label?.classList.contains("visually-hidden")).toBe(false);
+    }
     closeRecipes();
     document.body.replaceChildren();
   });
