@@ -59,6 +59,12 @@ import {
   setSideQuestStatuses,
 } from "./npcState";
 import {
+  getDailyAskState,
+  setDailyAskState,
+  type DailyAskState,
+} from "./dailyAsk";
+import { CREATURE_MATERIALS } from "../inventory/materials";
+import {
   getClaimedMinigameWins,
   setClaimedMinigameWins,
 } from "../minigames/progress";
@@ -125,6 +131,8 @@ export type WorldSnapshot = {
   claimedMinigameWins?: string[];
   /** NPC side-quest progress. Optional for older saves. */
   npcSideQuests?: Partial<Record<SideQuestId, SideQuestStatus>>;
+  /** Rotating daily villager ask. Optional for older saves. */
+  dailyAsk?: DailyAskState | null;
   /** Boat moored at the Harbor dock. Optional for older saves. */
   placedBoat?: boolean;
   /** Which Harbor dock holds the moored boat. Optional for older saves. */
@@ -626,6 +634,24 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
       }
     }
   }
+  if (s.dailyAsk !== undefined && s.dailyAsk !== null) {
+    const ask = s.dailyAsk as Record<string, unknown>;
+    if (typeof ask !== "object" || ask === null) return false;
+    if (typeof ask.dayKey !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(ask.dayKey)) {
+      return false;
+    }
+    if (typeof ask.materialId !== "string") return false;
+    const knownMaterials = new Set(Object.values(CREATURE_MATERIALS));
+    if (!knownMaterials.has(ask.materialId)) return false;
+    if (typeof ask.amount !== "number" || ask.amount < 1 || !Number.isInteger(ask.amount)) {
+      return false;
+    }
+    if (typeof ask.npcId !== "string" || !ALL_NPC_IDS.includes(ask.npcId)) return false;
+    if (ask.status !== "locked" && ask.status !== "active" && ask.status !== "complete") {
+      return false;
+    }
+  }
+
 
   if (s.placedBoat !== undefined && typeof s.placedBoat !== "boolean") {
     return false;
@@ -867,6 +893,7 @@ export function exportWorldSnapshot(
     ...getShrineDisclosureSnapshot(),
     claimedMinigameWins: getClaimedMinigameWins(),
     npcSideQuests: getSideQuestStatuses(),
+    dailyAsk: getDailyAskState(),
     placedBoat: isBoatPlaced(),
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
@@ -945,6 +972,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
+  setDailyAskState(snapshot.dailyAsk ?? null);
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setStory1BefriendGuaranteeConsumed(
     snapshot.story1BefriendGuaranteeConsumed === true,
