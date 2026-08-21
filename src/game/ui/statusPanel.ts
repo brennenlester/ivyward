@@ -22,7 +22,8 @@ let copyInviteHandler: (() => void | Promise<void>) | null = null;
 let hostInviteUnlocked = false;
 
 function defaultSessionText(): string {
-  return isVisitorMode() ? "Visitor mode — explore only" : "";
+  // Visitors can walk zones and talk to NPCs; host verbs stay locked (#274).
+  return isVisitorMode() ? "Visitor mode — walk and talk" : "";
 }
 
 function syncHostInviteButton(): void {
