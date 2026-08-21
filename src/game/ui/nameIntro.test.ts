@@ -57,6 +57,13 @@ describe("initNameIntro", () => {
     form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
     expect(isNameIntroOpen()).toBe(true);
     expect(error?.textContent).toMatch(/1–16/);
+    expect(getPlayerName()).toBeNull();
+
+    // Retry after a failed submit must still work (listener stays bound).
+    input.value = "Mira";
+    form.dispatchEvent(new Event("submit", { cancelable: true, bubbles: true }));
+    expect(isNameIntroOpen()).toBe(false);
+    expect(getPlayerName()).toBe("Mira");
   });
 
   it("skips the overlay when a name is already set", () => {

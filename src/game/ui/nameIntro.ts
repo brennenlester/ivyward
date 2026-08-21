@@ -41,6 +41,7 @@ export function initNameIntro(onNamed?: () => void): boolean {
       input.focus();
       return;
     }
+    form.removeEventListener("submit", submit);
     if (!isVisitorMode()) {
       persistHostSave();
     }
@@ -48,7 +49,7 @@ export function initNameIntro(onNamed?: () => void): boolean {
     onNamed?.();
   };
 
-  form.addEventListener("submit", submit, { once: true });
+  form.addEventListener("submit", submit);
   // Focus after paint so the overlay is visible.
   window.requestAnimationFrame(() => input.focus());
   return true;
