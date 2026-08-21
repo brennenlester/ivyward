@@ -39,6 +39,10 @@ export const PATTERN_GLYPHS: Record<string, string> = {
   P: "brook-pearl",
   B: "pebble",
   D: "folklore-dust",
+  R: "storm-feather",
+  I: "mist-shard",
+  L: "lantern-wick",
+  U: "peat-tuft",
   T: TIDE_CROWN_ID,
   C: BOULDER_CROWN_ID,
 };
@@ -80,6 +84,27 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     outputItemId: "moss-salve",
     outputCount: 1,
     pattern: ["MD", "M."],
+  },
+  {
+    id: "storm-charm",
+    name: "Storm Charm",
+    outputItemId: "storm-charm",
+    outputCount: 1,
+    pattern: ["RR", "II", "D."],
+  },
+  {
+    id: "fox-fire-charm",
+    name: "Fox-fire Charm",
+    outputItemId: "fox-fire-charm",
+    outputCount: 1,
+    pattern: ["LD", "L."],
+  },
+  {
+    id: "fen-charm",
+    name: "Fen Charm",
+    outputItemId: "fen-charm",
+    outputCount: 1,
+    pattern: ["UD", "U."],
   },
   {
     id: "brook-tonic",
