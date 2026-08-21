@@ -49,9 +49,17 @@ import {
 } from "../render/playerWalk";
 import {
   ENCOUNTER_TRAVEL_THRESHOLD,
-  rollWildCreature,
   shouldAttemptWildEncounter,
 } from "../encounters/tables";
+import { getHabitatProfile } from "../encounters/habitatProfiles";
+import {
+  clearArchipelagoLandingEncounters,
+  onArchipelagoEncounterStarted,
+  onZoneEnter,
+  resolveWildEncounterCreature,
+  rollWildTriggerChance,
+  shouldGuaranteeWildTrigger,
+} from "../encounters/habitatRuntime";
 import {
   appendGodSailCheatKey,
   canForceGodSailEncounter,
@@ -187,7 +195,6 @@ const FLOOR_LAYER = 0;
 const PROP_LAYER = 0.45;
 const SCREEN_MARGIN = PLAYFIELD_SCREEN_MARGIN;
 const MOVE_SPEED = 6;
-const ENCOUNTER_CHANCE = 0.05;
 const ZONE_CAMERA_COLORS: Record<ZoneId, number> = {
   grove: 0x83c5a0,
   shrine: 0x6c629e,
@@ -535,7 +542,9 @@ export class IsometricScene extends Phaser.Scene {
     }
 
     this.travelSinceEncounter = 0;
-    if (Math.random() >= ENCOUNTER_CHANCE) {
+    const profile = getHabitatProfile(this.currentZoneId);
+    const guaranteed = shouldGuaranteeWildTrigger(profile, this.currentZoneId);
+    if (!guaranteed && !rollWildTriggerChance(profile)) {
       return;
     }
 
@@ -543,9 +552,19 @@ export class IsometricScene extends Phaser.Scene {
       this.currentZoneId === "archipelago"
         ? islandIndexAtTile(this.playerGridX, this.playerGridY)
         : null;
-    const creatureId = rollWildCreature(this.currentZoneId, { islandIndex });
+    const creatureId = resolveWildEncounterCreature({
+      zoneId: this.currentZoneId,
+      tileX: Math.round(this.playerGridX),
+      tileY: Math.round(this.playerGridY),
+      islandIndex,
+      discoveredCreatureIds: worldState.discoveredCreatures,
+    });
     if (!creatureId) {
       return;
+    }
+
+    if (profile.availability.kind === "onePerLanding") {
+      onArchipelagoEncounterStarted(islandIndex);
     }
 
     this.inEncounter = true;
@@ -553,7 +572,10 @@ export class IsometricScene extends Phaser.Scene {
     this.cameras.main.fadeOut(140, 255, 255, 255);
     this.time.delayedCall(145, () => {
       this.scene.pause();
-      this.scene.launch("EncounterScene", { creatureId });
+      this.scene.launch("EncounterScene", {
+        creatureId,
+        zoneId: this.currentZoneId,
+      });
     });
   }
 
@@ -951,7 +973,9 @@ export class IsometricScene extends Phaser.Scene {
     if (this.currentZoneId === "archipelago" && zoneId !== "archipelago") {
       resetArchipelagoStream();
     }
+    const previousZoneId = this.currentZoneId;
     this.currentZoneId = zoneId;
+    onZoneEnter(zoneId, previousZoneId === zoneId ? null : previousZoneId);
     const zone = getZone(zoneId);
     this.playerDepth = playerDepthAboveGrid(zone.width, zone.height);
     markZoneDiscovered(zoneId);
@@ -1668,6 +1692,7 @@ export class IsometricScene extends Phaser.Scene {
 
     const result = tryEmbark(this.currentZoneId, tileX, tileY);
     if (result.ok && result.embarked && result.playerX !== undefined && result.playerY !== undefined) {
+      clearArchipelagoLandingEncounters();
       this.playerGridX = result.playerX;
       this.playerGridY = result.playerY;
       updateHostPosition(

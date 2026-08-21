@@ -12,10 +12,13 @@ import {
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
+  ASSURED_BEFRIEND_LABEL,
   BEFRIEND_MISS_TEXT,
+  befriendButtonLabel,
   canAttemptBefriend,
   formatGodClaimJoinLine,
-  getBefriendButtonLabel,
+  getBefriendChance,
+  isStory1BefriendGuaranteed,
   resolveTideSovereignOutcome,
   rollBefriendAttempt,
   TIDE_SOVEREIGN_ID,
@@ -24,6 +27,15 @@ import {
   CAIRN_SOVEREIGN_ID,
   resolveCairnSovereignOutcome,
 } from "../encounters/godLand";
+import {
+  onWildEncounterResolved,
+  profileForEncounter,
+  resolveProfileBefriendChance,
+  shouldConcealReveal,
+  shouldOfferHarborBefriend,
+  shouldShowSparVerb,
+} from "../encounters/habitatRuntime";
+import type { ZoneId } from "../world/zoneTypes";
 import { isVisitorMode } from "../world/worldSession";
 import { markCreatureDiscovered } from "../world/worldState";
 import { unlockCodexHud } from "../ui/hudChrome";
@@ -38,19 +50,27 @@ const TEXT_STYLE = {
 
 export class EncounterScene extends Phaser.Scene {
   private creatureId!: string;
+  private zoneId?: ZoneId;
   private actionTaken = false;
   private befriendAttempted = false;
+  private revealed = false;
   private missText?: Phaser.GameObjects.Text;
   private befriendBtn?: Phaser.GameObjects.Text;
+  private titleText?: Phaser.GameObjects.Text;
+  private typeText?: Phaser.GameObjects.Text;
+  private portrait?: Phaser.GameObjects.Image;
+  private silhouette?: Phaser.GameObjects.Rectangle;
 
   constructor() {
     super({ key: "EncounterScene" });
   }
 
-  init(data: { creatureId: string }): void {
+  init(data: { creatureId: string; zoneId?: ZoneId }): void {
     this.creatureId = data.creatureId;
+    this.zoneId = data.zoneId;
     this.actionTaken = false;
     this.befriendAttempted = false;
+    this.revealed = false;
   }
 
   create(): void {
@@ -58,7 +78,11 @@ export class EncounterScene extends Phaser.Scene {
     ensureCreatureTextures(this);
     playEncounterSfx(this);
     const def = getCreatureDefinition(this.creatureId);
-    if (!def.excludeFromCodex) {
+    const profile = profileForEncounter(this.zoneId, this.creatureId);
+    const concealed = shouldConcealReveal(profile, this.creatureId);
+    this.revealed = !concealed;
+
+    if (!def.excludeFromCodex && this.revealed) {
       markCreatureDiscovered(this.creatureId);
     }
 
@@ -101,18 +125,20 @@ export class EncounterScene extends Phaser.Scene {
       18,
     );
 
-    const pose = resolveCreaturePoseTexture(this, def.spriteKey, "encounter");
-    const trimmed = ensureTrimmedTexture(this, ...pose);
-    // Sit in the upper panel: leave clear air above the title at panelY+70.
-    fitContainDisplay(
-      this.add.image(panelX, panelY - 90, ...trimmed).setOrigin(0.5),
-      ENCOUNTER_CREATURE_DISPLAY,
-    );
+    if (concealed) {
+      this.silhouette = this.add
+        .rectangle(panelX, panelY - 90, 120, 120, 0x2a4050, 0.85)
+        .setOrigin(0.5);
+    } else {
+      this.showPortrait(panelX, panelY - 90);
+    }
 
-    this.addPanelText(
+    this.titleText = this.addPanelText(
       panelX,
       panelY + 70,
-      `A wild ${def.name} appeared!`,
+      this.revealed
+        ? `A wild ${def.name} appeared!`
+        : "A wild creature appeared!",
       innerWidth,
       {
         color: "#2a4050",
@@ -121,10 +147,10 @@ export class EncounterScene extends Phaser.Scene {
       },
     );
 
-    this.addPanelText(
+    this.typeText = this.addPanelText(
       panelX,
       panelY + 102,
-      `Type: ${def.folkloreType}`,
+      this.revealed ? `Type: ${def.folkloreType}` : "Type: ???",
       innerWidth,
       {
         color: "#5a7888",
@@ -133,31 +159,79 @@ export class EncounterScene extends Phaser.Scene {
     );
 
     const buttonY = panelY + 162;
-    const buttonLabels = [
-      getBefriendButtonLabel(this.creatureId),
-      "Spar",
-      "Flee",
-    ] as const;
-    const buttonActions = [
-      () => this.tryBefriend(),
-      () => this.startSpar(),
-      () => this.flee(),
-    ] as const;
-    const buttonSlotWidth = innerWidth / buttonLabels.length;
+    const showSpar = shouldShowSparVerb(profile, this.creatureId);
+    const showBefriend = shouldOfferHarborBefriend(profile, this.creatureId);
+    const befriendChance =
+      resolveProfileBefriendChance(this.zoneId ?? "grove", this.creatureId) ??
+      getBefriendChance(this.creatureId);
+    const befriendLabel = isStory1BefriendGuaranteed(this.creatureId)
+      ? ASSURED_BEFRIEND_LABEL
+      : befriendButtonLabel(befriendChance);
 
-    buttonLabels.forEach((label, index) => {
+    type EncounterVerb = {
+      label: string;
+      action: () => void;
+      toneIndex: number;
+    };
+    const verbs: EncounterVerb[] = [];
+    if (showBefriend) {
+      verbs.push({
+        label: befriendLabel,
+        action: () => this.tryBefriend(),
+        toneIndex: 0,
+      });
+    }
+    if (showSpar) {
+      verbs.push({
+        label: "Spar",
+        action: () => this.startSpar(),
+        toneIndex: 1,
+      });
+    }
+    verbs.push({
+      label: "Flee",
+      action: () => this.flee(),
+      toneIndex: 2,
+    });
+
+    const buttonSlotWidth = innerWidth / verbs.length;
+    verbs.forEach((verb, index) => {
       const buttonX = innerLeft + buttonSlotWidth * (index + 0.5);
       const btn = this.addButton(
         buttonX,
         buttonY,
-        label,
-        buttonActions[index],
-        index,
+        verb.label,
+        verb.action,
+        verb.toneIndex,
       );
-      if (index === 0) {
+      if (verb.toneIndex === 0) {
         this.befriendBtn = btn;
       }
     });
+  }
+
+  private showPortrait(x: number, y: number): void {
+    const def = getCreatureDefinition(this.creatureId);
+    const pose = resolveCreaturePoseTexture(this, def.spriteKey, "encounter");
+    const trimmed = ensureTrimmedTexture(this, ...pose);
+    this.portrait = this.add.image(x, y, ...trimmed).setOrigin(0.5);
+    fitContainDisplay(this.portrait, ENCOUNTER_CREATURE_DISPLAY);
+  }
+
+  private revealCreature(): void {
+    if (this.revealed) {
+      return;
+    }
+    this.revealed = true;
+    const def = getCreatureDefinition(this.creatureId);
+    if (!def.excludeFromCodex) {
+      markCreatureDiscovered(this.creatureId);
+    }
+    this.silhouette?.destroy();
+    this.silhouette = undefined;
+    this.showPortrait(DESIGN_SIZE / 2, DESIGN_SIZE / 2 - 90);
+    this.titleText?.setText(`A wild ${def.name} appeared!`);
+    this.typeText?.setText(`Type: ${def.folkloreType}`);
   }
 
   private addPanelText(
@@ -184,13 +258,13 @@ export class EncounterScene extends Phaser.Scene {
     y: number,
     label: string,
     onClick: () => void,
-    index: number,
+    toneIndex: number,
   ): Phaser.GameObjects.Text {
     const tones = ["#7ed6a8", "#7ec8e8", "#f0c878"] as const;
     const btn = this.add
       .text(x, y, label, {
         color: "#1a3040",
-        backgroundColor: tones[index],
+        backgroundColor: tones[toneIndex % tones.length],
         ...TEXT_STYLE,
         fontSize: "16px",
         fontStyle: "bold",
@@ -205,6 +279,15 @@ export class EncounterScene extends Phaser.Scene {
     return btn;
   }
 
+  private profileChanceOverride(): number | undefined {
+    if (!this.zoneId) {
+      return undefined;
+    }
+    return (
+      resolveProfileBefriendChance(this.zoneId, this.creatureId) ?? undefined
+    );
+  }
+
   private tryBefriend(): void {
     if (
       this.actionTaken ||
@@ -213,6 +296,7 @@ export class EncounterScene extends Phaser.Scene {
     ) {
       return;
     }
+    this.revealCreature();
     this.actionTaken = true;
     this.befriendAttempted = true;
 
@@ -223,7 +307,10 @@ export class EncounterScene extends Phaser.Scene {
       return;
     }
 
-    if (rollBefriendAttempt(this.creatureId)) {
+    if (rollBefriendAttempt(this.creatureId, Math.random, this.profileChanceOverride())) {
+      if (this.zoneId) {
+        onWildEncounterResolved(this.zoneId, this.creatureId, "befriend");
+      }
       if (this.creatureId === TIDE_SOVEREIGN_ID) {
         const result = resolveTideSovereignOutcome("befriend");
         if (result) {
@@ -292,7 +379,11 @@ export class EncounterScene extends Phaser.Scene {
     if (this.actionTaken || isVisitorMode()) {
       return;
     }
+    this.revealCreature();
     this.actionTaken = true;
+    if (this.zoneId) {
+      onWildEncounterResolved(this.zoneId, this.creatureId, "spar");
+    }
 
     this.cameras.main.fadeOut(120, 255, 255, 255);
     this.time.delayedCall(130, () => {
@@ -313,6 +404,8 @@ export class EncounterScene extends Phaser.Scene {
       resolveTideSovereignOutcome("flee");
     } else if (this.creatureId === CAIRN_SOVEREIGN_ID) {
       resolveCairnSovereignOutcome("flee");
+    } else if (this.zoneId) {
+      onWildEncounterResolved(this.zoneId, this.creatureId, "flee");
     }
     this.endEncounter();
   }

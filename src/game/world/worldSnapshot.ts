@@ -37,6 +37,7 @@ import {
   setFirstIslandLanded,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
+  setHarborBefriendUsed,
   setHorizonFusionCount,
   setOverworldUnlocked,
   setStory1BefriendGuaranteeConsumed,
@@ -134,6 +135,8 @@ export type WorldSnapshot = {
   godSailEncounterClaimed?: boolean;
   /** Story 1 first-befriend guarantee already used. Optional for older saves. */
   story1BefriendGuaranteeConsumed?: boolean;
+  /** Harbor once-per-species Befriend claims (#275). Optional for older saves. */
+  harborBefriendUsed?: string[];
   /** Optional: post-Story Next — first archipelago island stand. */
   firstIslandLanded?: boolean;
   /** Lifetime Tide Sovereign claims (0–2). Optional for older saves. */
@@ -651,6 +654,14 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   ) {
     return false;
   }
+  if (s.harborBefriendUsed !== undefined) {
+    if (!Array.isArray(s.harborBefriendUsed)) return false;
+    for (const creatureId of s.harborBefriendUsed) {
+      if (typeof creatureId !== "string" || !VALID_CREATURE_IDS.has(creatureId)) {
+        return false;
+      }
+    }
+  }
   if (
     s.firstIslandLanded !== undefined &&
     typeof s.firstIslandLanded !== "boolean"
@@ -861,6 +872,7 @@ export function exportWorldSnapshot(
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
     story1BefriendGuaranteeConsumed: worldState.story1BefriendGuaranteeConsumed,
+    harborBefriendUsed: [...worldState.harborBefriendUsed],
     firstIslandLanded: worldState.firstIslandLanded,
     tideSovereignObtained: worldState.tideSovereignObtained,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
@@ -938,6 +950,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     snapshot.story1BefriendGuaranteeConsumed === true,
     false,
   );
+  setHarborBefriendUsed(snapshot.harborBefriendUsed ?? []);
   setFirstIslandLanded(snapshot.firstIslandLanded === true, false);
   if (
     !worldState.firstIslandLanded &&
