@@ -424,14 +424,13 @@ export function mountCraftingHud(
       });
       header.append(closeBtn);
     }
-    root.append(header);
-
+    let spotlightBanner: HTMLDivElement | null = null;
     if (isCraftSpotlightActive()) {
       const spotlight = selectSpotlightRecipe();
       if (spotlight) {
-        const banner = document.createElement("div");
-        banner.className = "crafting-spotlight";
-        banner.dataset.craftSpotlight = spotlight.id;
+        spotlightBanner = document.createElement("div");
+        spotlightBanner.className = "crafting-spotlight";
+        spotlightBanner.dataset.craftSpotlight = spotlight.id;
         const title = document.createElement("p");
         title.className = "crafting-spotlight-title";
         title.textContent = `Try this first: ${spotlight.name}`;
@@ -449,8 +448,7 @@ export function mountCraftingHud(
           event.stopPropagation();
           openRecipes();
         });
-        banner.append(title, detail, browse);
-        root.append(banner);
+        spotlightBanner.append(title, detail, browse);
       }
     }
 
@@ -598,7 +596,11 @@ export function mountCraftingHud(
     status.textContent = statusMessage();
 
     layout.append(list, board);
-    root.append(header, layout, status);
+    if (spotlightBanner) {
+      root.append(header, spotlightBanner, layout, status);
+    } else {
+      root.append(header, layout, status);
+    }
   }
 
   const moveListener = (event: PointerEvent) => onPointerMove(event);
