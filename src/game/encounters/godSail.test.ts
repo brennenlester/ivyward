@@ -76,6 +76,8 @@ describe("god sail encounter", () => {
     expect(shouldAttemptGodSailEncounter({ ...valid, zoneId: "harbor" })).toBe(false);
     expect(shouldAttemptGodSailEncounter({ ...valid, islandIndex: 0 })).toBe(false);
     expect(shouldAttemptGodSailEncounter({ ...valid, visitor: true })).toBe(false);
+    expect(shouldAttemptGodSailEncounter({ ...valid, claimed: true })).toBe(true);
+    setInventoryFromSnapshot({}, { "tide-crown": 1 });
     expect(shouldAttemptGodSailEncounter({ ...valid, claimed: true })).toBe(false);
   });
 
@@ -123,6 +125,7 @@ describe("god sail encounter", () => {
       islandIndex: 3,
       claimed: false,
     };
+    setInventoryFromSnapshot({}, { "tide-crown": 1 });
     expect(shouldAttemptGodSailEncounter(naturallyClaimed)).toBe(false);
     expect(shouldAttemptGodSailEncounter(naturallyOnIsland)).toBe(false);
     expect(canForceGodSailEncounter(naturallyClaimed)).toBe(true);
@@ -273,6 +276,15 @@ describe("god sail encounter", () => {
     expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
     expect(getItemCount("tide-crown")).toBe(0);
     expect(isGodSailEncounterClaimed()).toBe(true);
+    expect(
+      shouldAttemptGodSailEncounter({
+        sailing: true,
+        zoneId: "archipelago",
+        islandIndex: null,
+        visitor: false,
+        claimed: true,
+      }),
+    ).toBe(true);
   });
 
   it("omits the weapon from a second-claim join line", () => {

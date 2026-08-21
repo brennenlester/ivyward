@@ -89,6 +89,10 @@ describe("god land encounter", () => {
       false,
     );
     expect(shouldAttemptGodLandEncounter({ ...valid, claimed: true })).toBe(
+      true,
+    );
+    setInventoryFromSnapshot({}, { "boulder-crown": 1 });
+    expect(shouldAttemptGodLandEncounter({ ...valid, claimed: true })).toBe(
       false,
     );
   });
@@ -158,6 +162,7 @@ describe("god land encounter", () => {
       walkableLand: false,
       claimed: false,
     };
+    setInventoryFromSnapshot({}, { "boulder-crown": 1 });
     expect(shouldAttemptGodLandEncounter(naturallyClaimed)).toBe(false);
     expect(shouldAttemptGodLandEncounter(naturallyOnWater)).toBe(false);
     expect(canForceGodLandEncounter(naturallyClaimed)).toBe(true);
@@ -281,6 +286,15 @@ describe("god land encounter", () => {
     expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
     expect(getItemCount("boulder-crown")).toBe(0);
     expect(isGodLandEncounterClaimed()).toBe(true);
+    expect(
+      shouldAttemptGodLandEncounter({
+        sailing: false,
+        zoneId: "overworld",
+        walkableLand: true,
+        visitor: false,
+        claimed: true,
+      }),
+    ).toBe(true);
   });
 
   it("keeps Tide Cleaver preferred when both god weapons are owned", () => {

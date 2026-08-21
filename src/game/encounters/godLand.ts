@@ -94,7 +94,8 @@ export function shouldAttemptGodLandEncounter(
     context.zoneId === "overworld" &&
     context.walkableLand &&
     !context.visitor &&
-    !context.claimed
+    // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
+    !(context.claimed && getItemCount(BOULDER_CROWN_ID) > 0)
   );
 }
 

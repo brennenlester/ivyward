@@ -92,7 +92,8 @@ export function shouldAttemptGodSailEncounter(
     context.zoneId === "archipelago" &&
     context.islandIndex === null &&
     !context.visitor &&
-    !context.claimed
+    // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
+    !(context.claimed && getItemCount(TIDE_CROWN_ID) > 0)
   );
 }
 
