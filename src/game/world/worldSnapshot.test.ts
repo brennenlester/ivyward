@@ -9,6 +9,11 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { setVisitorMode } from "./worldSession";
+import {
+  getPlayerName,
+  resetPlayerNameForTest,
+  setPlayerName,
+} from "./playerName";
 import { getNpcById } from "./npcs";
 import {
   claimNpcGift,
@@ -93,9 +98,30 @@ function validSnapshot(
   };
 }
 
+beforeEach(() => {
+  resetPlayerNameForTest();
+  setVisitorMode(false);
+});
+
 describe("isValidWorldSnapshot", () => {
   it("accepts a well-formed host snapshot", () => {
     expect(isValidWorldSnapshot(validSnapshot())).toBe(true);
+  });
+
+  it("accepts optional playerName when normalized", () => {
+    expect(
+      isValidWorldSnapshot(validSnapshot({ playerName: "Mira" })),
+    ).toBe(true);
+  });
+
+  it("rejects empty, padded, or overlong playerName", () => {
+    expect(isValidWorldSnapshot(validSnapshot({ playerName: "" }))).toBe(false);
+    expect(isValidWorldSnapshot(validSnapshot({ playerName: " Mira" }))).toBe(
+      false,
+    );
+    expect(
+      isValidWorldSnapshot(validSnapshot({ playerName: "a".repeat(17) })),
+    ).toBe(false);
   });
 
   it("accepts and rejects activePartyIds against the party roster", () => {
@@ -433,6 +459,26 @@ describe("isValidWorldSnapshot inventory and discovery", () => {
         validSnapshot({ unlockedAchievements: ["not-an-achievement"] }),
       ),
     ).toBe(false);
+  });
+});
+
+describe("playerName host save round-trip (#248)", () => {
+  it("exports and restores the session player name", () => {
+    expect(setPlayerName("Bren")).toBe(true);
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 3, y: 7 });
+    expect(exported.playerName).toBe("Bren");
+    resetPlayerNameForTest();
+    applyWorldSnapshot(exported);
+    expect(getPlayerName()).toBe("Bren");
+  });
+
+  it("omits playerName when unnamed, and visitor mode clears a restored host name", () => {
+    const exported = exportWorldSnapshot({ zoneId: "grove", x: 3, y: 7 });
+    expect(exported.playerName).toBeUndefined();
+    applyWorldSnapshot(validSnapshot({ playerName: "Host" }));
+    expect(getPlayerName()).toBe("Host");
+    setVisitorMode(true, "Host world");
+    expect(getPlayerName()).toBeNull();
   });
 });
 

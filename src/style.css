@@ -284,6 +284,7 @@ body,
 }
 
 .invite-error[hidden],
+.name-intro[hidden],
 #playfield[hidden] {
   display: none !important;
 }
@@ -321,6 +322,89 @@ body,
 
 .invite-error-btn:focus-visible {
   outline: 2px solid #6eb8a8;
+  outline-offset: 2px;
+}
+
+.name-intro {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: #1a3048e6;
+  font-family: "Source Sans 3", sans-serif;
+  text-align: center;
+}
+
+.name-intro-title {
+  margin: 0 0 10px;
+  color: #fff8ec;
+  font-family: Fraunces, serif;
+  font-size: 40px;
+  font-weight: 700;
+}
+
+.name-intro-body {
+  margin: 0 0 18px;
+  color: #e8d8c0;
+  font-size: 16px;
+}
+
+.name-intro-form {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: min(320px, 100%);
+}
+
+.name-intro-input {
+  width: 100%;
+  border: 2px solid #6eb8a8;
+  border-radius: 12px;
+  padding: 12px 14px;
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 18px;
+  font-weight: 600;
+  color: #2a4858;
+  background: #fff8ec;
+  text-align: center;
+}
+
+.name-intro-input:focus-visible {
+  outline: 2px solid #f0c878;
+  outline-offset: 2px;
+}
+
+.name-intro-error {
+  min-height: 1.2em;
+  margin: 0;
+  color: #f0c878;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.name-intro-btn {
+  border: 2px solid #6eb8a8;
+  background: #e8f7f2;
+  color: #2a6058;
+  font-family: "Source Sans 3", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.name-intro-btn:hover {
+  background: #d8f0e8;
+}
+
+.name-intro-btn:focus-visible {
+  outline: 2px solid #f0c878;
   outline-offset: 2px;
 }
 

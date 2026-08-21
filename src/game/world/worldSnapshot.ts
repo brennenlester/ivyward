@@ -77,10 +77,18 @@ import {
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
+import {
+  PLAYER_NAME_MAX_LENGTH,
+  getPlayerName,
+  normalizePlayerName,
+  setPlayerName,
+} from "./playerName";
 
 export type WorldSnapshot = {
   version: 1;
   hostLabel: string;
+  /** Host player display name for the overworld nametag. Optional for older saves. */
+  playerName?: string;
   overworldUnlocked: boolean;
   /** Zones visited. Optional for older saves. */
   discoveredZones?: ZoneId[];
@@ -496,6 +504,11 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   const s = value as Record<string, unknown>;
   if (s.version !== 1) return false;
   if (typeof s.hostLabel !== "string") return false;
+  if (s.playerName !== undefined) {
+    if (typeof s.playerName !== "string") return false;
+    if (normalizePlayerName(s.playerName) !== s.playerName) return false;
+    if (s.playerName.length > PLAYER_NAME_MAX_LENGTH) return false;
+  }
   if (typeof s.overworldUnlocked !== "boolean") return false;
 
   if (s.discoveredZones !== undefined) {
@@ -773,9 +786,11 @@ export function exportWorldSnapshot(
   position: PendingWorldPosition,
   hostLabel = "Your world",
 ): WorldSnapshot {
+  const name = getPlayerName();
   return {
     version: 1,
     hostLabel,
+    ...(name ? { playerName: name } : {}),
     overworldUnlocked: worldState.overworldUnlocked,
     discoveredZones: [...worldState.discoveredZones],
     discoveredCreatures: [...worldState.discoveredCreatures],
@@ -822,6 +837,11 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     ...(snapshot.discoveredCreatures ?? []),
     ...fromParty,
   ]);
+  // Host display name (optional on older saves). Visitor mode clears this after
+  // apply so invite recipients name themselves for the visit only.
+  if (snapshot.playerName) {
+    setPlayerName(snapshot.playerName);
+  }
   // Pre-evolution saves lack speciesId; hasCreature() matches on it, so a
   // missing value reads owned sovereigns as absent and re-opens their claimed
   // encounters (#192).
