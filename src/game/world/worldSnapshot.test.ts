@@ -46,10 +46,12 @@ import {
   isGodFusionCompleted,
   isGodLandEncounterClaimed,
   isGodSailEncounterClaimed,
+  isStory1BefriendGuaranteeConsumed,
   setEclipseFusionCompleted,
   setGodFusionCompleted,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
+  setStory1BefriendGuaranteeConsumed,
   worldState,
 } from "./worldState";
 import { getNextInstanceId, playerParty } from "../creatures/party";
@@ -160,6 +162,20 @@ describe("isValidWorldSnapshot", () => {
       isValidWorldSnapshot({
         ...validSnapshot(),
         godSailEncounterClaimed: "yes",
+      }),
+    ).toBe(false);
+  });
+
+  it("soft-adds and validates the Story 1 befriend guarantee flag", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ story1BefriendGuaranteeConsumed: true }),
+      ),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot({
+        ...validSnapshot(),
+        story1BefriendGuaranteeConsumed: "yes",
       }),
     ).toBe(false);
   });
@@ -496,6 +512,7 @@ describe("applyWorldSnapshot codex achievement", () => {
     resetNpcStateForTest();
     resetMinigameProgressForTest();
     setGodSailEncounterClaimed(false, false);
+    setStory1BefriendGuaranteeConsumed(false, false);
     setGodLandEncounterClaimed(false, false);
     setGodFusionCompleted(false, false);
     setEclipseFusionCompleted(false, false);
@@ -507,6 +524,20 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(isGodSailEncounterClaimed()).toBe(false);
+  });
+
+  it("restores the Story 1 befriend guarantee and defaults older saves to unused", () => {
+    applyWorldSnapshot(
+      validSnapshot({ story1BefriendGuaranteeConsumed: true }),
+    );
+    expect(isStory1BefriendGuaranteeConsumed()).toBe(true);
+    expect(
+      exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 })
+        .story1BefriendGuaranteeConsumed,
+    ).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(isStory1BefriendGuaranteeConsumed()).toBe(false);
   });
 
   it("restores the god land claim and defaults older saves to unclaimed", () => {
