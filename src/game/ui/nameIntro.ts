@@ -15,16 +15,19 @@ export function initNameIntro(onNamed?: () => void): boolean {
   const form = document.getElementById("name-intro-form") as HTMLFormElement | null;
   const input = document.getElementById("name-intro-input") as HTMLInputElement | null;
   const error = document.getElementById("name-intro-error");
+  const playfield = document.getElementById("playfield");
   if (!overlay || !form || !input) {
     return false;
   }
 
   if (hasPlayerName()) {
     overlay.hidden = true;
+    playfield?.removeAttribute("inert");
     return false;
   }
 
   overlay.hidden = false;
+  playfield?.setAttribute("inert", "");
   input.maxLength = PLAYER_NAME_MAX_LENGTH;
   input.value = "";
   if (error) {
@@ -46,6 +49,7 @@ export function initNameIntro(onNamed?: () => void): boolean {
       persistHostSave();
     }
     overlay.hidden = true;
+    playfield?.removeAttribute("inert");
     onNamed?.();
   };
 

@@ -23,8 +23,15 @@
           Start a fresh game
         </button>
       </div>
-      <div id="name-intro" class="name-intro" hidden>
-        <h1 class="name-intro-title">Ivyward</h1>
+      <div
+        id="name-intro"
+        class="name-intro"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="name-intro-title"
+        hidden
+      >
+        <h1 id="name-intro-title" class="name-intro-title">Ivyward</h1>
         <p class="name-intro-body">What should we call you?</p>
         <form id="name-intro-form" class="name-intro-form" autocomplete="off">
           <label class="visually-hidden" for="name-intro-input">Your name</label>

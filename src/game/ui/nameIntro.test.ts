@@ -9,7 +9,8 @@ import { setVisitorMode } from "../world/worldSession";
 
 function mountIntroDom(): void {
   document.body.innerHTML = `
-    <div id="name-intro" class="name-intro" hidden>
+    <div id="playfield"></div>
+    <div id="name-intro" class="name-intro" role="dialog" aria-modal="true" hidden>
       <form id="name-intro-form">
         <input id="name-intro-input" type="text" maxlength="16" />
         <p id="name-intro-error"></p>
@@ -34,6 +35,9 @@ describe("initNameIntro", () => {
   it("shows the overlay when unnamed and hides after a valid submit", () => {
     expect(initNameIntro()).toBe(true);
     expect(isNameIntroOpen()).toBe(true);
+    expect(document.getElementById("playfield")?.hasAttribute("inert")).toBe(
+      true,
+    );
 
     const form = document.getElementById("name-intro-form") as HTMLFormElement;
     const input = document.getElementById(
@@ -44,6 +48,9 @@ describe("initNameIntro", () => {
 
     expect(isNameIntroOpen()).toBe(false);
     expect(getPlayerName()).toBe("Mira");
+    expect(document.getElementById("playfield")?.hasAttribute("inert")).toBe(
+      false,
+    );
   });
 
   it("keeps the overlay open for empty names", () => {
