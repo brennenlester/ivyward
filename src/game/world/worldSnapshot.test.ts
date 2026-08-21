@@ -480,6 +480,12 @@ describe("playerName host save round-trip (#248)", () => {
     setVisitorMode(true, "Host world");
     expect(getPlayerName()).toBeNull();
   });
+
+  it("does not restore playerName when already in visitor mode", () => {
+    setVisitorMode(true, "Friend's world");
+    applyWorldSnapshot(validSnapshot({ playerName: "Host" }));
+    expect(getPlayerName()).toBeNull();
+  });
 });
 
 describe("applyWorldSnapshot codex achievement", () => {

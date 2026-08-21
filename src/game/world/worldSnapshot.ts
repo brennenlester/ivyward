@@ -77,6 +77,7 @@ import {
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
+import { isVisitorMode } from "./worldSession";
 import {
   PLAYER_NAME_MAX_LENGTH,
   getPlayerName,
@@ -837,9 +838,9 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     ...(snapshot.discoveredCreatures ?? []),
     ...fromParty,
   ]);
-  // Host display name (optional on older saves). Visitor mode clears this after
-  // apply so invite recipients name themselves for the visit only.
-  if (snapshot.playerName) {
+  // Host display name (optional on older saves). Skip when already in visitor
+  // mode so invite boot order cannot inherit the host's nametag (#248).
+  if (snapshot.playerName && !isVisitorMode()) {
     setPlayerName(snapshot.playerName);
   }
   // Pre-evolution saves lack speciesId; hasCreature() matches on it, so a

@@ -48,7 +48,7 @@ export function initNameIntro(onNamed?: () => void): boolean {
     onNamed?.();
   };
 
-  form.addEventListener("submit", submit);
+  form.addEventListener("submit", submit, { once: true });
   // Focus after paint so the overlay is visible.
   window.requestAnimationFrame(() => input.focus());
   return true;
