@@ -21,9 +21,9 @@ export function shrineCraftOverlayRect(
   const insetX = 16;
   const left = (designSize - SHRINE_PANEL_WIDTH) / 2 + insetX;
   const width = SHRINE_PANEL_WIDTH - insetX * 2;
-  // Tabs sit at cy - 108; leave a gap, then fill down to the panel floor.
+  // Tabs sit at cy - 108; fill down to just above Phaser status (cy + 142).
   const top = cy - 88;
-  const bottom = cy + SHRINE_PANEL_HEIGHT / 2 - 16;
+  const bottom = cy + 130;
   const height = Math.max(0, bottom - top);
   const pct = (n: number) => `${((n / designSize) * 100).toFixed(3)}%`;
   return {

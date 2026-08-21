@@ -33,4 +33,11 @@ describe("shrineCraftOverlayRect", () => {
     const tabCenterPct = ((SHRINE_DESIGN_SIZE / 2 - 108) / SHRINE_DESIGN_SIZE) * 100;
     expect(pct(shrineCraftOverlayRect().top)).toBeGreaterThan(tabCenterPct);
   });
+
+  it("stops above the shrine status line", () => {
+    const statusPct = ((SHRINE_DESIGN_SIZE / 2 + 142) / SHRINE_DESIGN_SIZE) * 100;
+    const rect = shrineCraftOverlayRect();
+    const bottom = pct(rect.top) + pct(rect.height);
+    expect(bottom).toBeLessThan(statusPct);
+  });
 });
