@@ -2,12 +2,15 @@ import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
 import { addItem, canAddItem, getItemCount, TIDE_CROWN_ID } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
+import { questProgress } from "../story/questProgress";
 import {
   canObtainAnotherParentSovereign,
   getTideSovereignObtained,
   isGodSailEncounterClaimed,
+  isStory1BefriendGuaranteeConsumed,
   recordTideSovereignObtained,
   setGodSailEncounterClaimed,
+  setStory1BefriendGuaranteeConsumed,
 } from "../world/worldState";
 import { CAIRN_SOVEREIGN_ID } from "./godLand";
 
@@ -164,12 +167,45 @@ export function getBefriendChance(creatureId: string): number {
     : NORMAL_BEFRIEND_CHANCE;
 }
 
+/**
+ * Story 1 teaching guarantee: first non-god befriend while first-befriend is
+ * active succeeds without a roll, once per save.
+ */
+export function isStory1BefriendGuaranteed(creatureId: string): boolean {
+  return (
+    !isGodCreature(creatureId) &&
+    questProgress["first-befriend"] === "active" &&
+    !isStory1BefriendGuaranteeConsumed()
+  );
+}
+
+/** Resolve a befriend roll; consumes the Story 1 guarantee when it applies. */
+export function rollBefriendAttempt(
+  creatureId: string,
+  rng: () => number = Math.random,
+): boolean {
+  if (isStory1BefriendGuaranteed(creatureId)) {
+    setStory1BefriendGuaranteeConsumed(true);
+    return true;
+  }
+  return rng() < getBefriendChance(creatureId);
+}
+
 export function formatBefriendOddsPercent(chance: number): string {
   return `${Math.round(chance * 100)}%`;
 }
 
+export const ASSURED_BEFRIEND_LABEL = "Befriend (assured)";
+
 export function befriendButtonLabel(chance: number): string {
   return `Befriend ${formatBefriendOddsPercent(chance)}`;
+}
+
+export function getBefriendButtonLabel(creatureId: string): string {
+  if (isStory1BefriendGuaranteed(creatureId)) {
+    return ASSURED_BEFRIEND_LABEL;
+  }
+  return befriendButtonLabel(getBefriendChance(creatureId));
 }
 
 /** Distinct from Flee (no copy, leaves immediately). */

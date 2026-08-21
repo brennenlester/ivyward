@@ -35,6 +35,7 @@ import {
   setGodSailEncounterClaimed,
   setHorizonFusionCount,
   setOverworldUnlocked,
+  setStory1BefriendGuaranteeConsumed,
   setTideSovereignObtained,
 } from "./worldState";
 import {
@@ -123,6 +124,8 @@ export type WorldSnapshot = {
   sailing?: boolean;
   /** Tide Sovereign has been obtained. Optional for older saves. */
   godSailEncounterClaimed?: boolean;
+  /** Story 1 first-befriend guarantee already used. Optional for older saves. */
+  story1BefriendGuaranteeConsumed?: boolean;
   /** Optional: post-Story Next — first archipelago island stand. */
   firstIslandLanded?: boolean;
   /** Lifetime Tide Sovereign claims (0–2). Optional for older saves. */
@@ -623,6 +626,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
   if (
+    s.story1BefriendGuaranteeConsumed !== undefined &&
+    typeof s.story1BefriendGuaranteeConsumed !== "boolean"
+  ) {
+    return false;
+  }
+  if (
     s.firstIslandLanded !== undefined &&
     typeof s.firstIslandLanded !== "boolean"
   ) {
@@ -830,6 +839,7 @@ export function exportWorldSnapshot(
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
+    story1BefriendGuaranteeConsumed: worldState.story1BefriendGuaranteeConsumed,
     firstIslandLanded: worldState.firstIslandLanded,
     tideSovereignObtained: worldState.tideSovereignObtained,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
@@ -899,6 +909,10 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
+  setStory1BefriendGuaranteeConsumed(
+    snapshot.story1BefriendGuaranteeConsumed === true,
+    false,
+  );
   setFirstIslandLanded(snapshot.firstIslandLanded === true, false);
   if (
     !worldState.firstIslandLanded &&

@@ -11,6 +11,8 @@ export const worldState = {
   discoveredCreatures: [] as string[],
   /** Tide Sovereign was obtained; natural god-sail rolls stop until unclaimed. */
   godSailEncounterClaimed: false,
+  /** Story 1 first-befriend guarantee already used this save. */
+  story1BefriendGuaranteeConsumed: false,
   /** Lifetime Tide Sovereign claims this save (0–2). */
   tideSovereignObtained: 0,
   /** Stone Sovereign was obtained; natural god-land rolls stop until unclaimed. */
@@ -48,6 +50,20 @@ export function setGodSailEncounterClaimed(
   notify = true,
 ): void {
   worldState.godSailEncounterClaimed = claimed;
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function isStory1BefriendGuaranteeConsumed(): boolean {
+  return worldState.story1BefriendGuaranteeConsumed;
+}
+
+export function setStory1BefriendGuaranteeConsumed(
+  consumed: boolean,
+  notify = true,
+): void {
+  worldState.story1BefriendGuaranteeConsumed = consumed;
   if (notify) {
     notifyWorldChanged();
   }

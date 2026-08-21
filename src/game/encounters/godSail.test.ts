@@ -11,10 +11,13 @@ import {
 } from "../inventory/playerInventory";
 import {
   isGodSailEncounterClaimed,
+  isStory1BefriendGuaranteeConsumed,
   setGodSailEncounterClaimed,
   setHorizonFusionCount,
+  setStory1BefriendGuaranteeConsumed,
   setTideSovereignObtained,
 } from "../world/worldState";
+import { restoreQuestProgress } from "../story/questProgress";
 import {
   buildArmedWanderer,
   getBestWeaponId,
@@ -22,6 +25,7 @@ import {
 import {
   appendGodSailCheatKey,
   appendGodSparKillCheatKey,
+  ASSURED_BEFRIEND_LABEL,
   BEFRIEND_MISS_TEXT,
   befriendButtonLabel,
   canAttemptBefriend,
@@ -30,14 +34,17 @@ import {
   createPendingGodSailEncounter,
   formatBefriendOddsPercent,
   formatGodClaimJoinLine,
+  getBefriendButtonLabel,
   getBefriendChance,
   getTideSovereignAttack,
   GOD_BEFRIEND_CHANCE,
   GOD_SAIL_ENCOUNTER_CHANCE,
   GOD_SAIL_ENCOUNTER_DELAY_MS,
+  isStory1BefriendGuaranteed,
   lockPendingGodSailEncounter,
   NORMAL_BEFRIEND_CHANCE,
   resolveTideSovereignOutcome,
+  rollBefriendAttempt,
   rollGodSailEncounter,
   shouldAttemptGodSailEncounter,
   TIDE_CLEAVER_ID,
@@ -55,8 +62,15 @@ describe("god sail encounter", () => {
     setPartyFromSnapshot([], 1);
     setInventoryFromSnapshot({}, {});
     setGodSailEncounterClaimed(false, false);
+    setStory1BefriendGuaranteeConsumed(false, false);
     setTideSovereignObtained(0, false);
     setHorizonFusionCount(0, false);
+    restoreQuestProgress({
+      "first-befriend": "active",
+      "first-spar": "locked",
+      "reach-village": "locked",
+      "shrine-craft": "locked",
+    });
   });
 
   it("uses a deterministic 1/100 roll boundary without Monte Carlo", () => {
@@ -181,12 +195,48 @@ describe("god sail encounter", () => {
   it("prints the same percent the befriend resolver uses", () => {
     expect(formatBefriendOddsPercent(NORMAL_BEFRIEND_CHANCE)).toBe("55%");
     expect(formatBefriendOddsPercent(GOD_BEFRIEND_CHANCE)).toBe("8%");
+    setStory1BefriendGuaranteeConsumed(true, false);
     expect(befriendButtonLabel(getBefriendChance("mossling"))).toBe(
       "Befriend 55%",
     );
+    expect(getBefriendButtonLabel("mossling")).toBe("Befriend 55%");
     expect(befriendButtonLabel(getBefriendChance(TIDE_SOVEREIGN_ID))).toBe(
       "Befriend 8%",
     );
+  });
+
+  it("labels the Story 1 first befriend as assured instead of 55%", () => {
+    expect(isStory1BefriendGuaranteed("mossling")).toBe(true);
+    expect(getBefriendButtonLabel("mossling")).toBe(ASSURED_BEFRIEND_LABEL);
+    expect(getBefriendButtonLabel("mossling")).not.toContain("55%");
+    expect(getBefriendButtonLabel(TIDE_SOVEREIGN_ID)).toBe("Befriend 8%");
+  });
+
+  it("guarantees the first Story 1 befriend without consulting Math.random", () => {
+    expect(rollBefriendAttempt("mossling", () => 0.99)).toBe(true);
+    expect(isStory1BefriendGuaranteeConsumed()).toBe(true);
+    expect(isStory1BefriendGuaranteed("mossling")).toBe(false);
+    expect(rollBefriendAttempt("mossling", () => 0.99)).toBe(false);
+  });
+
+  it("does not apply the Story 1 guarantee to god creatures", () => {
+    expect(isStory1BefriendGuaranteed(TIDE_SOVEREIGN_ID)).toBe(false);
+    expect(rollBefriendAttempt(TIDE_SOVEREIGN_ID, () => 0.99)).toBe(false);
+    expect(isStory1BefriendGuaranteeConsumed()).toBe(false);
+    expect(isStory1BefriendGuaranteed("mossling")).toBe(true);
+  });
+
+  it("does not guarantee befriend after Story 1 completes", () => {
+    restoreQuestProgress({
+      "first-befriend": "complete",
+      "first-spar": "active",
+      "reach-village": "locked",
+      "shrine-craft": "locked",
+    });
+    expect(isStory1BefriendGuaranteed("mossling")).toBe(false);
+    expect(getBefriendButtonLabel("mossling")).toBe("Befriend 55%");
+    expect(rollBefriendAttempt("mossling", () => 0.99)).toBe(false);
+    expect(isStory1BefriendGuaranteeConsumed()).toBe(false);
   });
 
   it("uses a miss line that is not the old slip copy and not empty", () => {

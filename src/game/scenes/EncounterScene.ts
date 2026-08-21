@@ -13,11 +13,11 @@ import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
 import { UNARMED_WANDERER } from "../battle/wandererWeapons";
 import {
   BEFRIEND_MISS_TEXT,
-  befriendButtonLabel,
   canAttemptBefriend,
   formatGodClaimJoinLine,
-  getBefriendChance,
+  getBefriendButtonLabel,
   resolveTideSovereignOutcome,
+  rollBefriendAttempt,
   TIDE_SOVEREIGN_ID,
 } from "../encounters/godSail";
 import {
@@ -134,7 +134,7 @@ export class EncounterScene extends Phaser.Scene {
 
     const buttonY = panelY + 162;
     const buttonLabels = [
-      befriendButtonLabel(getBefriendChance(this.creatureId)),
+      getBefriendButtonLabel(this.creatureId),
       "Spar",
       "Flee",
     ] as const;
@@ -223,8 +223,7 @@ export class EncounterScene extends Phaser.Scene {
       return;
     }
 
-    const catchChance = getBefriendChance(this.creatureId);
-    if (Math.random() < catchChance) {
+    if (rollBefriendAttempt(this.creatureId)) {
       if (this.creatureId === TIDE_SOVEREIGN_ID) {
         const result = resolveTideSovereignOutcome("befriend");
         if (result) {
