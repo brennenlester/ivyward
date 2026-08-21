@@ -99,7 +99,7 @@ function renderRecipeGrid(grid: (string | null)[][]): HTMLElement {
       const el = document.createElement("span");
       el.className = cell ? "recipe-cell recipe-cell-filled" : "recipe-cell";
       if (cell) {
-        appendMaterialVisual(el, cell, { showName: false });
+        appendMaterialVisual(el, cell, { showName: true });
       }
       table.appendChild(el);
     }
@@ -124,6 +124,13 @@ function renderRecipesBody(): void {
       const note = document.createElement("p");
       note.className = "recipe-note";
       note.textContent = "Craft only at the Moon Shrine altar. One owned.";
+      section.appendChild(note);
+    }
+    if (page.id === "sovereign-seal") {
+      const note = document.createElement("p");
+      note.className = "recipe-note";
+      note.textContent =
+        "Place Tide Crown and Boulder Crown in the bottom corners. They return after craft.";
       section.appendChild(note);
     }
     const cost = document.createElement("p");

@@ -6,7 +6,7 @@ import {
 } from "./materials";
 
 describe("getMaterialIconSrc", () => {
-  it("maps the eight craft materials to public PNG paths", () => {
+  it("maps craft recipe ingredients to public PNG paths", () => {
     for (const id of CRAFT_MATERIAL_ICON_IDS) {
       const src = getMaterialIconSrc(id);
       expect(src).toBeDefined();
@@ -15,11 +15,8 @@ describe("getMaterialIconSrc", () => {
     }
   });
 
-  it("covers every material recipe glyph", () => {
+  it("covers every recipe glyph", () => {
     for (const id of Object.values(PATTERN_GLYPHS)) {
-      if (id === "tide-crown" || id === "boulder-crown") {
-        continue;
-      }
       expect(getMaterialIconSrc(id)).toBeDefined();
     }
   });
