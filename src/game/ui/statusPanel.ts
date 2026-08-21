@@ -17,27 +17,50 @@ import "./hudChrome.css";
 
 let inviteFeedbackActive = false;
 let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
+let copyInviteHandler: (() => void | Promise<void>) | null = null;
+/** Host invite chrome stays off until FTUE first step (see #257 / PR #221). */
+let hostInviteUnlocked = false;
 
 function defaultSessionText(): string {
   return isVisitorMode() ? "Visitor mode — explore only" : "";
 }
 
-function hideHostInviteButton(): void {
+function syncHostInviteButton(): void {
   const copyInviteBtn = document.getElementById(
     "copy-invite-btn",
   ) as HTMLButtonElement | null;
   if (!copyInviteBtn) {
     return;
   }
-  copyInviteBtn.hidden = true;
-  copyInviteBtn.disabled = true;
+  if (isVisitorMode() || !hostInviteUnlocked) {
+    copyInviteBtn.hidden = true;
+    copyInviteBtn.disabled = true;
+    return;
+  }
+  copyInviteBtn.hidden = false;
+  copyInviteBtn.disabled = copyInviteHandler === null;
 }
 
-/** Kept so callers compile; host invite chrome is off for this slice. */
+/** Scene registers live-position invite copy (keyboard I + panel button). */
 export function setCopyInviteHandler(
-  _handler: (() => void | Promise<void>) | null,
+  handler: (() => void | Promise<void>) | null,
 ): void {
-  hideHostInviteButton();
+  copyInviteHandler = handler;
+  syncHostInviteButton();
+}
+
+/** Reveal host invite chrome after the first successful walk (FTUE gate). */
+export function unlockHostInviteChrome(): void {
+  if (hostInviteUnlocked) {
+    return;
+  }
+  hostInviteUnlocked = true;
+  syncHostInviteButton();
+}
+
+/** Test/helper: whether host invite chrome has been unlocked this session. */
+export function isHostInviteUnlocked(): boolean {
+  return hostInviteUnlocked;
 }
 
 function defaultSessionColor(): string {
@@ -45,7 +68,7 @@ function defaultSessionColor(): string {
 }
 
 export function updateStatusPanel(zone: ZoneDefinition): void {
-  hideHostInviteButton();
+  syncHostInviteButton();
   const zoneEl = document.getElementById("status-zone");
   const questEl = document.getElementById("status-quest");
   const questHintEl = document.getElementById("status-quest-hint");
@@ -180,11 +203,11 @@ export function initStatusPanelControls(): void {
   }
   statusControlsInitialized = true;
 
-  hideHostInviteButton();
+  syncHostInviteButton();
   const copyInviteBtn = document.getElementById("copy-invite-btn");
   if (copyInviteBtn instanceof HTMLButtonElement) {
     copyInviteBtn.addEventListener("click", () => {
-      // Host invite chrome is off; do not copy a join link.
+      void copyInviteHandler?.();
     });
   }
 
