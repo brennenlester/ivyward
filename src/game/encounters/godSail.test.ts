@@ -22,9 +22,13 @@ import {
 import {
   appendGodSailCheatKey,
   appendGodSparKillCheatKey,
+  BEFRIEND_MISS_TEXT,
+  befriendButtonLabel,
+  canAttemptBefriend,
   canForceGodSailEncounter,
   claimTideSovereign,
   createPendingGodSailEncounter,
+  formatBefriendOddsPercent,
   formatGodClaimJoinLine,
   getBefriendChance,
   getTideSovereignAttack,
@@ -172,6 +176,27 @@ describe("god sail encounter", () => {
     expect(getBefriendChance(TIDE_SOVEREIGN_ID)).toBe(GOD_BEFRIEND_CHANCE);
     expect(getBefriendChance("mossling")).toBe(NORMAL_BEFRIEND_CHANCE);
     expect(NORMAL_BEFRIEND_CHANCE).toBe(0.55);
+  });
+
+  it("prints the same percent the befriend resolver uses", () => {
+    expect(formatBefriendOddsPercent(NORMAL_BEFRIEND_CHANCE)).toBe("55%");
+    expect(formatBefriendOddsPercent(GOD_BEFRIEND_CHANCE)).toBe("8%");
+    expect(befriendButtonLabel(getBefriendChance("mossling"))).toBe(
+      "Befriend 55%",
+    );
+    expect(befriendButtonLabel(getBefriendChance(TIDE_SOVEREIGN_ID))).toBe(
+      "Befriend 8%",
+    );
+  });
+
+  it("uses a miss line that is not the old slip copy and not empty", () => {
+    expect(BEFRIEND_MISS_TEXT.length).toBeGreaterThan(0);
+    expect(BEFRIEND_MISS_TEXT.toLowerCase()).not.toMatch(/slipped away/);
+  });
+
+  it("allows only one befriend roll per encounter", () => {
+    expect(canAttemptBefriend(false)).toBe(true);
+    expect(canAttemptBefriend(true)).toBe(false);
   });
 
   it("cycles flat sovereign attacks as 10, 15, 10, 20", () => {

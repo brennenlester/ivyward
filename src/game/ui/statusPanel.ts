@@ -1,4 +1,3 @@
-import { getPartySummary } from "../creatures/party";
 import { getGateStatusText, getQuestHint, getQuestSummary } from "../story/questProgress";
 import { getActiveSideQuestHint } from "../world/npcState";
 import { getHostLabel, isVisitorMode } from "../world/worldSession";
@@ -8,29 +7,37 @@ import { openCodex } from "./codex";
 import { openParty } from "./partyPanel";
 import { openInventory } from "./inventoryPanel";
 import { openRecipes } from "./recipePanel";
+import { renderPartyHpHud } from "./partyHpHud";
+import "./partyHpHud.css";
+import { CONTROL_LEGEND_TEXT } from "./controlLegend";
+import {
+  refreshHudChromeButtons,
+} from "./hudChrome";
+import "./hudChrome.css";
 
 let inviteFeedbackActive = false;
-let copyInviteHandler: (() => void | Promise<void>) | null = null;
 let inviteFeedbackTimer: ReturnType<typeof setTimeout> | null = null;
 
 function defaultSessionText(): string {
-  return isVisitorMode()
-    ? "Visitor mode — explore only"
-    : "Use Copy invite link to share your world";
+  return isVisitorMode() ? "Visitor mode — explore only" : "";
 }
 
-/** Scene registers live-position invite copy (keyboard I + panel button). */
-export function setCopyInviteHandler(
-  handler: (() => void | Promise<void>) | null,
-): void {
-  copyInviteHandler = handler;
+function hideHostInviteButton(): void {
   const copyInviteBtn = document.getElementById(
     "copy-invite-btn",
   ) as HTMLButtonElement | null;
-  if (!copyInviteBtn || isVisitorMode()) {
+  if (!copyInviteBtn) {
     return;
   }
-  copyInviteBtn.disabled = handler === null;
+  copyInviteBtn.hidden = true;
+  copyInviteBtn.disabled = true;
+}
+
+/** Kept so callers compile; host invite chrome is off for this slice. */
+export function setCopyInviteHandler(
+  _handler: (() => void | Promise<void>) | null,
+): void {
+  hideHostInviteButton();
 }
 
 function defaultSessionColor(): string {
@@ -38,9 +45,11 @@ function defaultSessionColor(): string {
 }
 
 export function updateStatusPanel(zone: ZoneDefinition): void {
+  hideHostInviteButton();
   const zoneEl = document.getElementById("status-zone");
   const questEl = document.getElementById("status-quest");
   const questHintEl = document.getElementById("status-quest-hint");
+  const legendEl = document.getElementById("status-control-legend");
   const gateEl = document.getElementById("status-gate");
   const partyEl = document.getElementById("status-party");
   const sessionEl = document.getElementById("status-session");
@@ -60,12 +69,16 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
       ? `${storyHint} · ${villageAsk}`
       : storyHint;
   }
+  if (legendEl) {
+    legendEl.textContent = CONTROL_LEGEND_TEXT;
+  }
   if (gateEl) {
     gateEl.textContent = getGateStatusText();
   }
   if (partyEl) {
-    partyEl.textContent = getPartySummary();
+    renderPartyHpHud(partyEl);
   }
+  refreshHudChromeButtons();
   if (sessionEl && !inviteFeedbackActive) {
     sessionEl.textContent = defaultSessionText();
     sessionEl.style.color = defaultSessionColor();
@@ -75,7 +88,7 @@ export function updateStatusPanel(zone: ZoneDefinition): void {
 export function refreshPartyStatusLine(): void {
   const partyEl = document.getElementById("status-party");
   if (partyEl) {
-    partyEl.textContent = getPartySummary();
+    renderPartyHpHud(partyEl);
   }
 }
 
@@ -167,26 +180,53 @@ export function initStatusPanelControls(): void {
   }
   statusControlsInitialized = true;
 
+  hideHostInviteButton();
   const copyInviteBtn = document.getElementById("copy-invite-btn");
   if (copyInviteBtn instanceof HTMLButtonElement) {
-    copyInviteBtn.hidden = isVisitorMode();
-    // Disabled until IsometricScene registers the live-position handler.
-    copyInviteBtn.disabled = isVisitorMode() || copyInviteHandler === null;
     copyInviteBtn.addEventListener("click", () => {
-      if (isVisitorMode() || copyInviteBtn.disabled) {
+      // Host invite chrome is off; do not copy a join link.
+    });
+  }
+
+  const overflowBtn = document.getElementById("status-overflow-btn");
+  const overflowMenu = document.getElementById("status-overflow-menu");
+  const closeOverflow = () => {
+    if (!overflowMenu || !overflowBtn) {
+      return;
+    }
+    overflowMenu.hidden = true;
+    overflowMenu.dataset.open = "0";
+    overflowBtn.setAttribute("aria-expanded", "false");
+  };
+  if (overflowBtn && overflowMenu) {
+    overflowBtn.addEventListener("click", (event) => {
+      event.stopPropagation();
+      const open = overflowMenu.dataset.open === "1";
+      if (open) {
+        closeOverflow();
         return;
       }
-      void copyInviteHandler?.();
+      overflowMenu.hidden = false;
+      overflowMenu.dataset.open = "1";
+      overflowBtn.setAttribute("aria-expanded", "true");
     });
+    document.addEventListener("click", () => closeOverflow());
+    overflowMenu.addEventListener("click", (event) => event.stopPropagation());
   }
 
   const resetBtn = document.getElementById("reset-game-btn");
   if (resetBtn) {
-    resetBtn.hidden = isVisitorMode();
+    if (isVisitorMode()) {
+      resetBtn.hidden = true;
+      if (overflowBtn) {
+        overflowBtn.hidden = true;
+      }
+    }
     resetBtn.addEventListener("click", () => {
       if (isVisitorMode()) {
         return;
       }
+      closeOverflow();
       const confirmed = window.confirm(
         "Reset your world? Party, quests, and progress will be cleared.",
       );
@@ -195,6 +235,8 @@ export function initStatusPanelControls(): void {
       }
     });
   }
+
+  refreshHudChromeButtons();
 
   const codexBtn = document.getElementById("codex-btn");
   if (codexBtn) {

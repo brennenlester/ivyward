@@ -97,6 +97,12 @@ body,
   font-style: italic;
 }
 
+.status-control-legend {
+  color: #3a5460;
+  font-size: 12px;
+  font-weight: 600;
+}
+
 .status-gate {
   color: #5a7888;
   font-size: 13px;
@@ -420,6 +426,10 @@ body,
 @media (hover: none) and (pointer: coarse), (max-width: 820px) {
   .touch-controls {
     display: block;
+  }
+
+  .status-control-legend {
+    display: none;
   }
 }
 
@@ -928,7 +938,22 @@ body,
 .crafting-hud-header {
   display: flex;
   justify-content: flex-end;
+  align-items: center;
+  gap: 8px;
   margin-bottom: 8px;
+}
+
+.crafting-close-btn {
+  border: 2px solid #a0c8b8;
+  background: #f4fffa;
+  color: #2a6058;
+  font: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 10px;
+  cursor: pointer;
 }
 
 .crafting-recipes-btn {

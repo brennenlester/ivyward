@@ -39,6 +39,7 @@ import {
   hideShrineCraftingHud,
   showShrineCraftingHud,
 } from "../ui/craftingHud";
+import { getTopOverlayId, popOverlay, pushOverlay } from "../ui/overlayStack";
 import { openRecipes } from "../ui/recipePanel";
 import { shrineTabContentHeight } from "../ui/shrineContentScroll";
 import {
@@ -194,7 +195,7 @@ export class ShrineScene extends Phaser.Scene {
       .setOrigin(0.5);
 
     this.add
-      .text(cx, cy + 166, "Press Esc or click Close to leave", {
+      .text(cx, cy + 166, "Press Esc or click × to leave", {
         color: MOON_MUTED,
         fontFamily: "system-ui, sans-serif",
         fontSize: "12px",
@@ -212,23 +213,24 @@ export class ShrineScene extends Phaser.Scene {
 
   private setupCloseControls(cx: number, cy: number): void {
     this.add
-      .text(
-        cx + PANEL_WIDTH / 2 - 14,
-        cy - PANEL_HEIGHT / 2 + 22,
-        "Close",
-        {
-          color: "#1a1a2e",
-          backgroundColor: "#ffedb0",
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "14px",
-          padding: { x: 14, y: 6 },
-        },
-      )
-      .setOrigin(1, 0.5)
+      .text(cx + PANEL_WIDTH / 2 - 28, cy - PANEL_HEIGHT / 2 + 28, "×", {
+        color: "#1a1a2e",
+        backgroundColor: "#ffedb0",
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "18px",
+        padding: { x: 10, y: 4 },
+      })
+      .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
-      .on("pointerdown", () => this.closeShrine());
+      .on("pointerdown", () => {
+        // Only the top overlay's × may close; craft-hud can stack above shrine.
+        if (getTopOverlayId() !== "shrine") {
+          return;
+        }
+        this.closeShrine();
+      });
 
-    this.input.keyboard?.once("keydown-ESC", () => this.closeShrine());
+    pushOverlay("shrine", () => this.closeShrine());
   }
 
   private setupContentMask(cx: number): void {
@@ -938,6 +940,7 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private closeShrine(): void {
+    popOverlay("shrine");
     hideShrineCraftingHud(true);
     this.scene.stop("ShrineScene");
     this.scene.resume("IsometricScene");

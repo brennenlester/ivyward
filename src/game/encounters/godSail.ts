@@ -164,6 +164,22 @@ export function getBefriendChance(creatureId: string): number {
     : NORMAL_BEFRIEND_CHANCE;
 }
 
+export function formatBefriendOddsPercent(chance: number): string {
+  return `${Math.round(chance * 100)}%`;
+}
+
+export function befriendButtonLabel(chance: number): string {
+  return `Befriend ${formatBefriendOddsPercent(chance)}`;
+}
+
+/** Distinct from Flee (no copy, leaves immediately). */
+export const BEFRIEND_MISS_TEXT = "Not this time.";
+
+/** One befriend roll per encounter. Spar/Flee stay available after a miss. */
+export function canAttemptBefriend(alreadyAttempted: boolean): boolean {
+  return !alreadyAttempted;
+}
+
 export type GodClaimResult = {
   creatureAdded: boolean;
   weaponGranted: boolean;

@@ -75,14 +75,14 @@ import {
 } from "../story/questProgress";
 import { consumeAchievementToast } from "../progression/achievements";
 import {
-  flashInviteStatus,
-  hideManualInviteUrl,
   measureStatusPanelHeight,
   measureStatusPanelWidth,
-  setCopyInviteHandler,
-  showManualInviteUrl,
   updateStatusPanel,
 } from "../ui/statusPanel";
+import {
+  WALK_HINT_TEXT,
+  shouldShowWalkHint,
+} from "../ui/walkHint";
 import {
   computeBoardDisplaySize,
   playfieldLayoutMode,
@@ -95,7 +95,6 @@ import {
   setTouchControlsEnabled,
 } from "../ui/touchControls";
 import { canOccupy } from "../world/collision";
-import { shareOrCopyInviteLink } from "../world/invite";
 import {
   getPlayerName,
   hasPlayerName,
@@ -112,7 +111,13 @@ import {
   STARTING_ZONE_ID,
   getZone,
 } from "../world/zones";
-import { markZoneDiscovered, toggleOverworldUnlock, worldState } from "../world/worldState";
+import {
+  isFirstIslandLanded,
+  markZoneDiscovered,
+  setFirstIslandLanded,
+  toggleOverworldUnlock,
+  worldState,
+} from "../world/worldState";
 import { TileType, type ZoneDefinition, type ZoneId } from "../world/zoneTypes";
 import { cottageFrame } from "../world/cottageWalls";
 import {
@@ -126,6 +131,8 @@ import {
 } from "../minigames/ids";
 import { canLaunchMinigame } from "../minigames/progress";
 import { findGatherPropNearPlayer } from "../world/gatherNodes";
+import { overlayAction, pickInteractPrompt } from "../world/interactPrompt";
+import { findNearbyDoor, isNearShrine } from "../world/interactProximity";
 import {
   getGatherCooldownRemainingMs,
   tryHarvestNode,
@@ -151,6 +158,7 @@ import {
   ARCHIPELAGO_MAX_WIDTH,
   archipelagoVisualWindow,
   biomeAtIslandTile,
+  isArchipelagoIslandPosition,
   ensureArchipelagoChunksAround,
   getArchipelagoPropsInWindow,
   isInArchipelagoVisualWindow,
@@ -206,9 +214,11 @@ export class IsometricScene extends Phaser.Scene {
     D: Phaser.Input.Keyboard.Key;
   };
   private unlockKey!: Phaser.Input.Keyboard.Key;
-  private inviteKey!: Phaser.Input.Keyboard.Key;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private travelSinceEncounter = 0;
+  /** Successful walk distance used to consume the first-step WASD ghost. */
+  private walkHintTravel = 0;
+  private walkHint?: Phaser.GameObjects.Text;
   private godSailTravelSinceEncounter = 0;
   private godLandTravelSinceEncounter = 0;
   private inEncounter = false;
@@ -296,12 +306,10 @@ export class IsometricScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys("W,A,S,D") as typeof this.wasd;
     this.unlockKey = this.input.keyboard!.addKey("U");
-    this.inviteKey = this.input.keyboard!.addKey("I");
     this.interactKey = this.input.keyboard!.addKey("E");
     this.input.keyboard!.on("keydown", this.onGodCheatKeyDown);
     initTouchControls();
     initMuteControl(this);
-    setCopyInviteHandler(() => this.tryCopyInvite());
     ensureGroveMusic(this);
     this.input.on("pointerdown", () => unlockAudioFromGesture(this));
 
@@ -380,10 +388,6 @@ export class IsometricScene extends Phaser.Scene {
       this.loadZone(this.currentZoneId);
     }
 
-    if (Phaser.Input.Keyboard.JustDown(this.inviteKey)) {
-      void this.tryCopyInvite();
-    }
-
     this.updateQuestToast();
     this.updateAchievementToast();
 
@@ -448,6 +452,8 @@ export class IsometricScene extends Phaser.Scene {
     if (moved) {
       this.playerGridX = nextX;
       this.playerGridY = nextY;
+      this.walkHintTravel += step;
+      this.syncWalkHint();
       const prevPhase = this.walkPhase;
       this.walkPhase += step * WALK_CYCLES_PER_TILE;
       if (walkFootfallsSince(prevPhase, this.walkPhase) > 0) {
@@ -460,6 +466,7 @@ export class IsometricScene extends Phaser.Scene {
       );
       if (this.currentZoneId === "archipelago") {
         this.syncArchipelagoStream();
+        this.maybeNoteIslandLand();
       }
       this.tryZoneTransition(zone);
       this.tryRandomEncounter(step);
@@ -907,6 +914,22 @@ export class IsometricScene extends Phaser.Scene {
     }
   }
 
+
+  private maybeNoteIslandLand(): void {
+    if (this.currentZoneId !== "archipelago" || isFirstIslandLanded()) {
+      return;
+    }
+    // Dock tiles count as island positions; only on-foot stands complete the Next.
+    if (isSailing()) {
+      return;
+    }
+    if (!isArchipelagoIslandPosition(this.playerGridX, this.playerGridY)) {
+      return;
+    }
+    setFirstIslandLanded(true);
+    updateStatusPanel(getZone(this.currentZoneId));
+  }
+
   private loadZone(zoneId: ZoneId): void {
     if (this.currentZoneId === "archipelago" && zoneId !== "archipelago") {
       resetArchipelagoStream();
@@ -918,6 +941,7 @@ export class IsometricScene extends Phaser.Scene {
 
     this.children.removeAll(true);
     this.shrinePrompt = undefined;
+    this.walkHint = undefined;
     this.dockBoat = undefined;
     this.sailingBoat = undefined;
     this.nameTag = undefined;
@@ -956,6 +980,7 @@ export class IsometricScene extends Phaser.Scene {
     this.syncPlayerToGrid();
     this.refreshNameTag();
     this.playPlayerAnimation();
+    this.maybeNoteIslandLand();
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
     // setBounds (in layout) often leaves scroll at bounds origin; with follow lerp
     // 0.08 that reads as a dive from map top — snap onto the player immediately.
@@ -965,6 +990,7 @@ export class IsometricScene extends Phaser.Scene {
       this.layoutPlayfield(zone);
       this.snapCameraToPlayer();
       this.updateInteractPrompt();
+      this.syncWalkHint();
       updateHostPosition(
         this.currentZoneId,
         this.playerGridX,
@@ -1094,6 +1120,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private layoutWorldHudTexts(): void {
+    if (this.walkHint) {
+      placeWorldHudText(this, this.walkHint, "top", 56);
+    }
     if (this.shrinePrompt) {
       placeWorldHudText(this, this.shrinePrompt, "bottom", 48);
     }
@@ -1402,10 +1431,9 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private getNearbyDoor() {
-    const zone = getZone(this.currentZoneId);
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    return zone.doors?.find((door) => door.x === tileX && door.y === tileY);
+    return findNearbyDoor(getZone(this.currentZoneId), tileX, tileY);
   }
 
   private getNearbyNpc() {
@@ -1414,58 +1442,64 @@ export class IsometricScene extends Phaser.Scene {
     return findNpcNearPlayer(this.currentZoneId, tileX, tileY);
   }
 
-  private isOnShrineTile(): boolean {
-    const zone = getZone(this.currentZoneId);
-    if (!zone.shrineInteract) {
-      return false;
-    }
+  private isNearShrineTile(): boolean {
     const tileX = Math.round(this.playerGridX);
     const tileY = Math.round(this.playerGridY);
-    return (
-      tileX === zone.shrineInteract.x && tileY === zone.shrineInteract.y
-    );
+    return isNearShrine(getZone(this.currentZoneId), tileX, tileY);
+  }
+
+  private syncWalkHint(): void {
+    if (!shouldShowWalkHint(this.walkHintTravel)) {
+      this.walkHint?.destroy();
+      this.walkHint = undefined;
+      return;
+    }
+    if (this.walkHint) {
+      placeWorldHudText(this, this.walkHint, "top", 56);
+      return;
+    }
+    this.walkHint = this.add
+      .text(0, 0, WALK_HINT_TEXT, {
+        color: "#1f4050",
+        backgroundColor: "#fff8ecdd",
+        fontFamily: "Source Sans 3, system-ui, sans-serif",
+        fontSize: "18px",
+        fontStyle: "bold",
+        padding: { x: 16, y: 10 },
+      })
+      .setOrigin(0.5)
+      .setDepth(hudDepthAbovePlayer(this.playerDepth));
+    placeWorldHudText(this, this.walkHint, "top", 56);
   }
 
   private updateInteractPrompt(): void {
-    const shrine = this.isOnShrineTile();
-    const door = !shrine ? this.getNearbyDoor() : undefined;
-    const minigame = !shrine && !door ? this.getMinigameHere() : undefined;
-    const npc = !shrine && !door && !minigame ? this.getNearbyNpc() : undefined;
-    const dock =
-      !shrine && !door && !npc ? this.getNearbyDockPrompt() : undefined;
-    const sailingHint =
-      !shrine && !door && !npc && !dock && isSailing() ? "Sailing" : undefined;
-    const gather =
-      !shrine && !door && !npc && !dock && !sailingHint && !isVisitorMode()
-        ? this.getNearbyGatherProp()
-        : undefined;
+    const shrine = this.isNearShrineTile();
+    const door = this.getNearbyDoor();
+    const minigame = this.getMinigameHere();
+    const npc = this.getNearbyNpc();
+    const dock = this.getNearbyDockPrompt();
+    const gather = isVisitorMode() ? undefined : this.getNearbyGatherProp();
+    const picked = pickInteractPrompt({
+      shrine: shrine ? "Press E — Moon Shrine" : undefined,
+      door: door ? `Press E — ${door.label}` : undefined,
+      minigame: minigame ? `Press E — ${minigame.title}` : undefined,
+      npc: npc ? `Press E — Talk to ${npc.name}` : undefined,
+      dock,
+      sailing: !dock && isSailing() ? "Sailing" : undefined,
+      gather: gather ? this.formatGatherPrompt(gather) : undefined,
+    });
+    const label = picked?.label;
+    const action = overlayAction(Boolean(this.shrinePrompt), label);
 
-    let label: string | undefined;
-    if (shrine) {
-      label = "Press E — Moon Shrine";
-    } else if (door) {
-      label = `Press E — ${door.label}`;
-    } else if (minigame) {
-      label = `Press E — ${minigame.title}`;
-    } else if (npc) {
-      label = `Press E — Talk to ${npc.name}`;
-    } else if (dock) {
-      label = dock;
-    } else if (sailingHint) {
-      label = sailingHint;
-    } else if (gather) {
-      label = this.formatGatherPrompt(gather);
-    }
-
-    if (label === undefined) {
-      if (this.shrinePrompt) {
-        this.shrinePrompt.destroy();
-        this.shrinePrompt = undefined;
-      }
+    if (action === "destroy") {
+      this.shrinePrompt?.destroy();
+      this.shrinePrompt = undefined;
       return;
     }
-
-    if (this.shrinePrompt) {
+    if (action === "idle" || !label) {
+      return;
+    }
+    if (action === "update" && this.shrinePrompt) {
       this.shrinePrompt.setText(label);
       placeWorldHudText(this, this.shrinePrompt, "bottom", 48);
       return;
@@ -1605,6 +1639,7 @@ export class IsometricScene extends Phaser.Scene {
         );
         this.syncPlayerToGrid();
         this.drawPlacedBoat(getZone(this.currentZoneId));
+        this.maybeNoteIslandLand();
       }
       this.showGatherToast(result.message, result.ok);
       updateStatusPanel(getZone(this.currentZoneId));
@@ -1648,7 +1683,7 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   private tryShrineInteract(): boolean {
-    if (!this.isOnShrineTile()) {
+    if (!this.isNearShrineTile()) {
       return false;
     }
     this.inShrine = true;
@@ -1955,42 +1990,4 @@ export class IsometricScene extends Phaser.Scene {
     });
   }
 
-  private async tryCopyInvite(): Promise<void> {
-    if (isVisitorMode()) {
-      return;
-    }
-
-    hideManualInviteUrl();
-    try {
-      const result = await shareOrCopyInviteLink(
-        this.currentZoneId,
-        this.playerGridX,
-        this.playerGridY,
-      );
-      if (result.status === "copied") {
-        flashInviteStatus("Invite link copied!", "#d8f0c0");
-      } else if (result.status === "shared") {
-        flashInviteStatus("Invite shared!", "#d8f0c0");
-      } else if (result.status === "manual" || result.status === "cancelled") {
-        showManualInviteUrl(result.url);
-        flashInviteStatus(
-          result.status === "cancelled"
-            ? "Share cancelled — select the invite link to copy"
-            : "Select the invite link to copy",
-          "#d8f0c0",
-        );
-      } else {
-        console.error(result.error);
-        if (result.url) {
-          showManualInviteUrl(result.url);
-          flashInviteStatus("Select the invite link to copy", "#f08080");
-        } else {
-          flashInviteStatus("Failed to share invite", "#f08080");
-        }
-      }
-    } catch (error) {
-      console.error(error);
-      flashInviteStatus("Failed to share invite", "#f08080");
-    }
-  }
 }

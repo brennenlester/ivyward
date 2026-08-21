@@ -13,23 +13,29 @@ import {
   setInventoryFromSnapshot,
 } from "../inventory/playerInventory";
 import { restoreQuestProgress, questProgress } from "../story/questProgress";
+import {
+  getHudChromeSnapshot,
+  setHudChromeFromSnapshot,
+  refreshHudChromeButtons,
+} from "../ui/hudChrome";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import { reopenParentSovereignEncounters } from "../shrine/godFusion";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import {
+  worldState,
   MAX_SOVEREIGN_COPIES,
   setCairnSovereignObtained,
   setDiscoveredCreatures,
   setDiscoveredZones,
   setEclipseFusionCompleted,
+  setFirstIslandLanded,
   setGodLandEncounterClaimed,
   setGodSailEncounterClaimed,
   setHorizonFusionCount,
   setOverworldUnlocked,
   setTideSovereignObtained,
-  worldState,
 } from "./worldState";
 import {
   evaluateCodexAchievement,
@@ -101,6 +107,10 @@ export type WorldSnapshot = {
   claimedNpcGifts?: string[];
   /** True after Odd's first paid rest. Optional for older saves. */
   oddRestPurchased?: boolean;
+  /** Codex HUD button unlocked. Optional for older saves. */
+  hudCodexUnlocked?: boolean;
+  /** Recipes HUD button unlocked. Optional for older saves. */
+  hudRecipesUnlocked?: boolean;
   /** Cottage minigames already paid out. Optional for older saves. */
   claimedMinigameWins?: string[];
   /** NPC side-quest progress. Optional for older saves. */
@@ -113,6 +123,8 @@ export type WorldSnapshot = {
   sailing?: boolean;
   /** Tide Sovereign has been obtained. Optional for older saves. */
   godSailEncounterClaimed?: boolean;
+  /** Optional: post-Story Next — first archipelago island stand. */
+  firstIslandLanded?: boolean;
   /** Lifetime Tide Sovereign claims (0–2). Optional for older saves. */
   tideSovereignObtained?: number;
   /** Stone Sovereign has been obtained. Optional for older saves. */
@@ -555,6 +567,13 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     return false;
   }
 
+  if (s.hudCodexUnlocked !== undefined && typeof s.hudCodexUnlocked !== "boolean") {
+    return false;
+  }
+  if (s.hudRecipesUnlocked !== undefined && typeof s.hudRecipesUnlocked !== "boolean") {
+    return false;
+  }
+
   if (s.claimedMinigameWins !== undefined) {
     if (!Array.isArray(s.claimedMinigameWins)) return false;
     for (const minigameId of s.claimedMinigameWins) {
@@ -600,6 +619,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   if (
     s.godSailEncounterClaimed !== undefined &&
     typeof s.godSailEncounterClaimed !== "boolean"
+  ) {
+    return false;
+  }
+  if (
+    s.firstIslandLanded !== undefined &&
+    typeof s.firstIslandLanded !== "boolean"
   ) {
     return false;
   }
@@ -798,12 +823,14 @@ export function exportWorldSnapshot(
     unlockedAchievements: getUnlockedAchievements(),
     claimedNpcGifts: getClaimedNpcGifts(),
     oddRestPurchased: hasPurchasedOddRest(),
+    ...getHudChromeSnapshot(),
     claimedMinigameWins: getClaimedMinigameWins(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
     mooredDock: getMooredDock() ?? undefined,
     sailing: isSailing(),
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
+    firstIslandLanded: worldState.firstIslandLanded,
     tideSovereignObtained: worldState.tideSovereignObtained,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
     cairnSovereignObtained: worldState.cairnSovereignObtained,
@@ -859,11 +886,28 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   const horizonCount =
     snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
+  setHudChromeFromSnapshot({
+    hudCodexUnlocked: snapshot.hudCodexUnlocked,
+    hudRecipesUnlocked: snapshot.hudRecipesUnlocked,
+    discoveredCreatures: worldState.discoveredCreatures,
+    partyCount: playerParty.creatures.length,
+    materials: playerInventory.materials,
+  });
+  refreshHudChromeButtons();
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
+  setFirstIslandLanded(snapshot.firstIslandLanded === true, false);
+  if (
+    !worldState.firstIslandLanded &&
+    snapshot.sailing !== true &&
+    snapshot.position.zoneId === "archipelago" &&
+    isArchipelagoIslandPosition(snapshot.position.x, snapshot.position.y)
+  ) {
+    setFirstIslandLanded(true, false);
+  }
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
   setEclipseFusionCompleted(eclipseDone, false);
   setHorizonFusionCount(horizonCount, false);

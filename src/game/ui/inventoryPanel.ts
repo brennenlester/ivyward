@@ -16,6 +16,7 @@ import {
 } from "./craftingHud";
 import { isConsumableItem } from "../shrine/consumables";
 import { openRecipes } from "./recipePanel";
+import { popOverlay, pushOverlay } from "./overlayStack";
 
 export type InventoryLine = {
   kind: "material" | "item";
@@ -61,16 +62,12 @@ function onInventoryKeyDown(event: KeyboardEvent): void {
   if (!inventoryOpen) {
     return;
   }
-  const recipes = document.getElementById("recipes-overlay");
-  if (recipes && !recipes.hidden) {
+  // Esc is owned by overlayStack (top-most only). Still swallow other keys.
+  if (event.key === "Escape") {
     return;
   }
   // Capture-phase: block Phaser / world hotkeys while the modal is open.
   event.stopImmediatePropagation();
-  if (event.key === "Escape") {
-    event.preventDefault();
-    closeInventory();
-  }
 }
 
 function setBackgroundInert(inert: boolean): void {
@@ -99,7 +96,7 @@ function ensureInventoryRoot(): HTMLElement {
         <h2 id="inventory-title">Inventory</h2>
         <div class="inventory-header-actions">
           <button type="button" id="inventory-recipes" class="inventory-close">Recipes</button>
-          <button type="button" id="inventory-close" class="inventory-close">Close</button>
+          <button type="button" id="inventory-close" class="inventory-close" aria-label="Close">×</button>
         </div>
       </div>
       <p id="inventory-intro" class="inventory-intro"></p>
@@ -235,6 +232,7 @@ function syncInventoryCraftHud(root: HTMLElement): void {
       interactive: !isVisitorMode(),
       onCrafted: () => renderInventoryBody(),
       onInventoryChange: () => renderInventoryBody(),
+      showClose: false,
     });
   } else {
     inventoryCraftHud.refresh();
@@ -250,6 +248,7 @@ export function openInventory(): void {
   root.hidden = false;
   inventoryOpen = true;
   setBackgroundInert(true);
+  pushOverlay("inventory", closeInventory);
   window.addEventListener("keydown", onInventoryKeyDown, true);
   const closeBtn = root.querySelector(
     "#inventory-close",
@@ -258,6 +257,7 @@ export function openInventory(): void {
 }
 
 export function closeInventory(): void {
+  popOverlay("inventory");
   inventoryCraftHud?.destroy();
   inventoryCraftHud = null;
   const root = document.getElementById("inventory-overlay");
