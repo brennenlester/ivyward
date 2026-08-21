@@ -89,6 +89,41 @@ describe("Copy invite link status control", () => {
     mod.initStatusPanelControls();
     mod.updateStatusPanel(getZone("grove"));
     const sessionEl = document.getElementById("status-session");
+    expect(sessionEl?.textContent ?? "").toBe("");
     expect(sessionEl?.textContent ?? "").not.toMatch(/invite|share your world/i);
+  });
+
+  it("keeps the host default session line empty after invite unlock", async () => {
+    document.body.innerHTML = `
+      <button id="copy-invite-btn" type="button">Copy invite link</button>
+      <div id="status-session"></div>
+    `;
+    const session = await import("../world/worldSession");
+    const { getZone } = await import("../world/zones");
+    const mod = await import("./statusPanel");
+    session.setVisitorMode(false);
+    mod.setCopyInviteHandler(vi.fn());
+    mod.unlockHostInviteChrome();
+    mod.initStatusPanelControls();
+    mod.updateStatusPanel(getZone("grove"));
+    const sessionEl = document.getElementById("status-session");
+    expect(sessionEl?.textContent ?? "").toBe("");
+    expect(sessionEl?.textContent ?? "").not.toMatch(/invite|share your world/i);
+  });
+
+  it("names visitor verbs on the default session line", async () => {
+    document.body.innerHTML = `
+      <button id="copy-invite-btn" type="button">Copy invite link</button>
+      <div id="status-session"></div>
+    `;
+    const session = await import("../world/worldSession");
+    const { getZone } = await import("../world/zones");
+    const mod = await import("./statusPanel");
+    session.setVisitorMode(true);
+    mod.initStatusPanelControls();
+    mod.updateStatusPanel(getZone("grove"));
+    const sessionEl = document.getElementById("status-session");
+    expect(sessionEl?.textContent ?? "").toBe("Visitor mode — walk and talk");
+    expect(sessionEl?.textContent ?? "").not.toMatch(/explore only/i);
   });
 });

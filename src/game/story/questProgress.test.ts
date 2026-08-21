@@ -98,6 +98,7 @@ describe("post-story HUD Next", () => {
     setFirstIslandLanded(true, false);
     expect(getQuestSummary()).toBe("Story: complete");
     expect(getQuestHint().startsWith("All story beats finished")).toBe(true);
+    expect(getQuestHint()).not.toMatch(/invite|press I/i);
   });
 
   it("persists chain progress via restore of zones and island flag", () => {
