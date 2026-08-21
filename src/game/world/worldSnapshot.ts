@@ -18,6 +18,10 @@ import {
   setHudChromeFromSnapshot,
   refreshHudChromeButtons,
 } from "../ui/hudChrome";
+import {
+  getShrineDisclosureSnapshot,
+  setShrineDisclosureFromSnapshot,
+} from "../shrine/shrineDisclosure";
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import { reopenParentSovereignEncounters } from "../shrine/godFusion";
@@ -112,6 +116,10 @@ export type WorldSnapshot = {
   hudCodexUnlocked?: boolean;
   /** Recipes HUD button unlocked. Optional for older saves. */
   hudRecipesUnlocked?: boolean;
+  /** First-shrine craft spotlight already cleared. Optional for older saves. */
+  shrineCraftSpotlightCleared?: boolean;
+  /** Fusion tab already revealed (sticky). Optional for older saves. */
+  shrineFusionDisclosed?: boolean;
   /** Cottage minigames already paid out. Optional for older saves. */
   claimedMinigameWins?: string[];
   /** NPC side-quest progress. Optional for older saves. */
@@ -576,6 +584,18 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   if (s.hudRecipesUnlocked !== undefined && typeof s.hudRecipesUnlocked !== "boolean") {
     return false;
   }
+  if (
+    s.shrineCraftSpotlightCleared !== undefined &&
+    typeof s.shrineCraftSpotlightCleared !== "boolean"
+  ) {
+    return false;
+  }
+  if (
+    s.shrineFusionDisclosed !== undefined &&
+    typeof s.shrineFusionDisclosed !== "boolean"
+  ) {
+    return false;
+  }
 
   if (s.claimedMinigameWins !== undefined) {
     if (!Array.isArray(s.claimedMinigameWins)) return false;
@@ -833,6 +853,7 @@ export function exportWorldSnapshot(
     claimedNpcGifts: getClaimedNpcGifts(),
     oddRestPurchased: hasPurchasedOddRest(),
     ...getHudChromeSnapshot(),
+    ...getShrineDisclosureSnapshot(),
     claimedMinigameWins: getClaimedMinigameWins(),
     npcSideQuests: getSideQuestStatuses(),
     placedBoat: isBoatPlaced(),
@@ -904,6 +925,10 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     materials: playerInventory.materials,
   });
   refreshHudChromeButtons();
+  setShrineDisclosureFromSnapshot({
+    shrineCraftSpotlightCleared: snapshot.shrineCraftSpotlightCleared,
+    shrineFusionDisclosed: snapshot.shrineFusionDisclosed,
+  });
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setOddRestPurchased(snapshot.oddRestPurchased === true);
   setClaimedMinigameWins(snapshot.claimedMinigameWins ?? []);

@@ -968,6 +968,40 @@ body,
   cursor: pointer;
 }
 
+.crafting-spotlight {
+  margin: 0 0 8px;
+  padding: 8px 10px;
+  border: 1px solid #c8e4d8;
+  border-radius: 10px;
+  background: #e8fff4;
+}
+
+.crafting-spotlight-title {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #1a1a2e;
+}
+
+.crafting-spotlight-detail {
+  margin: 0 0 6px;
+  font-size: 12px;
+  color: #2a6058;
+}
+
+.crafting-spotlight-recipes {
+  border: 1px solid #a0c8b8;
+  background: #ffedb0;
+  color: #1a1a2e;
+  font: inherit;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+
 .crafting-hud-layout {
   display: grid;
   grid-template-columns: minmax(140px, 1fr) minmax(200px, 1.4fr);
