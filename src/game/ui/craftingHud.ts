@@ -3,6 +3,12 @@ import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
 import { applyShrineCraftOverlayRect } from "./shrinePanel";
 import {
+  clearCraftSpotlight,
+  isCraftSpotlightActive,
+  selectSpotlightRecipe,
+} from "../shrine/shrineDisclosure";
+import { getRecipeMaterials } from "../crafting/recipes";
+import {
   canAddItem,
   playerInventory,
 } from "../inventory/playerInventory";
@@ -211,6 +217,7 @@ export function mountCraftingHud(
     }
     lastError = null;
     grid = result.grid;
+    clearCraftSpotlight();
     options.onCrafted?.(result.recipe.name, result.recipe.outputCount);
     inventoryChanged();
     render();
@@ -417,6 +424,33 @@ export function mountCraftingHud(
       });
       header.append(closeBtn);
     }
+    let spotlightBanner: HTMLDivElement | null = null;
+    if (isCraftSpotlightActive()) {
+      const spotlight = selectSpotlightRecipe();
+      if (spotlight) {
+        spotlightBanner = document.createElement("div");
+        spotlightBanner.className = "crafting-spotlight";
+        spotlightBanner.dataset.craftSpotlight = spotlight.id;
+        const title = document.createElement("p");
+        title.className = "crafting-spotlight-title";
+        title.textContent = `Try this first: ${spotlight.name}`;
+        const detail = document.createElement("p");
+        detail.className = "crafting-spotlight-detail";
+        const needs = getRecipeMaterials(spotlight)
+          .map((m) => `${getMaterialName(m.materialId)}×${m.count}`)
+          .join(" · ");
+        detail.textContent = needs;
+        const browse = document.createElement("button");
+        browse.type = "button";
+        browse.className = "crafting-spotlight-recipes";
+        browse.textContent = "Full recipe book";
+        browse.addEventListener("click", (event) => {
+          event.stopPropagation();
+          openRecipes();
+        });
+        spotlightBanner.append(title, detail, browse);
+      }
+    }
 
     const layout = document.createElement("div");
     layout.className = "crafting-hud-layout";
@@ -562,7 +596,11 @@ export function mountCraftingHud(
     status.textContent = statusMessage();
 
     layout.append(list, board);
-    root.append(header, layout, status);
+    if (spotlightBanner) {
+      root.append(header, spotlightBanner, layout, status);
+    } else {
+      root.append(header, layout, status);
+    }
   }
 
   const moveListener = (event: PointerEvent) => onPointerMove(event);

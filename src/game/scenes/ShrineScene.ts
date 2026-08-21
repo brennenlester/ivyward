@@ -35,6 +35,7 @@ import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { isVisitorMode } from "../world/worldSession";
 import { countCreatures } from "../creatures/party";
 import { bindOverlayPixelRatio, DESIGN_SIZE } from "../render/pixelRatio";
+import { isFusionDisclosed } from "../shrine/shrineDisclosure";
 import {
   hideShrineCraftingHud,
   showShrineCraftingHud,
@@ -107,9 +108,10 @@ export class ShrineScene extends Phaser.Scene {
     this.closing = false;
     this.shrineMode = data?.mode === "portable" ? "portable" : "altar";
     const requestedTab = data?.tab;
+    const fusionAllowed =
+      this.shrineMode !== "portable" && isFusionDisclosed();
     this.activeTab =
-      requestedTab === "use" ||
-      (requestedTab === "fusion" && this.shrineMode !== "portable")
+      requestedTab === "use" || (requestedTab === "fusion" && fusionAllowed)
         ? requestedTab
         : "craft";
     this.selectedItemId =
@@ -384,6 +386,17 @@ export class ShrineScene extends Phaser.Scene {
     }
   }
 
+  private altarTabs(): { id: Tab; label: string }[] {
+    const tabs: { id: Tab; label: string }[] = [
+      { id: "craft", label: "Craft" },
+      { id: "use", label: "Use" },
+    ];
+    if (isFusionDisclosed()) {
+      tabs.push({ id: "fusion", label: "Fusion" });
+    }
+    return tabs;
+  }
+
   private buildTabs(cx: number, y: number): void {
     this.tabButtons = [];
     const tabs: { id: Tab; label: string }[] =
@@ -392,11 +405,7 @@ export class ShrineScene extends Phaser.Scene {
             { id: "craft", label: "Craft" },
             { id: "use", label: "Use" },
           ]
-        : [
-            { id: "craft", label: "Craft" },
-            { id: "use", label: "Use" },
-            { id: "fusion", label: "Fusion" },
-          ];
+        : this.altarTabs();
 
     let x = cx - (tabs.length === 2 ? 90 : 160);
     for (const tab of tabs) {
@@ -439,19 +448,24 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private refreshTabs(): void {
-    const labels =
+    const tabs =
       this.shrineMode === "portable"
-        ? ["Craft", "Use"]
-        : ["Craft", "Use", "Fusion"];
-    const ids: Tab[] =
-      this.shrineMode === "portable"
-        ? ["craft", "use"]
-        : ["craft", "use", "fusion"];
+        ? [
+            { id: "craft" as Tab, label: "Craft" },
+            { id: "use" as Tab, label: "Use" },
+          ]
+        : this.altarTabs();
     this.tabButtons.forEach((btn, i) => {
-      const active = this.activeTab === ids[i];
+      const tab = tabs[i];
+      if (!tab) {
+        btn.setVisible(false);
+        return;
+      }
+      btn.setVisible(true);
+      const active = this.activeTab === tab.id;
       btn.setColor(active ? "#1a1a2e" : MOON_TEXT);
       btn.setBackgroundColor(active ? "#ffedb0" : "#42658d");
-      btn.setText(labels[i]);
+      btn.setText(tab.label);
     });
   }
 
