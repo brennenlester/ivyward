@@ -5,6 +5,10 @@ import {
   showShrineCraftingHud,
 } from "./craftingHud";
 import { closeRecipes, isRecipesOpen } from "./recipePanel";
+import {
+  getOverlayStackIds,
+  resetOverlayStack,
+} from "./overlayStack";
 import { resetStagedCraftingSourcesForTest } from "../crafting/stagedMaterials";
 import { getMaterialIconSrc } from "../inventory/materials";
 import {
@@ -57,6 +61,7 @@ describe("crafting HUD", () => {
     closeRecipes();
     hideShrineCraftingHud(true);
     resetStagedCraftingSourcesForTest();
+    resetOverlayStack();
     document.body.replaceChildren();
   });
 
@@ -193,6 +198,17 @@ describe("crafting HUD", () => {
     expect((overlay as HTMLElement).style.top).toMatch(/%$/);
     expect((overlay as HTMLElement).style.width).toMatch(/%$/);
     expect((overlay as HTMLElement).style.height).toMatch(/%$/);
+    hideShrineCraftingHud(true);
+  });
+
+  it("does not push craft-hud onto the Esc overlay stack (#255)", () => {
+    const app = document.createElement("div");
+    app.id = "app";
+    document.body.appendChild(app);
+    showShrineCraftingHud({ context: "altar" });
+    expect(getOverlayStackIds()).toEqual([]);
+    hideShrineCraftingHud(false);
+    expect(getOverlayStackIds()).toEqual([]);
     hideShrineCraftingHud(true);
   });
 
