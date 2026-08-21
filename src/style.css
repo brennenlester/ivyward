@@ -1017,7 +1017,7 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 110px 16px 24px;
+  padding: 120px 16px 64px;
   pointer-events: none;
 }
 

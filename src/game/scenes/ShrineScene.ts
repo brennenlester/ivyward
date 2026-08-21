@@ -130,7 +130,7 @@ export class ShrineScene extends Phaser.Scene {
     this.drawRuneBorder(cx, cy, PANEL_WIDTH + 20, PANEL_HEIGHT + 20);
 
     this.add
-      .text(cx, cy - 165, "Moon Shrine", {
+      .text(cx, cy - 176, "Moon Shrine", {
         color: MOON_TEXT,
         fontFamily: "system-ui, serif",
         fontSize: "26px",
@@ -141,15 +141,19 @@ export class ShrineScene extends Phaser.Scene {
     this.add
       .text(
         cx,
-        cy - 138,
+        cy - 148,
         this.shrineMode === "portable"
           ? "Craft relics or use tonics — fusion stays at the altar"
           : "Craft relics, use tonics, or fuse with companions",
         {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "13px",
-      })
+          color: MOON_MUTED,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          letterSpacing: 1.5,
+          align: "center",
+          wordWrap: { width: 420 },
+        },
+      )
       .setOrigin(0.5);
 
     if (isVisitorMode()) {
@@ -162,11 +166,11 @@ export class ShrineScene extends Phaser.Scene {
         })
         .setOrigin(0.5);
       this.addRecipesButton(cx, cy + 130);
-      this.setupCloseControls(cx, cy + 175);
+      this.setupCloseControls(cx, cy);
       return;
     }
 
-    this.buildTabs(cx, cy - 118);
+    this.buildTabs(cx, cy - 108);
     this.contentContainer = this.add.container(0, 0);
     this.contentBounds = {
       top: cy - 72,
@@ -193,7 +197,7 @@ export class ShrineScene extends Phaser.Scene {
       })
       .setOrigin(0.5);
 
-    this.setupCloseControls(cx, cy + 190);
+    this.setupCloseControls(cx, cy);
 
     this.events.once("shutdown", () => {
       hideShrineCraftingHud(true);
@@ -202,16 +206,21 @@ export class ShrineScene extends Phaser.Scene {
     this.renderTabContent();
   }
 
-  private setupCloseControls(cx: number, closeY: number): void {
+  private setupCloseControls(cx: number, cy: number): void {
     this.add
-      .text(cx, closeY, "Close", {
-        color: "#1a1a2e",
-        backgroundColor: "#ffedb0",
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "14px",
-        padding: { x: 14, y: 6 },
-      })
-      .setOrigin(0.5)
+      .text(
+        cx + PANEL_WIDTH / 2 - 14,
+        cy - PANEL_HEIGHT / 2 + 22,
+        "Close",
+        {
+          color: "#1a1a2e",
+          backgroundColor: "#ffedb0",
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          padding: { x: 14, y: 6 },
+        },
+      )
+      .setOrigin(1, 0.5)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => this.closeShrine());
 
