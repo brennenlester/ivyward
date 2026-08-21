@@ -178,6 +178,24 @@ describe("crafting HUD", () => {
     expect(getMaterialCount("wood")).toBe(1);
   });
 
+  it("mounts the shrine overlay on the game board and frames it", () => {
+    const app = document.createElement("div");
+    app.id = "app";
+    const game = document.createElement("div");
+    game.id = "game";
+    app.append(game);
+    document.body.appendChild(app);
+    showShrineCraftingHud({ context: "altar" });
+    const overlay = game.querySelector("#shrine-craft-overlay");
+    expect(overlay).toBeInstanceOf(HTMLElement);
+    expect(overlay?.parentElement).toBe(game);
+    expect((overlay as HTMLElement).style.left).toMatch(/%$/);
+    expect((overlay as HTMLElement).style.top).toMatch(/%$/);
+    expect((overlay as HTMLElement).style.width).toMatch(/%$/);
+    expect((overlay as HTMLElement).style.height).toMatch(/%$/);
+    hideShrineCraftingHud(true);
+  });
+
   it("shows craft-material icons in the list and grid", () => {
     const { host, hud } = mountHud();
     const row = listRow(host, "Wood");
