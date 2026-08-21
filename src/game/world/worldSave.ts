@@ -97,8 +97,6 @@ export function clearHostSave(): void {
 /** Clear host save and reload a fresh game (same as ?new=1). */
 export function resetHostGame(): void {
   clearHostSave();
-  // Ignore any late scheduleHostSave before navigation completes.
-  suspendHostPersist();
   const url = new URL(window.location.href);
   url.search = "";
   url.hash = "";
