@@ -1,3 +1,4 @@
+import { CREATURE_MATERIALS } from "../inventory/materials";
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   ENCOUNTERABLE_CREATURE_IDS,
@@ -954,3 +955,53 @@ describe("mint counter ceiling (#192 round-2 finding)", () => {
     expect(getNextInstanceId()).toBe(1_000_000_000);
   });
 });
+
+describe("dailyAsk snapshot field", () => {
+  const sampleMaterial = Object.values(CREATURE_MATERIALS)[0]!;
+
+  it("accepts a well-formed dailyAsk", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          dailyAsk: {
+            dayKey: "2026-08-21",
+            materialId: sampleMaterial,
+            amount: 4,
+            npcId: "warden-bryn",
+            status: "active",
+          },
+        }),
+      ),
+    ).toBe(true);
+  });
+
+  it("rejects unknown dailyAsk materials and npc ids", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          dailyAsk: {
+            dayKey: "2026-08-21",
+            materialId: "not-a-material",
+            amount: 4,
+            npcId: "warden-bryn",
+            status: "active",
+          },
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({
+          dailyAsk: {
+            dayKey: "2026-08-21",
+            materialId: sampleMaterial,
+            amount: 4,
+            npcId: "not-an-npc",
+            status: "active",
+          },
+        }),
+      ),
+    ).toBe(false);
+  });
+});
+

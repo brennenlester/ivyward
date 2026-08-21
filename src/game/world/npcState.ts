@@ -19,6 +19,13 @@ import {
   type SideQuestId,
   type SideQuestStatus,
 } from "./sideQuests";
+import {
+  converseDailyAsk,
+  ensureDailyAsk,
+  getDailyAskState,
+  resetDailyAskForTest,
+  setDailyAskState,
+} from "./dailyAsk";
 
 const giftsClaimed = new Set<string>();
 const sideQuestStatus = new Map<SideQuestId, SideQuestStatus>();
@@ -54,6 +61,8 @@ for (const [id, status] of defaultSideQuestStatus()) {
 export function hasClaimedNpcGift(npcId: string): boolean {
   return giftsClaimed.has(npcId);
 }
+
+export { getDailyAskState, setDailyAskState };
 
 export function getClaimedNpcGifts(): string[] {
   return ALL_NPC_IDS.filter((id) => giftsClaimed.has(id));
@@ -320,6 +329,11 @@ export function beginConversation(npc: NpcDefinition): Conversation {
     return talk([nextIdleLine(npc)]);
   }
 
+  const dailyLines = converseDailyAsk(npc.id);
+  if (dailyLines) {
+    return talk(dailyLines);
+  }
+
   const quest = getSideQuestForNpc(npc.id);
   if (quest) {
     const status = getSideQuestStatus(quest.id);
@@ -360,6 +374,10 @@ export function getActiveSideQuestSummaries(): string[] {
 
 /** Short HUD line for the first active village ask, if any. */
 export function getActiveSideQuestHint(): string | null {
+  const daily = ensureDailyAsk();
+  if (daily && daily.status === "active") {
+    return `Daily ask: bring ${daily.amount} ${getMaterialName(daily.materialId)}`;
+  }
   const id = SIDE_QUEST_IDS.find((questId) => getSideQuestStatus(questId) === "active");
   if (!id) {
     return null;
@@ -369,6 +387,7 @@ export function getActiveSideQuestHint(): string | null {
 
 /** Test-only reset so suites do not leak claim / quest state between cases. */
 export function resetNpcStateForTest(): void {
+  resetDailyAskForTest();
   giftsClaimed.clear();
   idleCursor.clear();
   oddRestPurchased = false;
