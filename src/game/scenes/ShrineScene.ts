@@ -39,7 +39,8 @@ import {
   hideShrineCraftingHud,
   showShrineCraftingHud,
 } from "../ui/craftingHud";
-import { getTopOverlayId, popOverlay, pushOverlay } from "../ui/overlayStack";
+import { popOverlay } from "../ui/overlayStack";
+import { canLeaveShrineNow } from "../ui/shrineLeave";
 import { openRecipes } from "../ui/recipePanel";
 import { shrineTabContentHeight } from "../ui/shrineContentScroll";
 import {
@@ -95,6 +96,7 @@ export class ShrineScene extends Phaser.Scene {
   private dragScrollOrigin = 0;
   private dragDidScroll = false;
   private pressedContentButtons = new Set<Phaser.GameObjects.Text>();
+  private closing = false;
   private static readonly DRAG_SCROLL_THRESHOLD = 8;
 
   constructor() {
@@ -102,6 +104,7 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   init(data?: { mode?: CraftContext; tab?: Tab; itemId?: string }): void {
+    this.closing = false;
     this.shrineMode = data?.mode === "portable" ? "portable" : "altar";
     const requestedTab = data?.tab;
     this.activeTab =
@@ -223,14 +226,20 @@ export class ShrineScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
-        // Nested overlays (Recipes, etc.) close first; embedded craft is not stacked (#255).
-        if (getTopOverlayId() !== "shrine") {
+        // Nested DOM overlays (Recipes, etc.) close first via overlayStack (#281).
+        if (!canLeaveShrineNow()) {
           return;
         }
         this.closeShrine();
       });
 
-    pushOverlay("shrine", () => this.closeShrine());
+    // Phaser scene leave (not overlayStack) so one Esc matches × (#281).
+    this.input.keyboard?.on("keydown-ESC", () => {
+      if (!canLeaveShrineNow()) {
+        return;
+      }
+      this.closeShrine();
+    });
   }
 
   private setupContentMask(cx: number): void {
@@ -940,6 +949,11 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private closeShrine(): void {
+    if (this.closing) {
+      return;
+    }
+    this.closing = true;
+    // Clear any legacy stack entry; shrine leave is Phaser-owned (#281).
     popOverlay("shrine");
     hideShrineCraftingHud(true);
     this.scene.stop("ShrineScene");

@@ -46,16 +46,18 @@ describe("overlayStack", () => {
   });
 
   it("returns the top overlay id", () => {
-    pushOverlay("shrine", () => undefined);
+    pushOverlay("inventory", () => undefined);
     pushOverlay("recipes", () => undefined);
     expect(getTopOverlayId()).toBe("recipes");
     popOverlay("recipes");
-    expect(getTopOverlayId()).toBe("shrine");
+    expect(getTopOverlayId()).toBe("inventory");
   });
 
-  it("Esc with an empty stack is a no-op", () => {
-    expect(() =>
-      window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape" })),
-    ).not.toThrow();
+  it("Esc with an empty stack is a no-op so Phaser shrine Esc can run (#281)", () => {
+    const later = vi.fn();
+    window.addEventListener("keydown", later, false);
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "Escape", bubbles: true }));
+    expect(later).toHaveBeenCalled();
+    window.removeEventListener("keydown", later, false);
   });
 });
