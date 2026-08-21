@@ -1,11 +1,14 @@
 import {
   isFirstIslandLanded,
+  setFirstIslandLanded,
   setOverworldUnlocked,
   worldState,
 } from "../world/worldState";
 import { isCodexComplete } from "../progression/achievements";
 import { isVisitorMode } from "../world/worldSession";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
+import { getMaterialName } from "../inventory/materials";
+import { addMaterial } from "../inventory/playerInventory";
 import { QUEST_ORDER, QUESTS } from "./quests";
 import type {
   QuestEvent,
@@ -24,6 +27,12 @@ export const questProgress: Record<QuestId, QuestStatus> = {
 let lastCompletionMessage: string | null = null;
 
 const STORY_QUEST_COUNT = QUEST_ORDER.length;
+
+/** #270 second-act Want: Folklore Dust (accepted currency; not a parallel id). */
+export const SECOND_ACT_WANT_MATERIAL_ID = "folklore-dust";
+
+/** One-shot island-landing grant — enough for early Dust sinks without re-tuning spars. */
+export const SECOND_ACT_WANT_AMOUNT = 5;
 
 export function initQuestProgress(): void {
   if (questProgress["first-befriend"] === "locked") {
@@ -52,8 +61,9 @@ export function getActiveQuestId(): QuestId | null {
 
 const POST_STORY_NEXT = {
   harbor: "Next: reach Moonwake Harbor",
-  sail: "Next: sail east from East Landing",
-  islands: "Next: explore the islands",
+  // Pre-boarding lines name the Want object (Folklore Dust), not place alone (#270 AC1).
+  sail: "Next: sail east for Folklore Dust",
+  islands: "Next: claim Folklore Dust ashore",
 } as const;
 
 /** Post-FTUE HUD Next while Story 4/4 is done and before first island landing. */
@@ -72,6 +82,23 @@ export function getPostStoryNext(): string | null {
     return POST_STORY_NEXT.islands;
   }
   return null;
+}
+
+/**
+ * First on-foot island stand: deliver the named Want, clear the Next chain.
+ * Returns true when Dust was granted (host only; visitors mark landed without grant).
+ */
+export function claimSecondActWantOnIslandLand(): boolean {
+  if (isFirstIslandLanded()) {
+    return false;
+  }
+  setFirstIslandLanded(true);
+  if (isVisitorMode()) {
+    return false;
+  }
+  addMaterial(SECOND_ACT_WANT_MATERIAL_ID, SECOND_ACT_WANT_AMOUNT);
+  lastCompletionMessage = `Island bounty: ${getMaterialName(SECOND_ACT_WANT_MATERIAL_ID)}×${SECOND_ACT_WANT_AMOUNT}`;
+  return true;
 }
 
 export function getQuestSummary(): string {
