@@ -56,6 +56,43 @@ export const SHRINE_EFFECTS: ShrineEffect[] = [
     effectType: "evolution",
     evolvesTo: "bramblewarden",
   },
+  {
+    creatureId: "thunder-finch",
+    itemId: "storm-charm",
+    minLevel: 3,
+    effectType: "attack-buff",
+    secondaryElement: "storm",
+    attackBonus: 4,
+    secondaryMove: {
+      id: "tempest-peck",
+      name: "Tempest Peck",
+      power: 9,
+      type: "storm",
+      accuracy: 90,
+    },
+  },
+  {
+    creatureId: "lantern-fox",
+    itemId: "fox-fire-charm",
+    minLevel: 3,
+    effectType: "attack-buff",
+    secondaryElement: "twilight",
+    attackBonus: 4,
+    secondaryMove: {
+      id: "fox-fire",
+      name: "Fox-fire",
+      power: 9,
+      type: "twilight",
+      accuracy: 90,
+    },
+  },
+  {
+    creatureId: "peat-sprite",
+    itemId: "fen-charm",
+    minLevel: 3,
+    effectType: "health-buff",
+    hpBonus: 8,
+  },
 ];
 
 export function getShrineEffect(
