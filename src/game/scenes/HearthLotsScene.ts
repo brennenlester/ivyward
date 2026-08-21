@@ -23,6 +23,7 @@ import {
   closeMinigameOverlay,
   resolveMinigameEnd,
 } from "../minigames/overlay";
+import { getPlayerName } from "../world/playerName";
 
 const CELL = 88;
 const BOARD_LEFT = (DESIGN_SIZE - CELL * 5) / 2;
@@ -102,6 +103,10 @@ function addDieFace(
   }
 }
 
+function playerDisplayName(): string {
+  return getPlayerName() ?? "You";
+}
+
 export class HearthLotsScene extends Phaser.Scene {
   private state: LotsState = createLotsState();
   private statusText!: Phaser.GameObjects.Text;
@@ -147,8 +152,8 @@ export class HearthLotsScene extends Phaser.Scene {
     this.pieceRoot = this.add.container(0, 0);
     this.dieFace = this.add.container(DESIGN_SIZE / 2, BOARD_TOP + CELL * 2.15);
     this.pieceRoot.add(this.dieFace);
-    this.playerToken = this.makeToken("You", 0xf0c878);
-    this.oddToken = this.makeToken("Odd", 0xc890d8);
+    this.playerToken = this.makeToken(playerDisplayName(), 0xf0c878, true);
+    this.oddToken = this.makeToken("Odd", 0xc890d8, false);
     this.pieceRoot.add([this.playerToken, this.oddToken]);
 
     bindMinigameQuit(this, () => this.quit());
@@ -172,12 +177,17 @@ export class HearthLotsScene extends Phaser.Scene {
     this.refresh();
   }
 
-  private makeToken(label: string, fill: number): Phaser.GameObjects.Container {
+  private makeToken(
+    label: string,
+    fill: number,
+    showNameTag: boolean,
+  ): Phaser.GameObjects.Container {
     const token = this.add.container(0, 0);
     token.add(this.add.circle(0, 0, 11, fill).setStrokeStyle(2, 0x1a3040, 0.35));
+    const initial = label.trim().charAt(0).toUpperCase() || "?";
     token.add(
       this.add
-        .text(0, 0, label === "You" ? "Y" : "O", {
+        .text(0, 0, initial, {
           ...MINIGAME_TEXT,
           color: "#1a3040",
           fontSize: "11px",
@@ -185,6 +195,18 @@ export class HearthLotsScene extends Phaser.Scene {
         })
         .setOrigin(0.5, 0.5),
     );
+    if (showNameTag) {
+      token.add(
+        this.add
+          .text(0, -16, label, {
+            ...MINIGAME_TEXT,
+            color: "#000000",
+            fontSize: "12px",
+            fontStyle: "bold",
+          })
+          .setOrigin(0.5, 1),
+      );
+    }
     return token;
   }
 
@@ -264,7 +286,7 @@ export class HearthLotsScene extends Phaser.Scene {
     this.shownRoll = path.length;
     addDieFace(this, this.dieFace, this.shownRoll);
     this.statusText.setText(
-      `${who === "player" ? "You" : "Odd"} rolled ${this.shownRoll}.`,
+      `${who === "player" ? playerDisplayName() : "Odd"} rolled ${this.shownRoll}.`,
     );
     this.syncButtons();
     this.hopAlong(token, who, path, () => {
@@ -371,7 +393,7 @@ export class HearthLotsScene extends Phaser.Scene {
         BOARD_TOP + CELL * 2.5 + 44,
         [
           `Round ${Math.min(this.state.round + 1, 12)} / 12`,
-          `You ${this.state.player.marks} marks (${lotsNetWorth(this.state, "player")} worth)`,
+          `${playerDisplayName()} ${this.state.player.marks} marks (${lotsNetWorth(this.state, "player")} worth)`,
           `Odd ${this.state.odd.marks} marks (${lotsNetWorth(this.state, "odd")} worth)`,
         ].join("\n"),
         {

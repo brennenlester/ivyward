@@ -2,6 +2,7 @@ import Phaser from "phaser";
 import "./style.css";
 import { initQuestProgress } from "./game/story/questProgress";
 import { createGame } from "./game/Game";
+import { initNameIntro } from "./game/ui/nameIntro";
 import { initStatusPanelControls } from "./game/ui/statusPanel";
 import { shouldResetHostSave } from "./game/world/bootParams";
 import {
@@ -81,6 +82,7 @@ if (inviteResult.status === "invalid") {
     inviteResult.status === "ok" ? inviteResult.snapshot : null;
   const game = createGame("game");
   initStatusPanelControls();
+  initNameIntro();
 
   // ponytail: dev-only encounter preview via ?encounter=ember-wisp or ?spar=ember-wisp
   if (import.meta.env.DEV && !invite) {

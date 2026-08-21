@@ -7,7 +7,7 @@ import {
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
-import { withStagedCraftingMaterials } from "../crafting/stagedMaterials";
+import { withStagedCraftingItems, withStagedCraftingMaterials } from "../crafting/stagedMaterials";
 import {
   playerInventory,
   setInventoryFromSnapshot,
@@ -83,10 +83,19 @@ import {
 import { TileType, type ZoneId } from "./zoneTypes";
 import { ZONES } from "./zones";
 import { CREATURES } from "../creatures/catalog";
+import { isVisitorMode } from "./worldSession";
+import {
+  PLAYER_NAME_MAX_LENGTH,
+  getPlayerName,
+  normalizePlayerName,
+  setPlayerName,
+} from "./playerName";
 
 export type WorldSnapshot = {
   version: 1;
   hostLabel: string;
+  /** Host player display name for the overworld nametag. Optional for older saves. */
+  playerName?: string;
   overworldUnlocked: boolean;
   /** Zones visited. Optional for older saves. */
   discoveredZones?: ZoneId[];
@@ -508,6 +517,11 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
   const s = value as Record<string, unknown>;
   if (s.version !== 1) return false;
   if (typeof s.hostLabel !== "string") return false;
+  if (s.playerName !== undefined) {
+    if (typeof s.playerName !== "string") return false;
+    if (normalizePlayerName(s.playerName) !== s.playerName) return false;
+    if (s.playerName.length > PLAYER_NAME_MAX_LENGTH) return false;
+  }
   if (typeof s.overworldUnlocked !== "boolean") return false;
 
   if (s.discoveredZones !== undefined) {
@@ -798,9 +812,11 @@ export function exportWorldSnapshot(
   position: PendingWorldPosition,
   hostLabel = "Your world",
 ): WorldSnapshot {
+  const name = getPlayerName();
   return {
     version: 1,
     hostLabel,
+    ...(name ? { playerName: name } : {}),
     overworldUnlocked: worldState.overworldUnlocked,
     discoveredZones: [...worldState.discoveredZones],
     discoveredCreatures: [...worldState.discoveredCreatures],
@@ -826,7 +842,7 @@ export function exportWorldSnapshot(
     activePartyIds: [...playerParty.activeInstanceIds],
     nextInstanceId: getNextInstanceId(),
     materials: withStagedCraftingMaterials(playerInventory.materials),
-    items: { ...playerInventory.items },
+    items: withStagedCraftingItems(playerInventory.items),
     position,
   };
 }
@@ -849,6 +865,11 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     ...(snapshot.discoveredCreatures ?? []),
     ...fromParty,
   ]);
+  // Host display name (optional on older saves). Skip when already in visitor
+  // mode so invite boot order cannot inherit the host's nametag (#248).
+  if (snapshot.playerName && !isVisitorMode()) {
+    setPlayerName(snapshot.playerName);
+  }
   // Pre-evolution saves lack speciesId; hasCreature() matches on it, so a
   // missing value reads owned sovereigns as absent and re-opens their claimed
   // encounters (#192).
@@ -861,6 +882,9 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     nextInstanceIdAfter(party, snapshot.nextInstanceId),
     snapshot.activePartyIds,
   );
+  const eclipseDone = snapshot.eclipseFusionCompleted === true;
+  const horizonCount =
+    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setHudChromeFromSnapshot({
     hudCodexUnlocked: snapshot.hudCodexUnlocked,
@@ -885,9 +909,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     setFirstIslandLanded(true, false);
   }
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
-  setEclipseFusionCompleted(snapshot.eclipseFusionCompleted === true, false);
-  const horizonCount =
-    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
+  setEclipseFusionCompleted(eclipseDone, false);
   setHorizonFusionCount(horizonCount, false);
   setTideSovereignObtained(
     inferSovereignObtained(

@@ -829,14 +829,26 @@ export class BattleScene extends Phaser.Scene {
       const result = resolveTideSovereignOutcome("spar-win");
       if (result) {
         this.log(
-          formatGodClaimJoinLine("Tide Sovereign", "Tide Cleaver", result, true),
+          formatGodClaimJoinLine(
+            "Tide Sovereign",
+            "Tide Cleaver",
+            result,
+            true,
+            "Tide Crown",
+          ),
         );
       }
     } else if (playerWon && this.wildCreatureId === CAIRN_SOVEREIGN_ID) {
       const result = resolveCairnSovereignOutcome("spar-win");
       if (result) {
         this.log(
-          formatGodClaimJoinLine("Stone Sovereign", "Cairn Maul", result, true),
+          formatGodClaimJoinLine(
+            "Stone Sovereign",
+            "Cairn Maul",
+            result,
+            true,
+            "Boulder Crown",
+          ),
         );
       }
     } else if (playerWon) {

@@ -28,6 +28,7 @@ import {
 import {
   BOUNDARY_DISPLAY,
   FLOOR_DISPLAY,
+  PLAYER_DISPLAY,
   PROP_DISPLAY,
   fitDisplay,
 } from "../render/displaySizes";
@@ -94,6 +95,11 @@ import {
   setTouchControlsEnabled,
 } from "../ui/touchControls";
 import { canOccupy } from "../world/collision";
+import {
+  getPlayerName,
+  hasPlayerName,
+  onPlayerNameChange,
+} from "../world/playerName";
 import { takePendingWorldPosition } from "../world/worldSnapshot";
 import { isVisitorMode } from "../world/worldSession";
 import {
@@ -227,6 +233,8 @@ export class IsometricScene extends Phaser.Scene {
   private gatherToast?: Phaser.GameObjects.Text;
   private questToast?: Phaser.GameObjects.Text;
   private achievementToast?: Phaser.GameObjects.Text;
+  private nameTag?: Phaser.GameObjects.Text;
+  private unbindPlayerName?: () => void;
   private worldOrigin = { x: 0, y: 0 };
   private onWindowResize = () => this.onResize();
   private layoutLocked = false;
@@ -308,6 +316,9 @@ export class IsometricScene extends Phaser.Scene {
     this.loadZone(this.currentZoneId);
 
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+    this.unbindPlayerName = onPlayerNameChange(() => this.refreshNameTag());
+    this.refreshNameTag();
+    setTouchControlsEnabled(hasPlayerName());
 
     this.events.on("resume", () => {
       this.inEncounter = false;
@@ -347,6 +358,8 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   shutdown(): void {
+    this.unbindPlayerName?.();
+    this.unbindPlayerName = undefined;
     this.input.keyboard?.off("keydown", this.onGodCheatKeyDown);
     window.removeEventListener("resize", this.onWindowResize);
     window.visualViewport?.removeEventListener("resize", this.onWindowResize);
@@ -358,6 +371,12 @@ export class IsometricScene extends Phaser.Scene {
   }
 
   update(_time: number, delta: number): void {
+    if (!hasPlayerName()) {
+      this.isMoving = false;
+      this.playPlayerAnimation();
+      setTouchControlsEnabled(false);
+      return;
+    }
     if (this.inEncounter || this.inShrine || this.inDialogue || this.inMinigame) {
       this.isMoving = false;
       this.playPlayerAnimation();
@@ -925,6 +944,7 @@ export class IsometricScene extends Phaser.Scene {
     this.walkHint = undefined;
     this.dockBoat = undefined;
     this.sailingBoat = undefined;
+    this.nameTag = undefined;
 
     if (zoneId === "archipelago") {
       prepareArchipelagoForPosition(this.playerGridX);
@@ -958,6 +978,7 @@ export class IsometricScene extends Phaser.Scene {
       .setOrigin(0.5, 1);
     bindPlayerDisplaySize(this.player);
     this.syncPlayerToGrid();
+    this.refreshNameTag();
     this.playPlayerAnimation();
     this.maybeNoteIslandLand();
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
@@ -1837,8 +1858,45 @@ export class IsometricScene extends Phaser.Scene {
     const bob = this.isMoving ? walkBobOffset(this.walkPhase) : 0;
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(this.playerDepth);
+    this.syncNameTagPosition();
     // Boat stays on the waterline; only the trainer bobs with gait.
     this.syncSailingBoat(screen.x, this.playerBaseY);
+  }
+
+  private refreshNameTag(): void {
+    const name = getPlayerName();
+    if (!name || !this.player) {
+      this.nameTag?.destroy();
+      this.nameTag = undefined;
+      setTouchControlsEnabled(false);
+      return;
+    }
+    setTouchControlsEnabled(true);
+    if (!this.nameTag) {
+      this.nameTag = this.add
+        .text(0, 0, name, {
+          fontFamily: "Source Sans 3, system-ui, sans-serif",
+          fontSize: "12px",
+          fontStyle: "bold",
+          color: "#000000",
+          align: "center",
+        })
+        .setOrigin(0.5, 1);
+    } else {
+      this.nameTag.setText(name);
+    }
+    this.syncNameTagPosition();
+  }
+
+  private syncNameTagPosition(): void {
+    if (!this.nameTag || !this.player) {
+      return;
+    }
+    this.nameTag.setPosition(
+      this.player.x,
+      this.player.y - PLAYER_DISPLAY.height - 2,
+    );
+    this.nameTag.setDepth(hudDepthAbovePlayer(this.playerDepth));
   }
 
   private syncSailingBoat(screenX: number, baseY: number): void {

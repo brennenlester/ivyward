@@ -1,6 +1,6 @@
 import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
-import { addItem, getItemCount } from "../inventory/playerInventory";
+import { addItem, canAddItem, getItemCount, BOULDER_CROWN_ID } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import { TileType } from "../world/zoneTypes";
 import {
@@ -94,7 +94,8 @@ export function shouldAttemptGodLandEncounter(
     context.zoneId === "overworld" &&
     context.walkableLand &&
     !context.visitor &&
-    !context.claimed
+    // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
+    !(context.claimed && getItemCount(BOULDER_CROWN_ID) > 0)
   );
 }
 
@@ -148,9 +149,17 @@ export function appendGodLandCheatKey(
 export type GodLandClaimResult = {
   creatureAdded: boolean;
   weaponGranted: boolean;
+  crownGranted: boolean;
 };
 
 export type CairnSovereignOutcome = "befriend" | "spar-win" | "flee";
+
+function grantCrownIfMissing(itemId: string): boolean {
+  if (!canAddItem(itemId)) {
+    return false;
+  }
+  return addItem(itemId);
+}
 
 /** Grants Stone Sovereign up to two copies per save. */
 export function claimCairnSovereign(): GodLandClaimResult {
@@ -171,11 +180,18 @@ export function claimCairnSovereign(): GodLandClaimResult {
   if (!isGodLandEncounterClaimed()) {
     setGodLandEncounterClaimed(true);
   }
-  return { creatureAdded, weaponGranted };
+  return { creatureAdded, weaponGranted, crownGranted: false };
 }
 
 export function resolveCairnSovereignOutcome(
   outcome: CairnSovereignOutcome,
 ): GodLandClaimResult | null {
-  return outcome === "flee" ? null : claimCairnSovereign();
+  if (outcome === "flee") {
+    return null;
+  }
+  const result = claimCairnSovereign();
+  if (outcome === "spar-win") {
+    result.crownGranted = grantCrownIfMissing(BOULDER_CROWN_ID);
+  }
+  return result;
 }

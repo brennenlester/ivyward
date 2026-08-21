@@ -1,6 +1,6 @@
 import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
-import { addItem, getItemCount } from "../inventory/playerInventory";
+import { addItem, canAddItem, getItemCount, TIDE_CROWN_ID } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import {
   canObtainAnotherParentSovereign,
@@ -92,7 +92,8 @@ export function shouldAttemptGodSailEncounter(
     context.zoneId === "archipelago" &&
     context.islandIndex === null &&
     !context.visitor &&
-    !context.claimed
+    // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
+    !(context.claimed && getItemCount(TIDE_CROWN_ID) > 0)
   );
 }
 
@@ -182,6 +183,7 @@ export function canAttemptBefriend(alreadyAttempted: boolean): boolean {
 export type GodClaimResult = {
   creatureAdded: boolean;
   weaponGranted: boolean;
+  crownGranted: boolean;
 };
 
 export type TideSovereignOutcome = "befriend" | "spar-win" | "flee";
@@ -191,14 +193,27 @@ export function formatGodClaimJoinLine(
   weaponName: string,
   result: GodClaimResult,
   defeated: boolean,
+  crownName?: string,
 ): string {
+  const loot = [
+    result.weaponGranted ? weaponName : null,
+    result.crownGranted ? crownName : null,
+  ].filter((part): part is string => Boolean(part));
+  const lootLine = loot.length > 0 ? `${loot.join(" and ")} obtained!` : null;
   if (!result.creatureAdded) {
-    return result.weaponGranted ? `${weaponName} obtained!` : `${name} already rests with you.`;
+    return lootLine ?? `${name} already rests with you.`;
   }
   const subject = defeated ? `The defeated ${name}` : `The ${name}`;
-  return result.weaponGranted
-    ? `${subject} joined you, fainted. ${weaponName} obtained!`
+  return lootLine
+    ? `${subject} joined you, fainted. ${lootLine}`
     : `${subject} joined you, fainted.`;
+}
+
+function grantCrownIfMissing(itemId: string): boolean {
+  if (!canAddItem(itemId)) {
+    return false;
+  }
+  return addItem(itemId);
 }
 
 /** Grants Tide Sovereign up to two copies per save. */
@@ -220,11 +235,18 @@ export function claimTideSovereign(): GodClaimResult {
   if (!isGodSailEncounterClaimed()) {
     setGodSailEncounterClaimed(true);
   }
-  return { creatureAdded, weaponGranted };
+  return { creatureAdded, weaponGranted, crownGranted: false };
 }
 
 export function resolveTideSovereignOutcome(
   outcome: TideSovereignOutcome,
 ): GodClaimResult | null {
-  return outcome === "flee" ? null : claimTideSovereign();
+  if (outcome === "flee") {
+    return null;
+  }
+  const result = claimTideSovereign();
+  if (outcome === "spar-win") {
+    result.crownGranted = grantCrownIfMissing(TIDE_CROWN_ID);
+  }
+  return result;
 }

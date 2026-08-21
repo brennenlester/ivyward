@@ -7,9 +7,15 @@ export const playerInventory = {
   items: {} as Record<string, number>,
 };
 
+export const TIDE_CROWN_ID = "tide-crown";
+export const BOULDER_CROWN_ID = "boulder-crown";
+export const SOVEREIGN_SEAL_ID = "sovereign-seal";
+
 const ITEM_HOLD_CAPS: Record<string, number> = {
   "brook-crystal": 20,
-  "sovereign-seal": 1,
+  [SOVEREIGN_SEAL_ID]: 1,
+  [TIDE_CROWN_ID]: 1,
+  [BOULDER_CROWN_ID]: 1,
 };
 
 export function getMaterialCount(materialId: string): number {

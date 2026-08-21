@@ -6,7 +6,11 @@ import {
   playerParty,
   removeFromParty,
 } from "../creatures/party";
-import { consumeItem, getItemCount } from "../inventory/playerInventory";
+import {
+  consumeItem,
+  getItemCount,
+  SOVEREIGN_SEAL_ID,
+} from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import {
   canHuntParentSovereigns,
@@ -25,7 +29,7 @@ import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import type { CreatureInstance } from "../creatures/types";
 
-export const SOVEREIGN_SEAL_ID = "sovereign-seal";
+export { SOVEREIGN_SEAL_ID } from "../inventory/playerInventory";
 export const HORIZON_SOVEREIGN_ID = "horizon-sovereign";
 export const ECLIPSE_SOVEREIGN_ID = "eclipse-sovereign";
 

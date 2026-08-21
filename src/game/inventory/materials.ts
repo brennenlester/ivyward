@@ -68,6 +68,8 @@ export const ITEM_NAMES: Record<string, string> = {
   "tide-cleaver": "Tide Cleaver",
   "cairn-maul": "Cairn Maul",
   "sovereign-seal": "Sovereign Seal",
+  "tide-crown": "Tide Crown",
+  "boulder-crown": "Boulder Crown",
   "wood-cudgel": "Wood Cudgel",
   "stone-knife": "Stone Knife",
   "ember-charm": "Ember Charm",
@@ -83,7 +85,7 @@ export function getMaterialForCreature(creatureId: string): string | undefined {
   return CREATURE_MATERIALS[creatureId];
 }
 
-/** Recipe-grid materials that have HUD icons. Other owned mats stay name-only. */
+/** Recipe-grid ingredients that have HUD icons. Other owned mats stay name-only. */
 export const CRAFT_MATERIAL_ICON_IDS = [
   "wood",
   "stone",
@@ -93,10 +95,17 @@ export const CRAFT_MATERIAL_ICON_IDS = [
   "brook-pearl",
   "pebble",
   "folklore-dust",
+  // ponytail: crowns share materials/ with craft mats until #218 splits item art.
+  "tide-crown",
+  "boulder-crown",
 ] as const;
 
+export function getIngredientName(id: string): string {
+  return MATERIAL_NAMES[id] ?? ITEM_NAMES[id] ?? id;
+}
+
 export function getMaterialName(materialId: string): string {
-  return MATERIAL_NAMES[materialId] ?? materialId;
+  return getIngredientName(materialId);
 }
 
 export function getMaterialIconSrc(materialId: string): string | undefined {
@@ -112,4 +121,8 @@ export function getMaterialIconSrc(materialId: string): string | undefined {
 
 export function getItemName(itemId: string): string {
   return ITEM_NAMES[itemId] ?? itemId;
+}
+
+export function isCraftItemIngredient(id: string): boolean {
+  return Object.prototype.hasOwnProperty.call(ITEM_NAMES, id);
 }

@@ -66,7 +66,7 @@ describe("dual-god fusion", () => {
     setCairnSovereignObtained(0, false);
   });
 
-  it("refuses visitors, missing seal, missing gods, and the wrong item", () => {
+  it("refuses visitors, missing Sovereign Seal, missing gods, and the wrong item", () => {
     setPartyFromSnapshot(
       [
         member({ instanceId: "t", definitionId: TIDE_SOVEREIGN_ID, level: 40 }),
@@ -188,7 +188,7 @@ describe("dual-god fusion", () => {
     expect(isGodLandEncounterClaimed()).toBe(true);
   });
 
-  it("consumes both parents and the seal, then adds Horizon Sovereign", () => {
+  it("consumes both parents and the Sovereign Seal, then adds Horizon Sovereign", () => {
     setPartyFromSnapshot(
       [
         member({
@@ -314,6 +314,9 @@ describe("dual-god fusion", () => {
     setInventoryFromSnapshot({}, {});
     expect(applyEclipseFusion("h1", "h2", SOVEREIGN_SEAL_ID).message).toBe(
       "You need a Sovereign Seal.",
+    );
+    expect(applyEclipseFusion("h1", "h2", "tide-crown").message).toBe(
+      "That item cannot fuse the sovereigns.",
     );
   });
 

@@ -42,14 +42,18 @@ import {
 import { getTopOverlayId, popOverlay, pushOverlay } from "../ui/overlayStack";
 import { openRecipes } from "../ui/recipePanel";
 import { shrineTabContentHeight } from "../ui/shrineContentScroll";
+import {
+  SHRINE_PANEL_HEIGHT,
+  SHRINE_PANEL_WIDTH,
+} from "../ui/shrinePanel";
 
 const MOON_PANEL = 0x354d78;
 const MOON_STROKE = 0xffedb0;
 const MOON_ACCENT = 0x8ed8cf;
 const MOON_TEXT = "#fff8dc";
 const MOON_MUTED = "#c9eee1";
-const PANEL_WIDTH = 480;
-const PANEL_HEIGHT = 420;
+const PANEL_WIDTH = SHRINE_PANEL_WIDTH;
+const PANEL_HEIGHT = SHRINE_PANEL_HEIGHT;
 
 function getUseEffectLabel(
   effectType: ConsumableEffectType,
@@ -131,7 +135,7 @@ export class ShrineScene extends Phaser.Scene {
     this.drawRuneBorder(cx, cy, PANEL_WIDTH + 20, PANEL_HEIGHT + 20);
 
     this.add
-      .text(cx, cy - 165, "Moon Shrine", {
+      .text(cx, cy - 176, "Moon Shrine", {
         color: MOON_TEXT,
         fontFamily: "system-ui, serif",
         fontSize: "26px",
@@ -142,15 +146,19 @@ export class ShrineScene extends Phaser.Scene {
     this.add
       .text(
         cx,
-        cy - 138,
+        cy - 148,
         this.shrineMode === "portable"
           ? "Craft relics or use tonics — fusion stays at the altar"
           : "Craft relics, use tonics, or fuse with companions",
         {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "13px",
-      })
+          color: MOON_MUTED,
+          fontFamily: "system-ui, sans-serif",
+          fontSize: "14px",
+          letterSpacing: 1.5,
+          align: "center",
+          wordWrap: { width: 420 },
+        },
+      )
       .setOrigin(0.5);
 
     if (isVisitorMode()) {
@@ -167,7 +175,7 @@ export class ShrineScene extends Phaser.Scene {
       return;
     }
 
-    this.buildTabs(cx, cy - 118);
+    this.buildTabs(cx, cy - 108);
     this.contentContainer = this.add.container(0, 0);
     this.contentBounds = {
       top: cy - 72,
@@ -454,15 +462,6 @@ export class ShrineScene extends Phaser.Scene {
   }
 
   private renderCraftTab(): void {
-    const cx = this.panelCenter.x;
-    const hint = this.add
-      .text(cx, this.contentBounds.top + 8, "Place materials in the grid.", {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "13px",
-      })
-      .setOrigin(0.5);
-    this.contentContainer.add(hint);
     this.contentHeight = 24;
     showShrineCraftingHud({
       context: this.shrineMode,
@@ -525,7 +524,7 @@ export class ShrineScene extends Phaser.Scene {
 
     const itemId = this.selectedItemId;
     if (itemId === SOVEREIGN_SEAL_ID) {
-      this.renderGodFusion(itemId, contentTop, cx);
+      this.renderGodFusion(contentTop, cx);
       return;
     }
 
@@ -611,22 +610,7 @@ export class ShrineScene extends Phaser.Scene {
     this.contentHeight = shrineTabContentHeight(y, contentTop);
   }
 
-  private renderGodFusion(
-    itemId: string,
-    contentTop: number,
-    cx: number,
-  ): void {
-    const header = this.add
-      .text(cx, contentTop + 8, `${getItemName(itemId)} — fuse the two sovereigns`, {
-        color: MOON_MUTED,
-        fontFamily: "system-ui, sans-serif",
-        fontSize: "12px",
-        align: "center",
-        wordWrap: { width: 400 },
-      })
-      .setOrigin(0.5);
-    this.contentContainer.add(header);
-
+  private addFusionBackButton(contentTop: number, cx: number): void {
     const back = this.add
       .text(cx - 180, contentTop + 8, "← Back", {
         color: MOON_TEXT,
@@ -640,10 +624,32 @@ export class ShrineScene extends Phaser.Scene {
       this.renderTabContent();
     });
     this.contentContainer.add(back);
+  }
+
+  private addFusionChrome(contentTop: number, cx: number, title: string): void {
+    this.addFusionBackButton(contentTop, cx);
+    const header = this.add
+      .text(cx, contentTop + 32, title, {
+        color: MOON_MUTED,
+        fontFamily: "system-ui, sans-serif",
+        fontSize: "12px",
+        align: "center",
+        wordWrap: { width: 400 },
+      })
+      .setOrigin(0.5);
+    this.contentContainer.add(header);
+  }
+
+  private renderGodFusion(contentTop: number, cx: number): void {
+    this.addFusionChrome(
+      contentTop,
+      cx,
+      "Sovereign Seal — fuse the two sovereigns",
+    );
 
     if (isEclipseFusionCompleted()) {
       const done = this.add
-        .text(cx, contentTop + 56, "Eclipse Sovereign has already been fused.", {
+        .text(cx, contentTop + 76, "Eclipse Sovereign has already been fused.", {
           color: MOON_MUTED,
           fontFamily: "system-ui, sans-serif",
           fontSize: "14px",
@@ -660,7 +666,7 @@ export class ShrineScene extends Phaser.Scene {
       const summary = this.add
         .text(
           cx,
-          contentTop + 52,
+          contentTop + 72,
           `Horizon Sovereign Lv.${first.level} + Horizon Sovereign Lv.${second.level}`,
           {
             color: MOON_TEXT,
@@ -673,7 +679,7 @@ export class ShrineScene extends Phaser.Scene {
       this.contentContainer.add(summary);
 
       const btn = this.add
-        .text(cx, contentTop + 96, "Fuse into Eclipse Sovereign", {
+        .text(cx, contentTop + 116, "Fuse into Eclipse Sovereign", {
           color: "#1a1a2e",
           backgroundColor: "#e0d4f0",
           fontFamily: "system-ui, sans-serif",
@@ -687,7 +693,7 @@ export class ShrineScene extends Phaser.Scene {
         const result = applyEclipseFusion(
           first.instanceId,
           second.instanceId,
-          itemId,
+          SOVEREIGN_SEAL_ID,
         );
         this.setStatus(result.message);
         if (result.ok) {
@@ -705,13 +711,18 @@ export class ShrineScene extends Phaser.Scene {
       countCreatures(HORIZON_SOVEREIGN_ID) >= MAX_SOVEREIGN_COPIES
     ) {
       const needHorizons = this.add
-        .text(cx, contentTop + 56, "Requires two Horizon Sovereigns in your party.", {
-          color: MOON_MUTED,
-          fontFamily: "system-ui, sans-serif",
-          fontSize: "14px",
-          align: "center",
-          wordWrap: { width: 400 },
-        })
+        .text(
+          cx,
+          contentTop + 76,
+          "Requires two Horizon Sovereigns in your party.",
+          {
+            color: MOON_MUTED,
+            fontFamily: "system-ui, sans-serif",
+            fontSize: "14px",
+            align: "center",
+            wordWrap: { width: 400 },
+          },
+        )
         .setOrigin(0.5);
       this.contentContainer.add(needHorizons);
       return;
@@ -722,7 +733,7 @@ export class ShrineScene extends Phaser.Scene {
       const none = this.add
         .text(
           cx,
-          contentTop + 56,
+          contentTop + 76,
           "Requires Tide Sovereign and Stone Sovereign in your party.",
           {
             color: MOON_MUTED,
@@ -740,7 +751,7 @@ export class ShrineScene extends Phaser.Scene {
     const summary = this.add
       .text(
         cx,
-        contentTop + 52,
+        contentTop + 72,
         `Tide Sovereign Lv.${tide.level} + Stone Sovereign Lv.${cairn.level}`,
         {
           color: MOON_TEXT,
@@ -753,7 +764,7 @@ export class ShrineScene extends Phaser.Scene {
     this.contentContainer.add(summary);
 
     const btn = this.add
-      .text(cx, contentTop + 96, "Fuse into Horizon Sovereign", {
+      .text(cx, contentTop + 116, "Fuse into Horizon Sovereign", {
         color: "#1a1a2e",
         backgroundColor: "#e0d4f0",
         fontFamily: "system-ui, sans-serif",
@@ -764,7 +775,11 @@ export class ShrineScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true });
 
     this.onContentTap(btn, () => {
-      const result = applyGodFusion(tide.instanceId, cairn.instanceId, itemId);
+      const result = applyGodFusion(
+        tide.instanceId,
+        cairn.instanceId,
+        SOVEREIGN_SEAL_ID,
+      );
       this.setStatus(result.message);
       if (result.ok) {
         notifyWorldChanged();

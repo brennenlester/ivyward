@@ -6,7 +6,7 @@ import {
 } from "./materials";
 
 describe("getMaterialIconSrc", () => {
-  it("maps the eight craft materials to public PNG paths", () => {
+  it("maps craft recipe ingredients to public PNG paths", () => {
     for (const id of CRAFT_MATERIAL_ICON_IDS) {
       const src = getMaterialIconSrc(id);
       expect(src).toBeDefined();
