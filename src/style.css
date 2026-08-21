@@ -1018,6 +1018,7 @@ body,
   justify-content: stretch;
   padding: 0;
   pointer-events: none;
+  container-type: size;
 }
 
 .shrine-craft-overlay[hidden] {
@@ -1032,7 +1033,7 @@ body,
   display: flex;
   flex-direction: column;
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
   padding: 4px 2px 2px;
   background: transparent;
   border: none;
@@ -1050,6 +1051,13 @@ body,
   min-height: 0;
   gap: 8px;
   align-items: stretch;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr);
+}
+
+@container (max-width: 340px) {
+  .shrine-craft-overlay .crafting-hud-layout {
+    grid-template-columns: 1fr;
+  }
 }
 
 .shrine-craft-overlay .crafting-list {
@@ -1072,6 +1080,10 @@ body,
 
 .shrine-craft-overlay .crafting-count {
   color: #8ed8cf;
+}
+
+.shrine-craft-overlay .crafting-grid {
+  width: min(180px, 100%);
 }
 
 .shrine-craft-overlay .crafting-cell {
