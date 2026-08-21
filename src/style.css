@@ -909,7 +909,6 @@ body,
   height: 28px;
   flex-shrink: 0;
   pointer-events: none;
-  image-rendering: pixelated;
   object-fit: contain;
 }
 
