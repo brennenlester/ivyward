@@ -1,7 +1,7 @@
 import { getItemName, getMaterialName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
-import { popOverlay, pushOverlay } from "./overlayStack";
+import { applyShrineCraftOverlayRect } from "./shrinePanel";
 import {
   canAddItem,
   playerInventory,
@@ -9,7 +9,6 @@ import {
 import { isVisitorMode } from "../world/worldSession";
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { registerStagedCraftingSource } from "../crafting/stagedMaterials";
-import { applyShrineCraftOverlayRect } from "./shrinePanel";
 import {
   GRID_SIZE,
   cloneGrid,
@@ -66,11 +65,11 @@ export function showShrineCraftingHud(options: {
   }
   applyShrineCraftOverlayRect(shrineHost);
   shrineHost.hidden = false;
-  pushOverlay("craft-hud", () => hideShrineCraftingHud(false));
+  // ponytail: shrine craft is panel chrome inside the shrine overlay — do not
+  // push a separate Esc stack entry (#255); Recipes/etc. still stack normally.
 }
 
 export function hideShrineCraftingHud(destroy = false): void {
-  popOverlay("craft-hud");
   if (destroy) {
     shrineHud?.destroy();
     shrineHud = null;

@@ -223,7 +223,7 @@ export class ShrineScene extends Phaser.Scene {
       .setOrigin(0.5)
       .setInteractive({ useHandCursor: true })
       .on("pointerdown", () => {
-        // Only the top overlay's × may close; craft-hud can stack above shrine.
+        // Nested overlays (Recipes, etc.) close first; embedded craft is not stacked (#255).
         if (getTopOverlayId() !== "shrine") {
           return;
         }

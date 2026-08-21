@@ -47,9 +47,9 @@ describe("overlayStack", () => {
 
   it("returns the top overlay id", () => {
     pushOverlay("shrine", () => undefined);
-    pushOverlay("craft-hud", () => undefined);
-    expect(getTopOverlayId()).toBe("craft-hud");
-    popOverlay("craft-hud");
+    pushOverlay("recipes", () => undefined);
+    expect(getTopOverlayId()).toBe("recipes");
+    popOverlay("recipes");
     expect(getTopOverlayId()).toBe("shrine");
   });
 
