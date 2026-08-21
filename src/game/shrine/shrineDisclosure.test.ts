@@ -45,6 +45,18 @@ describe("shrine disclosure spotlight (AC1)", () => {
     expect(recipe!.id).not.toBe("sovereign-seal");
   });
 
+  it("still spotlights a craftable recipe when only the shrine zone is known (legacy save fallback)", () => {
+    // applyWorldSnapshot uses discoveredZones ?? [position.zoneId]
+    const recipe = selectSpotlightRecipe(["shrine"]);
+    expect(recipe).not.toBeNull();
+    const obtainable = materialsObtainableInZones(["shrine"]);
+    expect(obtainable.has("wood")).toBe(false);
+    expect(recipe!.id).not.toBe("wood-cudgel");
+    expect(recipe!.id).not.toBe("sovereign-seal");
+    // brook-crystal needs only brook-pearl from shrine nymphs
+    expect(recipe!.id).toBe("brook-crystal");
+  });
+
   it("never spotlights the sovereign seal before crowns are zone-obtainable", () => {
     const recipe = selectSpotlightRecipe([
       "grove",
