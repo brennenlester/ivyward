@@ -6,7 +6,19 @@ const SFX = {
   encounter: "sfx-encounter",
   shrine: "sfx-shrine",
   craft: "sfx-craft",
+  hitWild: "sfx-hit-wild",
+  hitPlayer: "sfx-hit-player",
+  faint: "sfx-faint",
+  battleWin: "sfx-battle-win",
 } as const;
+
+/** Damage at or above this uses the strong hit visual/audio beat (#265). */
+export const STRONG_HIT_DAMAGE = 12;
+
+/** SFX cache keys — exported for tests / callers that need the map inventory. */
+export function getSfxKeys(): readonly string[] {
+  return Object.values(SFX);
+}
 
 const MUSIC_GROVE = "music-grove-loop";
 
@@ -45,6 +57,10 @@ export function preloadGameAudio(scene: Phaser.Scene): void {
   scene.load.audio(SFX.encounter, "assets/audio/sfx-encounter.wav");
   scene.load.audio(SFX.shrine, "assets/audio/sfx-shrine.wav");
   scene.load.audio(SFX.craft, "assets/audio/sfx-craft.wav");
+  scene.load.audio(SFX.hitWild, "assets/audio/sfx-hit-wild.wav");
+  scene.load.audio(SFX.hitPlayer, "assets/audio/sfx-hit-player.wav");
+  scene.load.audio(SFX.faint, "assets/audio/sfx-faint.wav");
+  scene.load.audio(SFX.battleWin, "assets/audio/sfx-battle-win.wav");
   scene.load.audio(MUSIC_GROVE, "assets/audio/music-grove-loop.wav");
 }
 
@@ -120,6 +136,24 @@ export function playShrineSfx(scene: Phaser.Scene): void {
 
 export function playCraftSfx(scene: Phaser.Scene): void {
   playSfx(scene, SFX.craft, 0.45);
+}
+
+/** Wild takes damage (player attack lands). */
+export function playHitWildSfx(scene: Phaser.Scene, damage: number): void {
+  playSfx(scene, SFX.hitWild, damage >= STRONG_HIT_DAMAGE ? 0.62 : 0.42);
+}
+
+/** Player takes damage (wild attack lands). */
+export function playHitPlayerSfx(scene: Phaser.Scene, damage: number): void {
+  playSfx(scene, SFX.hitPlayer, damage >= STRONG_HIT_DAMAGE ? 0.65 : 0.45);
+}
+
+export function playFaintSfx(scene: Phaser.Scene): void {
+  playSfx(scene, SFX.faint, 0.5);
+}
+
+export function playBattleWinSfx(scene: Phaser.Scene): void {
+  playSfx(scene, SFX.battleWin, 0.55);
 }
 
 export function ensureGroveMusic(scene: Phaser.Scene): void {

@@ -1,4 +1,11 @@
 import Phaser from "phaser";
+import {
+  playBattleWinSfx,
+  playFaintSfx,
+  playHitPlayerSfx,
+  playHitWildSfx,
+  STRONG_HIT_DAMAGE,
+} from "../audio/gameAudio";
 import { getCreatureDefinition } from "../creatures/catalog";
 import {
   getActiveCreatures,
@@ -97,7 +104,7 @@ export class BattleScene extends Phaser.Scene {
 
     this.wild.currentHp = 0;
     this.refreshHp();
-    this.flashCombatant("wild");
+    this.flashCombatant("wild", STRONG_HIT_DAMAGE);
     this.endBattle(true);
   };
 
@@ -684,7 +691,7 @@ export class BattleScene extends Phaser.Scene {
     } else {
       applyDamage(this.wild, outcome.damage);
       this.showDamageCounter("wild", outcome.damage);
-      this.flashCombatant("wild");
+      this.flashCombatant("wild", outcome.damage);
       this.log(
         `${this.player.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
       );
@@ -708,14 +715,14 @@ export class BattleScene extends Phaser.Scene {
       this.tideSovereignTurnIndex += 1;
       applyDamage(this.player, attack.damage);
       this.showDamageCounter("player", attack.damage);
-      this.flashCombatant("player");
+      this.flashCombatant("player", attack.damage);
       this.log(`${this.wild.name} used ${attack.move.name}.`);
     } else if (this.wildCreatureId === CAIRN_SOVEREIGN_ID) {
       const attack = getCairnSovereignAttack(this.tideSovereignTurnIndex);
       this.tideSovereignTurnIndex += 1;
       applyDamage(this.player, attack.damage);
       this.showDamageCounter("player", attack.damage);
-      this.flashCombatant("player");
+      this.flashCombatant("player", attack.damage);
       this.log(`${this.wild.name} used ${attack.move.name}.`);
     } else {
       const move = pickRandomMove(this.wild);
@@ -730,7 +737,7 @@ export class BattleScene extends Phaser.Scene {
       } else {
         applyDamage(this.player, outcome.damage);
         this.showDamageCounter("player", outcome.damage);
-        this.flashCombatant("player");
+        this.flashCombatant("player", outcome.damage);
         this.log(
           `${this.wild.name} used ${move.name}.${formatMatchupHint(outcome.matchup)}`,
         );
@@ -739,6 +746,7 @@ export class BattleScene extends Phaser.Scene {
     this.refreshHp();
 
     if (isFainted(this.player)) {
+      playFaintSfx(this);
       this.syncActivePartyHp();
       if (this.hasSwitchablePartyMembers()) {
         this.forcedSwitch = true;
@@ -775,11 +783,21 @@ export class BattleScene extends Phaser.Scene {
       132 * Math.max(0, this.player.currentHp / this.player.maxHp);
   }
 
-  private flashCombatant(target: "wild" | "player"): void {
+  private flashCombatant(target: "wild" | "player", damage: number): void {
+    if (target === "wild") {
+      playHitWildSfx(this, damage);
+    } else {
+      playHitPlayerSfx(this, damage);
+    }
     const sprite = target === "wild" ? this.wildSprite : this.playerSprite;
-    sprite.setTintFill(0xffd9d2);
-    this.cameras.main.shake(120, 0.004);
-    this.time.delayedCall(120, () => sprite.clearTint());
+    const strong = damage >= STRONG_HIT_DAMAGE;
+    // Wild (outgoing) = coral; player (incoming) = amber — distinguishable without the log.
+    const tint = target === "wild" ? (strong ? 0xff6644 : 0xffd9d2) : strong ? 0xffaa22 : 0xffe0a8;
+    const shakeMs = strong ? 220 : 120;
+    const shakeAmp = strong ? 0.01 : 0.004;
+    sprite.setTintFill(tint);
+    this.cameras.main.shake(shakeMs, shakeAmp);
+    this.time.delayedCall(shakeMs, () => sprite.clearTint());
   }
 
   private showDamageCounter(
@@ -824,6 +842,11 @@ export class BattleScene extends Phaser.Scene {
     this.hideSwitchMenu();
     this.hideWandererFallbackMenu();
     this.syncActivePartyHp();
+
+    if (playerWon) {
+      playFaintSfx(this);
+      playBattleWinSfx(this);
+    }
 
     if (playerWon && this.wildCreatureId === TIDE_SOVEREIGN_ID) {
       const result = resolveTideSovereignOutcome("spar-win");
