@@ -1,4 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
+import { getMaterialForCreature } from "../inventory/materials";
+import {
+  getMaterialCount,
+  setInventoryFromSnapshot,
+} from "../inventory/playerInventory";
+import { GATHERABLE_PROPS } from "../world/gatherNodes";
 import { setVisitorMode } from "../world/worldSession";
 import {
   setDiscoveredZones,
@@ -6,7 +12,12 @@ import {
   setOverworldUnlocked,
   worldState,
 } from "../world/worldState";
+import { ZONE_ENCOUNTERS } from "../encounters/tables";
 import {
+  SECOND_ACT_WANT_AMOUNT,
+  SECOND_ACT_WANT_MATERIAL_ID,
+  claimSecondActWantOnIslandLand,
+  consumeQuestToast,
   getActiveQuestId,
   getQuestHint,
   getQuestSummary,
@@ -70,6 +81,7 @@ describe("post-story HUD Next", () => {
     setOverworldUnlocked(true);
     setDiscoveredZones([]);
     setFirstIslandLanded(false, false);
+    setInventoryFromSnapshot({}, {});
     restoreQuestProgress({
       "first-befriend": "complete",
       "first-spar": "complete",
@@ -83,14 +95,16 @@ describe("post-story HUD Next", () => {
     expect(getQuestHint()).toBe("");
   });
 
-  it("advances to sail Next after Harbor is discovered", () => {
+  it("names Folklore Dust on the pre-boarding sail Next (AC1)", () => {
     setDiscoveredZones(["harbor"]);
-    expect(getQuestSummary()).toBe("Next: sail east from East Landing");
+    expect(getQuestSummary()).toBe("Next: sail east for Folklore Dust");
+    expect(getQuestSummary()).toMatch(/Folklore Dust/);
+    expect(getQuestSummary()).not.toMatch(/^Next: sail east from East Landing$/);
   });
 
-  it("advances to islands Next after Archipelago is discovered", () => {
+  it("names Folklore Dust on the islands Next until first land", () => {
     setDiscoveredZones(["harbor", "archipelago"]);
-    expect(getQuestSummary()).toBe("Next: explore the islands");
+    expect(getQuestSummary()).toBe("Next: claim Folklore Dust ashore");
   });
 
   it("clears the Next chain after first island landing", () => {
@@ -103,14 +117,14 @@ describe("post-story HUD Next", () => {
 
   it("persists chain progress via restore of zones and island flag", () => {
     setDiscoveredZones(["harbor"]);
-    expect(getQuestSummary()).toBe("Next: sail east from East Landing");
+    expect(getQuestSummary()).toBe("Next: sail east for Folklore Dust");
     restoreQuestProgress({
       "first-befriend": "complete",
       "first-spar": "complete",
       "reach-village": "complete",
       "shrine-craft": "complete",
     });
-    expect(getQuestSummary()).toBe("Next: sail east from East Landing");
+    expect(getQuestSummary()).toBe("Next: sail east for Folklore Dust");
   });
 
   it("leaves pre-4/4 Story N/4 display unchanged", () => {
@@ -121,5 +135,60 @@ describe("post-story HUD Next", () => {
     });
     expect(getQuestSummary()).toMatch(/^Story 2\/4:/);
     expect(getQuestHint().startsWith("Next:")).toBe(true);
+  });
+
+  it("grants Folklore Dust on first island land and clears Next (AC2)", () => {
+    setDiscoveredZones(["harbor", "archipelago"]);
+    expect(getMaterialCount(SECOND_ACT_WANT_MATERIAL_ID)).toBe(0);
+    expect(claimSecondActWantOnIslandLand()).toBe(true);
+    expect(getMaterialCount(SECOND_ACT_WANT_MATERIAL_ID)).toBe(
+      SECOND_ACT_WANT_AMOUNT,
+    );
+    expect(consumeQuestToast()).toBe(
+      `Island bounty: Folklore Dust×${SECOND_ACT_WANT_AMOUNT}`,
+    );
+    expect(worldState.firstIslandLanded).toBe(true);
+    expect(getQuestSummary()).toBe("Story: complete");
+  });
+
+  it("does not re-grant after an already-landed save (AC4)", () => {
+    setDiscoveredZones(["harbor", "archipelago"]);
+    setFirstIslandLanded(true, false);
+    setInventoryFromSnapshot({ [SECOND_ACT_WANT_MATERIAL_ID]: 2 }, {});
+    expect(claimSecondActWantOnIslandLand()).toBe(false);
+    expect(getMaterialCount(SECOND_ACT_WANT_MATERIAL_ID)).toBe(2);
+    expect(consumeQuestToast()).toBeNull();
+    expect(getQuestSummary()).toBe("Story: complete");
+  });
+
+  it("keeps sail Next for a completed-story save that never boarded (AC4)", () => {
+    setDiscoveredZones(["harbor"]);
+    expect(worldState.firstIslandLanded).toBe(false);
+    expect(getQuestSummary()).toBe("Next: sail east for Folklore Dust");
+  });
+
+  it("does not grant Dust to visitors on island land", () => {
+    setVisitorMode(true);
+    setDiscoveredZones(["harbor", "archipelago"]);
+    expect(claimSecondActWantOnIslandLand()).toBe(false);
+    expect(getMaterialCount(SECOND_ACT_WANT_MATERIAL_ID)).toBe(0);
+    expect(worldState.firstIslandLanded).toBe(true);
+    expect(consumeQuestToast()).toBeNull();
+  });
+});
+
+describe("second-act Want exclusivity (AC3)", () => {
+  it("keeps Folklore Dust out of starter-zone creature drops and gather nodes", () => {
+    const starterZones = ["grove", "shrine", "village"] as const;
+    for (const zoneId of starterZones) {
+      for (const entry of ZONE_ENCOUNTERS[zoneId]) {
+        expect(getMaterialForCreature(entry.id)).not.toBe(
+          SECOND_ACT_WANT_MATERIAL_ID,
+        );
+      }
+    }
+    for (const action of Object.values(GATHERABLE_PROPS)) {
+      expect(action?.materialId).not.toBe(SECOND_ACT_WANT_MATERIAL_ID);
+    }
   });
 });

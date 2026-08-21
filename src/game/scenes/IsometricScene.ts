@@ -70,6 +70,7 @@ import {
   type PendingGodLandEncounter,
 } from "../encounters/godLand";
 import {
+  claimSecondActWantOnIslandLand,
   consumeQuestToast,
   recordQuestEvent,
 } from "../story/questProgress";
@@ -121,7 +122,6 @@ import {
 import {
   isFirstIslandLanded,
   markZoneDiscovered,
-  setFirstIslandLanded,
   toggleOverworldUnlock,
   worldState,
 } from "../world/worldState";
@@ -943,7 +943,7 @@ export class IsometricScene extends Phaser.Scene {
     if (!isArchipelagoIslandPosition(this.playerGridX, this.playerGridY)) {
       return;
     }
-    setFirstIslandLanded(true);
+    claimSecondActWantOnIslandLand();
     updateStatusPanel(getZone(this.currentZoneId));
   }
 
