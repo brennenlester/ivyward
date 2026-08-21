@@ -155,6 +155,14 @@ describe("loadHostSave repair path (#190)", () => {
     expect(localStorage.getItem(STORAGE_KEY)).not.toBeNull();
   });
 
+  it("clearHostSave cancels pending flush so pagehide cannot resurrect the save (#250)", () => {
+    updateHostPosition(SPAWN_ZONE, 4, 5);
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull(); // still debounced
+    clearHostSave();
+    flushPendingHostSave(); // simulates pagehide after Reset
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
   it("clearHostSave leaves the backup key intact", () => {
     localStorage.setItem(BACKUP_STORAGE_KEY, "keep-me");
     clearHostSave();
