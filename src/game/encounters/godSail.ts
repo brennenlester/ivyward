@@ -183,12 +183,18 @@ export function isStory1BefriendGuaranteed(creatureId: string): boolean {
 export function rollBefriendAttempt(
   creatureId: string,
   rng: () => number = Math.random,
+  /** Habitat profile override (e.g. shrine folklore matchup). Gods ignore. */
+  chanceOverride?: number,
 ): boolean {
   if (isStory1BefriendGuaranteed(creatureId)) {
     setStory1BefriendGuaranteeConsumed(true);
     return true;
   }
-  return rng() < getBefriendChance(creatureId);
+  if (isGodCreature(creatureId)) {
+    return rng() < GOD_BEFRIEND_CHANCE;
+  }
+  const chance = chanceOverride ?? getBefriendChance(creatureId);
+  return rng() < chance;
 }
 
 export function formatBefriendOddsPercent(chance: number): string {

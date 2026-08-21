@@ -27,6 +27,8 @@ export const worldState = {
   eclipseFusionCompleted: false,
   /** Post-Story Next chain: stepped onto an archipelago island Floor/Dock. */
   firstIslandLanded: false,
+  /** Harbor once-per-species Befriend claims (#275). */
+  harborBefriendUsed: [] as string[],
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -39,6 +41,10 @@ export function setDiscoveredZones(zones: ZoneId[]): void {
 
 export function setDiscoveredCreatures(creatureIds: string[]): void {
   worldState.discoveredCreatures = [...new Set(creatureIds)];
+}
+
+export function setHarborBefriendUsed(creatureIds: string[]): void {
+  worldState.harborBefriendUsed = [...new Set(creatureIds)];
 }
 
 export function isGodSailEncounterClaimed(): boolean {
