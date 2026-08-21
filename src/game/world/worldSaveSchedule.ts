@@ -47,6 +47,18 @@ export function scheduleHostSave(): void {
 }
 
 /**
+ * Drop a pending debounced save without writing. Used when the host save is
+ * intentionally cleared so pagehide flush cannot resurrect it (#250).
+ */
+export function cancelPendingHostSave(): void {
+  if (saveTimer) {
+    clearTimeout(saveTimer);
+    saveTimer = null;
+  }
+  pendingSince = null;
+}
+
+/**
  * Synchronously persist any pending save. Wired to pagehide and
  * visibilitychange so closing or backgrounding the tab never drops the last
  * debounce window of progress (#191).

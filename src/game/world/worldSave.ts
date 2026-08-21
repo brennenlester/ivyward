@@ -9,6 +9,7 @@ import {
 } from "./worldSnapshot";
 import { isVisitorMode } from "./worldSession";
 import {
+  cancelPendingHostSave,
   flushPendingHostSave,
   registerWorldPersistHandler,
   resumeHostPersist,
@@ -83,6 +84,8 @@ if (typeof window !== "undefined") {
 }
 
 export function clearHostSave(): void {
+  // Cancel first so pagehide → flushPendingHostSave cannot rewrite after clear (#250).
+  cancelPendingHostSave();
   try {
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(LEGACY_STORAGE_KEY);

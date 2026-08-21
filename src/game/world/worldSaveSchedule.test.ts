@@ -24,6 +24,7 @@ describe("host persist suspend nesting", () => {
 
 import { vi } from "vitest";
 import {
+  cancelPendingHostSave,
   flushPendingHostSave,
   registerWorldPersistHandler,
   scheduleHostSave,
@@ -35,7 +36,7 @@ describe("save debounce max-wait and flush (#191)", () => {
     // Restore the production handler binding for other suites: worldSave
     // registers its own handler at module load; tests here override it.
     registerWorldPersistHandler(() => {});
-    flushPendingHostSave();
+    cancelPendingHostSave();
   });
 
   it("persists at least once per max-wait under continuous changes", () => {
@@ -77,5 +78,18 @@ describe("save debounce max-wait and flush (#191)", () => {
     // Nothing pending: flush is a no-op.
     flushPendingHostSave();
     expect(persists).toBe(1);
+  });
+
+  it("cancel drops a pending save without firing (#250)", () => {
+    vi.useFakeTimers();
+    let persists = 0;
+    registerWorldPersistHandler(() => {
+      persists += 1;
+    });
+    scheduleHostSave();
+    cancelPendingHostSave();
+    flushPendingHostSave();
+    vi.advanceTimersByTime(2000);
+    expect(persists).toBe(0);
   });
 });
