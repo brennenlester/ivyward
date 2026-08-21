@@ -95,6 +95,7 @@ import {
   setTouchControlsEnabled,
 } from "../ui/touchControls";
 import { canOccupy } from "../world/collision";
+import { applyNameIntroKeyboardGate } from "../input/nameIntroKeyboardGate";
 import {
   getPlayerName,
   hasPlayerName,
@@ -316,8 +317,12 @@ export class IsometricScene extends Phaser.Scene {
     this.loadZone(this.currentZoneId);
 
     this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-    this.unbindPlayerName = onPlayerNameChange(() => this.refreshNameTag());
+    this.unbindPlayerName = onPlayerNameChange(() => {
+      this.refreshNameTag();
+      applyNameIntroKeyboardGate(this.input.keyboard, hasPlayerName());
+    });
     this.refreshNameTag();
+    applyNameIntroKeyboardGate(this.input.keyboard, hasPlayerName());
     setTouchControlsEnabled(hasPlayerName());
 
     this.events.on("resume", () => {
@@ -331,9 +336,7 @@ export class IsometricScene extends Phaser.Scene {
       this.godSailTravelSinceEncounter = 0;
       this.godLandTravelSinceEncounter = 0;
       setTouchControlsEnabled(true);
-      if (this.input.keyboard) {
-        this.input.keyboard.enabled = true;
-      }
+      applyNameIntroKeyboardGate(this.input.keyboard, hasPlayerName());
       const zoneId = this.currentZoneId;
       const x = this.playerGridX;
       const y = this.playerGridY;
