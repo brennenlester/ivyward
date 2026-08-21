@@ -8,6 +8,10 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 
 ## How to play
 
+### First boot
+
+On a fresh save (or after Reset / `?new=1`), enter a display name (1–16 characters). That name appears in black letters above your avatar in the overworld and above your token in **Hearth Lots**. Host saves keep the name; invite visitors pick a name for that visit only.
+
 ### Controls
 
 | Input | Action |

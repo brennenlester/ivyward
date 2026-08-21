@@ -23,6 +23,34 @@
           Start a fresh game
         </button>
       </div>
+      <div
+        id="name-intro"
+        class="name-intro"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="name-intro-title"
+        hidden
+      >
+        <h1 id="name-intro-title" class="name-intro-title">Ivyward</h1>
+        <p class="name-intro-body">What should we call you?</p>
+        <form id="name-intro-form" class="name-intro-form" autocomplete="off">
+          <label class="visually-hidden" for="name-intro-input">Your name</label>
+          <input
+            id="name-intro-input"
+            class="name-intro-input"
+            type="text"
+            name="playerName"
+            maxlength="16"
+            required
+            spellcheck="false"
+            placeholder="Your name"
+          />
+          <p id="name-intro-error" class="name-intro-error" role="alert"></p>
+          <button id="name-intro-submit" type="submit" class="name-intro-btn">
+            Begin
+          </button>
+        </form>
+      </div>
       <div id="playfield">
         <div id="game">
           <div id="touch-controls" class="touch-controls" aria-hidden="true">
