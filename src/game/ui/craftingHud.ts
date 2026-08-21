@@ -2,9 +2,7 @@ import { getItemName, getMaterialName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
 import { openRecipes } from "./recipePanel";
 import {
-  addMaterial,
   canAddItem,
-  consumeMaterial,
   playerInventory,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
@@ -15,13 +13,20 @@ import {
   cloneGrid,
   craftFromGrid,
   emptyGrid,
+  isCraftItemIngredient,
   matchGrid,
+  PATTERN_GLYPHS,
+  returnCraftIngredient,
   returnGridToInventory,
+  takeCraftIngredient,
   type CraftContext,
   type CraftGrid,
 } from "../crafting/recipes";
 
 const DRAG_THRESHOLD = 8;
+const PLACEABLE_ITEM_IDS = new Set(
+  Object.values(PATTERN_GLYPHS).filter((id) => isCraftItemIngredient(id)),
+);
 
 export type CraftingHudHandle = {
   refresh: () => void;
@@ -84,11 +89,14 @@ type HudOptions = {
   onInventoryChange?: () => void;
 };
 
-function ownedMaterials(): { id: string; name: string; count: number }[] {
-  return Object.entries(playerInventory.materials)
+function ownedIngredients(): { id: string; name: string; count: number }[] {
+  const mats = Object.entries(playerInventory.materials)
     .filter(([, count]) => count > 0)
-    .map(([id, count]) => ({ id, name: getMaterialName(id), count }))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .map(([id, count]) => ({ id, name: getMaterialName(id), count }));
+  const items = Object.entries(playerInventory.items)
+    .filter(([id, count]) => count > 0 && PLACEABLE_ITEM_IDS.has(id))
+    .map(([id, count]) => ({ id, name: getItemName(id), count }));
+  return [...mats, ...items].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export function mountCraftingHud(
@@ -164,7 +172,7 @@ export function mountCraftingHud(
       if (pickup.from === "list") {
         const id = pickup.materialId;
         pickup = null;
-        addMaterial(id, 1);
+        returnCraftIngredient(id);
       } else {
         grid = cloneGrid(grid);
         grid[pickup.from.row][pickup.from.col] = pickup.materialId;
@@ -216,7 +224,7 @@ export function mountCraftingHud(
       if (pickup.from === "list") {
         grid[row][col] = pickup.materialId;
         pickup = null;
-        addMaterial(existing, 1);
+        returnCraftIngredient(existing);
         inventoryChanged();
         render();
         return;
@@ -235,7 +243,7 @@ export function mountCraftingHud(
     }
     const id = pickup.materialId;
     pickup = null;
-    addMaterial(id, 1);
+    returnCraftIngredient(id);
     inventoryChanged();
     render();
   }
@@ -254,7 +262,7 @@ export function mountCraftingHud(
     dragging = false;
     suppressPlace = Boolean(event);
     if (next.from === "list") {
-      if (!consumeMaterial(next.materialId, 1)) {
+      if (!takeCraftIngredient(next.materialId)) {
         pickup = null;
         tapSelect = null;
         dragStart = null;
@@ -394,7 +402,7 @@ export function mountCraftingHud(
     const listTitle = document.createElement("h3");
     listTitle.textContent = "Materials";
     list.appendChild(listTitle);
-    const mats = ownedMaterials();
+    const mats = ownedIngredients();
     if (mats.length === 0) {
       const empty = document.createElement("p");
       empty.className = "crafting-empty";

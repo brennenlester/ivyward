@@ -1,3 +1,5 @@
+import { isCraftItemIngredient } from "../inventory/materials";
+
 const sources = new Set<() => Record<string, number>>();
 
 export function registerStagedCraftingSource(
@@ -13,16 +15,29 @@ export function resetStagedCraftingSourcesForTest(): void {
   sources.clear();
 }
 
-export function withStagedCraftingMaterials(
-  materials: Record<string, number>,
+function mergeStaged(
+  bag: Record<string, number>,
+  include: (id: string) => boolean,
 ): Record<string, number> {
-  const next = { ...materials };
+  const next = { ...bag };
   for (const source of sources) {
     for (const [id, count] of Object.entries(source())) {
-      if (count > 0) {
+      if (count > 0 && include(id)) {
         next[id] = (next[id] ?? 0) + count;
       }
     }
   }
   return next;
+}
+
+export function withStagedCraftingMaterials(
+  materials: Record<string, number>,
+): Record<string, number> {
+  return mergeStaged(materials, (id) => !isCraftItemIngredient(id));
+}
+
+export function withStagedCraftingItems(
+  items: Record<string, number>,
+): Record<string, number> {
+  return mergeStaged(items, (id) => isCraftItemIngredient(id));
 }

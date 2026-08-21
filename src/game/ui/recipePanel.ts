@@ -1,4 +1,4 @@
-import { getMaterialName } from "../inventory/materials";
+import { getIngredientName } from "../inventory/materials";
 import { appendMaterialVisual } from "./materialIcon";
 import {
   CRAFT_RECIPES,
@@ -30,7 +30,7 @@ export function listRecipePages(
     uniqueOwned: Boolean(recipe.uniqueOwned),
     materials: getRecipeMaterials(recipe).map((m) => ({
       ...m,
-      name: getMaterialName(m.materialId),
+      name: getIngredientName(m.materialId),
     })),
     grid: patternToMaterialRows(recipe.pattern),
   }));

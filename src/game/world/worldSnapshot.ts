@@ -7,7 +7,7 @@ import {
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
-import { withStagedCraftingMaterials } from "../crafting/stagedMaterials";
+import { withStagedCraftingItems, withStagedCraftingMaterials } from "../crafting/stagedMaterials";
 import {
   playerInventory,
   setInventoryFromSnapshot,
@@ -799,7 +799,7 @@ export function exportWorldSnapshot(
     activePartyIds: [...playerParty.activeInstanceIds],
     nextInstanceId: getNextInstanceId(),
     materials: withStagedCraftingMaterials(playerInventory.materials),
-    items: { ...playerInventory.items },
+    items: withStagedCraftingItems(playerInventory.items),
     position,
   };
 }
@@ -834,6 +834,9 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     nextInstanceIdAfter(party, snapshot.nextInstanceId),
     snapshot.activePartyIds,
   );
+  const eclipseDone = snapshot.eclipseFusionCompleted === true;
+  const horizonCount =
+    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
   setInventoryFromSnapshot(snapshot.materials, snapshot.items);
   setClaimedNpcGifts(snapshot.claimedNpcGifts ?? []);
   setOddRestPurchased(snapshot.oddRestPurchased === true);
@@ -841,9 +844,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   setSideQuestStatuses(snapshot.npcSideQuests ?? {});
   setGodSailEncounterClaimed(snapshot.godSailEncounterClaimed === true, false);
   setGodLandEncounterClaimed(snapshot.godLandEncounterClaimed === true, false);
-  setEclipseFusionCompleted(snapshot.eclipseFusionCompleted === true, false);
-  const horizonCount =
-    snapshot.horizonFusionCount ?? (snapshot.godFusionCompleted === true ? 1 : 0);
+  setEclipseFusionCompleted(eclipseDone, false);
   setHorizonFusionCount(horizonCount, false);
   setTideSovereignObtained(
     inferSovereignObtained(

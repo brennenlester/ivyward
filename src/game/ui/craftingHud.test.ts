@@ -74,6 +74,18 @@ describe("crafting HUD", () => {
     expect(getMaterialCount("wood")).toBe(3);
   });
 
+  it("lists exclusive crowns so they can be placed on the seal recipe", () => {
+    setInventoryFromSnapshot({}, { "tide-crown": 1, "boulder-crown": 1 });
+    const { host, hud } = mountHud();
+    listRow(host, "Tide Crown").click();
+    cellAt(host, 0, 0).click();
+    expect(cellAt(host, 0, 0).getAttribute("aria-label")).toBe("Tide Crown");
+    expect(getItemCount("tide-crown")).toBe(0);
+    hud.destroy();
+    expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount("boulder-crown")).toBe(1);
+  });
+
   it("places from the list and crafts with click (keyboard path)", () => {
     const { host, hud } = mountHud();
     for (const row of [0, 1, 2]) {

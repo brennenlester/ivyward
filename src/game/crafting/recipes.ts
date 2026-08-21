@@ -1,13 +1,19 @@
+import { isCraftItemIngredient } from "../inventory/materials";
 import {
   addItem,
   addMaterial,
+  BOULDER_CROWN_ID,
   canAddItem,
+  consumeItem,
   consumeMaterial,
   getItemCount,
   getMaterialCount,
+  playerInventory,
+  TIDE_CROWN_ID,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import { isEclipseFusionCompleted } from "../world/worldState";
+import { withStagedCraftingItems } from "./stagedMaterials";
 
 export const GRID_SIZE = 4;
 
@@ -33,6 +39,8 @@ export const PATTERN_GLYPHS: Record<string, string> = {
   P: "brook-pearl",
   B: "pebble",
   D: "folklore-dust",
+  T: TIDE_CROWN_ID,
+  C: BOULDER_CROWN_ID,
 };
 
 export const CRAFT_RECIPES: CraftRecipe[] = [
@@ -41,7 +49,9 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     name: "Sovereign Seal",
     outputItemId: "sovereign-seal",
     outputCount: 1,
-    pattern: ["PBP", "BDB", "PDF", ".F."],
+    // Original seal materials, plus both exclusive crowns in the empty corners.
+    // ponytail: crowns are earned by defeating sovereigns and are returned after craft.
+    pattern: ["PBP", "BDB", "PDF", "TFC"],
   },
   {
     id: "wood-cudgel",
@@ -125,6 +135,19 @@ export type MatchResult =
   | { status: "blocked"; recipe: CraftRecipe; message: string }
   | { status: "none" };
 
+export { isCraftItemIngredient };
+export function takeCraftIngredient(id: string): boolean {
+  return isCraftItemIngredient(id) ? consumeItem(id) : consumeMaterial(id, 1);
+}
+
+export function returnCraftIngredient(id: string): void {
+  if (isCraftItemIngredient(id)) {
+    addItem(id, 1);
+    return;
+  }
+  addMaterial(id, 1);
+}
+
 export function emptyGrid(): CraftGrid {
   return Array.from({ length: GRID_SIZE }, () =>
     Array.from({ length: GRID_SIZE }, () => null),
@@ -155,6 +178,19 @@ export function getRecipeMaterials(
     materialId,
     count,
   }));
+}
+
+function hasCraftIngredient(id: string, count: number): boolean {
+  return isCraftItemIngredient(id)
+    ? getItemCount(id) >= count
+    : getMaterialCount(id) >= count;
+}
+
+function consumeCraftIngredient(id: string, count: number): boolean {
+  if (isCraftItemIngredient(id)) {
+    return true;
+  }
+  return consumeMaterial(id, count);
 }
 
 export function patternToMaterialRows(pattern: string[]): (string | null)[][] {
@@ -214,6 +250,27 @@ export function placePattern(
   return next;
 }
 
+function uniqueOwnedBlockedMessage(recipe: CraftRecipe): string {
+  if (recipe.id === "portable-moonshrine") {
+    return "Already have a Moonshrine";
+  }
+  return `Already have a ${recipe.name}`;
+}
+
+function ownedItemCount(itemId: string): number {
+  return withStagedCraftingItems(playerInventory.items)[itemId] ?? 0;
+}
+
+function fusionPathCraftBlock(recipe: CraftRecipe): string | null {
+  if (!isEclipseFusionCompleted()) {
+    return null;
+  }
+  if (recipe.outputItemId === "sovereign-seal") {
+    return "Eclipse Sovereign has already been fused.";
+  }
+  return null;
+}
+
 function patternMatchesBox(
   grid: CraftGrid,
   box: GridBox,
@@ -248,19 +305,16 @@ export function matchGrid(grid: CraftGrid, context: CraftContext): MatchResult {
     if (!patternMatchesBox(grid, box, recipe.pattern)) {
       continue;
     }
-    if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
+    if (recipe.uniqueOwned && ownedItemCount(recipe.outputItemId) >= 1) {
       return {
         status: "blocked",
         recipe,
-        message: "Already have a Moonshrine",
+        message: uniqueOwnedBlockedMessage(recipe),
       };
     }
-    if (recipe.outputItemId === "sovereign-seal" && isEclipseFusionCompleted()) {
-      return {
-        status: "blocked",
-        recipe,
-        message: "Eclipse Sovereign has already been fused.",
-      };
+    const fusionBlock = fusionPathCraftBlock(recipe);
+    if (fusionBlock) {
+      return { status: "blocked", recipe, message: fusionBlock };
     }
     return { status: "match", recipe, box };
   }
@@ -281,7 +335,7 @@ export function returnGridToInventory(grid: CraftGrid): CraftGrid {
   for (const row of grid) {
     for (const cell of row) {
       if (cell) {
-        addMaterial(cell, 1);
+        returnCraftIngredient(cell);
       }
     }
   }
@@ -298,16 +352,16 @@ export function canCraft(
   if (recipe.altarOnly && context !== "altar") {
     return false;
   }
-  if (recipe.uniqueOwned && getItemCount(recipe.outputItemId) >= 1) {
+  if (recipe.uniqueOwned && ownedItemCount(recipe.outputItemId) >= 1) {
     return false;
   }
-  if (recipe.outputItemId === "sovereign-seal" && isEclipseFusionCompleted()) {
+  if (fusionPathCraftBlock(recipe)) {
     return false;
   }
   return (
     canAddItem(recipe.outputItemId, recipe.outputCount) &&
-    getRecipeMaterials(recipe).every(
-      (m) => getMaterialCount(m.materialId) >= m.count,
+    getRecipeMaterials(recipe).every((m) =>
+      hasCraftIngredient(m.materialId, m.count),
     )
   );
 }
@@ -317,7 +371,7 @@ export function craftItem(recipe: CraftRecipe): boolean {
     return false;
   }
   for (const m of getRecipeMaterials(recipe)) {
-    if (!consumeMaterial(m.materialId, m.count)) {
+    if (!consumeCraftIngredient(m.materialId, m.count)) {
       return false;
     }
   }
@@ -350,11 +404,23 @@ export function craftFromGrid(
   if (!canAddItem(match.recipe.outputItemId, match.recipe.outputCount)) {
     return { ok: false, grid, message: "You can't hold more of that." };
   }
+  const returnedItems: string[] = [];
+  for (let r = 0; r < match.box.height; r++) {
+    for (let c = 0; c < match.box.width; c++) {
+      const id = grid[match.box.row + r][match.box.col + c];
+      if (id && isCraftItemIngredient(id)) {
+        returnedItems.push(id);
+      }
+    }
+  }
   const next = clearBox(grid, match.box);
   onConsumed?.(next);
   if (!addItem(match.recipe.outputItemId, match.recipe.outputCount)) {
     onConsumed?.(grid);
     return { ok: false, grid, message: "You can't hold more of that." };
+  }
+  for (const id of returnedItems) {
+    returnCraftIngredient(id);
   }
   return { ok: true, grid: next, recipe: match.recipe };
 }
