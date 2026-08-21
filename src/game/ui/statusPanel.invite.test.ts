@@ -6,7 +6,7 @@ describe("Copy invite link status control", () => {
     vi.resetModules();
   });
 
-  it("keeps Copy invite hidden for hosts even after a handler is registered", async () => {
+  it("keeps Copy invite hidden on cold boot even after a handler is registered", async () => {
     document.body.innerHTML = `
       <button id="copy-invite-btn" type="button">Copy invite link</button>
       <button id="reset-game-btn" type="button">Reset game</button>
@@ -31,9 +31,9 @@ describe("Copy invite link status control", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("does not enable Copy invite when a handler is registered first", async () => {
+  it("reveals Copy invite after FTUE unlock and calls the handler", async () => {
     document.body.innerHTML = `
-      <button id="copy-invite-btn" type="button">Copy invite link</button>
+      <button id="copy-invite-btn" type="button" hidden>Copy invite link</button>
       <button id="reset-game-btn" type="button">Reset game</button>
       <button id="codex-btn" type="button">Codex</button>
       <button id="party-btn" type="button">Party</button>
@@ -45,12 +45,14 @@ describe("Copy invite link status control", () => {
     const handler = vi.fn();
     mod.setCopyInviteHandler(handler);
     mod.initStatusPanelControls();
+    mod.unlockHostInviteChrome();
 
     const btn = document.getElementById("copy-invite-btn") as HTMLButtonElement;
-    expect(btn.hidden).toBe(true);
-    expect(btn.disabled).toBe(true);
+    expect(mod.isHostInviteUnlocked()).toBe(true);
+    expect(btn.hidden).toBe(false);
+    expect(btn.disabled).toBe(false);
     btn.click();
-    expect(handler).not.toHaveBeenCalled();
+    expect(handler).toHaveBeenCalledTimes(1);
   });
 
   it("hides Copy invite link for visitors and does not call the handler", async () => {
@@ -67,6 +69,7 @@ describe("Copy invite link status control", () => {
     const handler = vi.fn();
     mod.setCopyInviteHandler(handler);
     mod.initStatusPanelControls();
+    mod.unlockHostInviteChrome();
 
     const btn = document.getElementById("copy-invite-btn") as HTMLButtonElement;
     expect(btn.hidden).toBe(true);
@@ -74,7 +77,7 @@ describe("Copy invite link status control", () => {
     expect(handler).not.toHaveBeenCalled();
   });
 
-  it("does not tell hosts to copy an invite link", async () => {
+  it("does not tell hosts to copy an invite link before unlock", async () => {
     document.body.innerHTML = `
       <button id="copy-invite-btn" type="button">Copy invite link</button>
       <div id="status-session"></div>

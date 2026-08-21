@@ -75,8 +75,13 @@ import {
 } from "../story/questProgress";
 import { consumeAchievementToast } from "../progression/achievements";
 import {
+  flashInviteStatus,
+  hideManualInviteUrl,
   measureStatusPanelHeight,
   measureStatusPanelWidth,
+  setCopyInviteHandler,
+  showManualInviteUrl,
+  unlockHostInviteChrome,
   updateStatusPanel,
 } from "../ui/statusPanel";
 import {
@@ -101,6 +106,7 @@ import {
   hasPlayerName,
   onPlayerNameChange,
 } from "../world/playerName";
+import { shareOrCopyInviteLink } from "../world/invite";
 import { takePendingWorldPosition } from "../world/worldSnapshot";
 import { isVisitorMode } from "../world/worldSession";
 import {
@@ -215,6 +221,7 @@ export class IsometricScene extends Phaser.Scene {
     D: Phaser.Input.Keyboard.Key;
   };
   private unlockKey!: Phaser.Input.Keyboard.Key;
+  private inviteKey!: Phaser.Input.Keyboard.Key;
   private interactKey!: Phaser.Input.Keyboard.Key;
   private travelSinceEncounter = 0;
   /** Successful walk distance used to consume the first-step WASD ghost. */
@@ -307,10 +314,12 @@ export class IsometricScene extends Phaser.Scene {
     this.cursors = this.input.keyboard!.createCursorKeys();
     this.wasd = this.input.keyboard!.addKeys("W,A,S,D") as typeof this.wasd;
     this.unlockKey = this.input.keyboard!.addKey("U");
+    this.inviteKey = this.input.keyboard!.addKey("I");
     this.interactKey = this.input.keyboard!.addKey("E");
     this.input.keyboard!.on("keydown", this.onGodCheatKeyDown);
     initTouchControls();
     initMuteControl(this);
+    setCopyInviteHandler(() => this.tryCopyInvite());
     ensureGroveMusic(this);
     this.input.on("pointerdown", () => unlockAudioFromGesture(this));
 
@@ -363,6 +372,7 @@ export class IsometricScene extends Phaser.Scene {
   shutdown(): void {
     this.unbindPlayerName?.();
     this.unbindPlayerName = undefined;
+    setCopyInviteHandler(null);
     this.input.keyboard?.off("keydown", this.onGodCheatKeyDown);
     window.removeEventListener("resize", this.onWindowResize);
     window.visualViewport?.removeEventListener("resize", this.onWindowResize);
@@ -389,6 +399,10 @@ export class IsometricScene extends Phaser.Scene {
       toggleOverworldUnlock();
       notifyWorldChanged();
       this.loadZone(this.currentZoneId);
+    }
+
+    if (Phaser.Input.Keyboard.JustDown(this.inviteKey)) {
+      void this.tryCopyInvite();
     }
 
     this.updateQuestToast();
@@ -1455,6 +1469,8 @@ export class IsometricScene extends Phaser.Scene {
     if (!shouldShowWalkHint(this.walkHintTravel)) {
       this.walkHint?.destroy();
       this.walkHint = undefined;
+      // Same first-step gate that kills the WASD ghost unlocks host invite (#257).
+      unlockHostInviteChrome();
       return;
     }
     if (this.walkHint) {
@@ -1991,6 +2007,45 @@ export class IsometricScene extends Phaser.Scene {
       this.achievementToast?.destroy();
       this.achievementToast = undefined;
     });
+  }
+
+  private async tryCopyInvite(): Promise<void> {
+    if (isVisitorMode() || shouldShowWalkHint(this.walkHintTravel)) {
+      return;
+    }
+
+    hideManualInviteUrl();
+    try {
+      const result = await shareOrCopyInviteLink(
+        this.currentZoneId,
+        this.playerGridX,
+        this.playerGridY,
+      );
+      if (result.status === "copied") {
+        flashInviteStatus("Invite link copied!", "#d8f0c0");
+      } else if (result.status === "shared") {
+        flashInviteStatus("Invite shared!", "#d8f0c0");
+      } else if (result.status === "manual" || result.status === "cancelled") {
+        showManualInviteUrl(result.url);
+        flashInviteStatus(
+          result.status === "cancelled"
+            ? "Share cancelled — select the invite link to copy"
+            : "Select the invite link to copy",
+          "#d8f0c0",
+        );
+      } else {
+        console.error(result.error);
+        if (result.url) {
+          showManualInviteUrl(result.url);
+          flashInviteStatus("Select the invite link to copy", "#f08080");
+        } else {
+          flashInviteStatus("Failed to share invite", "#f08080");
+        }
+      }
+    } catch (error) {
+      console.error(error);
+      flashInviteStatus("Failed to share invite", "#f08080");
+    }
   }
 
 }
