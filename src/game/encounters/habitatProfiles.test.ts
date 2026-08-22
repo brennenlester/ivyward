@@ -182,6 +182,27 @@ describe("habitatRuntime behaviors", () => {
     expect(getOverworldFleeFollowId()).toBeNull();
   });
 
+  it("overworld Flee does not re-arm an infinite follow chain (#300)", () => {
+    const profile = getHabitatProfile("overworld");
+    onWildEncounterResolved("overworld", "rootwalker", "flee");
+    resolveWildEncounterCreature({
+      zoneId: "overworld",
+      tileX: 5,
+      tileY: 5,
+      discoveredCreatureIds: [],
+    });
+    onWildEncounterResolved("overworld", "rootwalker", "flee");
+    expect(getOverworldFleeFollowId()).toBeNull();
+    expect(shouldGuaranteeWildTrigger(profile, "overworld")).toBe(false);
+  });
+
+  it("overworld Spar clears flee follow so a later Flee can arm again", () => {
+    onWildEncounterResolved("overworld", "rootwalker", "flee");
+    onWildEncounterResolved("overworld", "rootwalker", "spar");
+    onWildEncounterResolved("overworld", "lantern-fox", "flee");
+    expect(getOverworldFleeFollowId()).toBe("lantern-fox");
+  });
+
   it("mistwood conceals until action; gods ignore", () => {
     expect(
       shouldConcealReveal(getHabitatProfile("mistwood"), "thunder-finch"),

@@ -68,8 +68,13 @@ describe("god land encounter", () => {
       walkableLand: true,
       visitor: false,
       claimed: false,
+      tileX: 5,
+      tileY: 5,
     };
     expect(shouldAttemptGodLandEncounter(valid)).toBe(true);
+    expect(
+      shouldAttemptGodLandEncounter({ ...valid, tileX: 7, tileY: 12 }),
+    ).toBe(false);
     expect(shouldAttemptGodLandEncounter({ ...valid, sailing: true })).toBe(
       false,
     );
@@ -160,6 +165,8 @@ describe("god land encounter", () => {
       walkableLand: true,
       visitor: false,
       claimed: true,
+      tileX: 5,
+      tileY: 5,
     };
     const naturallyOnWater = {
       ...naturallyClaimed,
@@ -321,6 +328,8 @@ describe("god land encounter", () => {
         walkableLand: true,
         visitor: false,
         claimed: true,
+        tileX: 5,
+        tileY: 5,
       }),
     ).toBe(true);
   });
