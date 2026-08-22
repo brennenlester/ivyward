@@ -47,6 +47,12 @@ describe("hermit Reed dialogue (#291)", () => {
     const talk = beginConversation(reed);
     expect(talk.lines.join(" ")).toContain(VILLAGE_GATE_CODE);
   });
+
+  it("reveals the code on the first meeting when Tide was already claimed", () => {
+    setTideSovereignObtained(1, false);
+    const first = beginConversation(reed);
+    expect(first.lines.join(" ")).toContain(VILLAGE_GATE_CODE);
+  });
 });
 
 describe("villageGateUnlocked flag", () => {
