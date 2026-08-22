@@ -277,6 +277,17 @@ describe("god land encounter", () => {
     expect(isGodLandEncounterClaimed()).toBe(true);
   });
 
+  it("grants crown on befriend when Sovereign Plate is owned without party join", () => {
+    setInventoryFromSnapshot({}, { "sovereign-plate": 1 });
+    expect(resolveCairnSovereignOutcome("befriend")).toEqual({
+      creatureAdded: false,
+      weaponGranted: true,
+      crownGranted: true,
+    });
+    expect(hasCreature(CAIRN_SOVEREIGN_ID)).toBe(false);
+    expect(getItemCount("boulder-crown")).toBe(1);
+  });
+
   it("does not add a third Stone Sovereign after the two-copy cap", () => {
     claimCairnSovereign();
     claimCairnSovereign();

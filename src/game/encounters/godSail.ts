@@ -248,7 +248,8 @@ export function formatGodClaimJoinLine(
   ].filter((part): part is string => Boolean(part));
   const lootLine = loot.length > 0 ? `${loot.join(" and ")} obtained!` : null;
   if (!result.creatureAdded) {
-    return lootLine ?? `${name} already rests with you.`;
+    // Plate farm path (#289) can succeed without a party join; avoid "already rests".
+    return lootLine ?? `${name} slips away.`;
   }
   const subject = defeated ? `The defeated ${name}` : `The ${name}`;
   return lootLine
@@ -295,7 +296,8 @@ export function resolveTideSovereignOutcome(
     return null;
   }
   const result = claimTideSovereign();
-  if (outcome === "spar-win") {
+  // Spar-win always earns a crown; with Sovereign Plate, befriend does too (no party join).
+  if (outcome === "spar-win" || ownsSovereignPlate()) {
     result.crownGranted = grantCrownIfMissing(TIDE_CROWN_ID);
   }
   return result;

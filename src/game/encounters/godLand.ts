@@ -198,7 +198,8 @@ export function resolveCairnSovereignOutcome(
     return null;
   }
   const result = claimCairnSovereign();
-  if (outcome === "spar-win") {
+  // Spar-win always earns a crown; with Sovereign Plate, befriend does too (no party join).
+  if (outcome === "spar-win" || ownsSovereignPlate()) {
     result.crownGranted = grantCrownIfMissing(BOULDER_CROWN_ID);
   }
   return result;

@@ -330,6 +330,17 @@ describe("god sail encounter", () => {
     expect(isGodSailEncounterClaimed()).toBe(true);
   });
 
+  it("grants crown on befriend when Sovereign Plate is owned without party join", () => {
+    setInventoryFromSnapshot({}, { "sovereign-plate": 1 });
+    expect(resolveTideSovereignOutcome("befriend")).toEqual({
+      creatureAdded: false,
+      weaponGranted: true,
+      crownGranted: true,
+    });
+    expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(false);
+    expect(getItemCount("tide-crown")).toBe(1);
+  });
+
   it("does not add a third Tide after the two-copy cap", () => {
     claimTideSovereign();
     claimTideSovereign();
@@ -397,5 +408,13 @@ describe("god sail encounter", () => {
         false,
       ),
     ).toBe("The Stone Sovereign joined you, fainted.");
+    expect(
+      formatGodClaimJoinLine(
+        "Tide Sovereign",
+        "Tide Cleaver",
+        { creatureAdded: false, weaponGranted: false, crownGranted: false },
+        false,
+      ),
+    ).toBe("Tide Sovereign slips away.");
   });
 });
