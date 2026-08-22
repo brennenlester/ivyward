@@ -1,6 +1,8 @@
 # Ivyward
 
-A browser folklore RPG: explore isometric zones, befriend creatures, spar for materials, craft at Moon Shrine, then invite friends into your world.
+A folklore RPG where you spar with your odd little party, craft at the Moon Shrine to help them grow, and wander a soft world between sharper fights.
+
+Invites, village minigames, sailing depth, and Sovereign fusion stay in the build but are not the product promise (see `CONTEXT.md`).
 
 **Play:** [mainsail-brennen1.vercel.app](https://mainsail-brennen1.vercel.app) (tracks latest production). If it ever looks stale, use [mainsail-git-main-brennen1.vercel.app](https://mainsail-git-main-brennen1.vercel.app) or [poke-wine-kappa.vercel.app](https://poke-wine-kappa.vercel.app).
 
