@@ -10,10 +10,12 @@ export const playerInventory = {
 export const TIDE_CROWN_ID = "tide-crown";
 export const BOULDER_CROWN_ID = "boulder-crown";
 export const SOVEREIGN_SEAL_ID = "sovereign-seal";
+export const SOVEREIGN_PLATE_ID = "sovereign-plate";
 
 const ITEM_HOLD_CAPS: Record<string, number> = {
   "brook-crystal": 20,
   [SOVEREIGN_SEAL_ID]: 1,
+  [SOVEREIGN_PLATE_ID]: 1,
   [TIDE_CROWN_ID]: 1,
   [BOULDER_CROWN_ID]: 1,
 };
@@ -24,6 +26,10 @@ export function getMaterialCount(materialId: string): number {
 
 export function getItemCount(itemId: string): number {
   return playerInventory.items[itemId] ?? 0;
+}
+
+export function ownsSovereignPlate(): boolean {
+  return getItemCount(SOVEREIGN_PLATE_ID) >= 1;
 }
 
 export function addMaterial(materialId: string, amount = 1): void {

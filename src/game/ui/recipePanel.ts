@@ -133,6 +133,13 @@ function renderRecipesBody(): void {
         "Place Tide Crown and Boulder Crown in the bottom corners. They return after craft.";
       section.appendChild(note);
     }
+    if (page.id === "sovereign-plate") {
+      const note = document.createElement("p");
+      note.className = "recipe-note";
+      note.textContent =
+        "Consumes both crowns. Toggle On/Off in Inventory to silence wild encounters; sovereigns still appear.";
+      section.appendChild(note);
+    }
     const cost = document.createElement("p");
     cost.className = "recipe-cost";
     cost.textContent = page.materials

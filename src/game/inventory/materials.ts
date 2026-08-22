@@ -68,6 +68,7 @@ export const ITEM_NAMES: Record<string, string> = {
   "tide-cleaver": "Tide Cleaver",
   "cairn-maul": "Cairn Maul",
   "sovereign-seal": "Sovereign Seal",
+  "sovereign-plate": "Sovereign Plate",
   "tide-crown": "Tide Crown",
   "boulder-crown": "Boulder Crown",
   "wood-cudgel": "Wood Cudgel",

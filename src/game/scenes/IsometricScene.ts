@@ -185,6 +185,7 @@ import {
   type ChunkEnsureResult,
 } from "../world/archipelagoStream";
 import { getItemCount } from "../inventory/playerInventory";
+import { isSovereignPlateSuppressingWild } from "../inventory/sovereignPlate";
 import {
   OPEN_PORTABLE_SHRINE_EVENT,
   PORTABLE_MOONSHRINE_ID,
@@ -530,7 +531,11 @@ export class IsometricScene extends Phaser.Scene {
     if (this.inEncounter || this.pendingGodLandEncounter) {
       return;
     }
-    if (!shouldAttemptWildEncounter(sailing)) {
+    if (
+      !shouldAttemptWildEncounter(sailing, {
+        suppressWild: isSovereignPlateSuppressingWild(),
+      })
+    ) {
       return;
     }
     if (isVisitorMode()) {

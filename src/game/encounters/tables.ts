@@ -115,8 +115,17 @@ export type RollWildOptions = {
 };
 
 /** Wild rolls only while on foot — sailing never attempts encounters. */
-export function shouldAttemptWildEncounter(sailing: boolean): boolean {
-  return !sailing;
+export function shouldAttemptWildEncounter(
+  sailing: boolean,
+  options?: { suppressWild?: boolean },
+): boolean {
+  if (sailing) {
+    return false;
+  }
+  if (options?.suppressWild) {
+    return false;
+  }
+  return true;
 }
 
 export function rollWildCreature(

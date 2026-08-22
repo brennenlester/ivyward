@@ -28,6 +28,8 @@ export type CraftRecipe = {
   pattern: string[];
   altarOnly?: boolean;
   uniqueOwned?: boolean;
+  /** When true, craft item ingredients (e.g. crowns) are consumed instead of returned. */
+  consumeItemIngredients?: boolean;
 };
 
 export const PATTERN_GLYPHS: Record<string, string> = {
@@ -56,6 +58,16 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     // Original seal materials, plus both exclusive crowns in the empty corners.
     // ponytail: crowns are earned by defeating sovereigns and are returned after craft.
     pattern: ["PBP", "BDB", "PDF", "TFC"],
+  },
+  {
+    id: "sovereign-plate",
+    name: "Sovereign Plate",
+    outputItemId: "sovereign-plate",
+    outputCount: 1,
+    // Fiber corners, stone frame, Boulder Crown left / Tide Crown right (#289).
+    pattern: ["FSSF", "SCTS", "FSSF"],
+    uniqueOwned: true,
+    consumeItemIngredients: true,
   },
   {
     id: "wood-cudgel",
@@ -211,8 +223,20 @@ function hasCraftIngredient(id: string, count: number): boolean {
     : getMaterialCount(id) >= count;
 }
 
-function consumeCraftIngredient(id: string, count: number): boolean {
+function consumeCraftIngredient(
+  id: string,
+  count: number,
+  recipe: CraftRecipe,
+): boolean {
   if (isCraftItemIngredient(id)) {
+    if (!recipe.consumeItemIngredients) {
+      return true;
+    }
+    for (let i = 0; i < count; i++) {
+      if (!consumeItem(id)) {
+        return false;
+      }
+    }
     return true;
   }
   return consumeMaterial(id, count);
@@ -396,7 +420,7 @@ export function craftItem(recipe: CraftRecipe): boolean {
     return false;
   }
   for (const m of getRecipeMaterials(recipe)) {
-    if (!consumeCraftIngredient(m.materialId, m.count)) {
+    if (!consumeCraftIngredient(m.materialId, m.count, recipe)) {
       return false;
     }
   }
@@ -433,7 +457,11 @@ export function craftFromGrid(
   for (let r = 0; r < match.box.height; r++) {
     for (let c = 0; c < match.box.width; c++) {
       const id = grid[match.box.row + r][match.box.col + c];
-      if (id && isCraftItemIngredient(id)) {
+      if (
+        id &&
+        isCraftItemIngredient(id) &&
+        !match.recipe.consumeItemIngredients
+      ) {
         returnedItems.push(id);
       }
     }

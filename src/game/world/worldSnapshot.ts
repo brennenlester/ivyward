@@ -40,6 +40,7 @@ import {
   setHarborBefriendUsed,
   setHorizonFusionCount,
   setOverworldUnlocked,
+  setSovereignPlateActive,
   setStory1BefriendGuaranteeConsumed,
   setTideSovereignObtained,
 } from "./worldState";
@@ -145,6 +146,8 @@ export type WorldSnapshot = {
   story1BefriendGuaranteeConsumed?: boolean;
   /** Harbor once-per-species Befriend claims (#275). Optional for older saves. */
   harborBefriendUsed?: string[];
+  /** Sovereign Plate wild-encounter suppress toggle (#289). Optional for older saves. */
+  sovereignPlateActive?: boolean;
   /** Optional: post-Story Next — first archipelago island stand. */
   firstIslandLanded?: boolean;
   /** Lifetime Tide Sovereign claims (0–2). Optional for older saves. */
@@ -689,6 +692,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     }
   }
   if (
+    s.sovereignPlateActive !== undefined &&
+    typeof s.sovereignPlateActive !== "boolean"
+  ) {
+    return false;
+  }
+  if (
     s.firstIslandLanded !== undefined &&
     typeof s.firstIslandLanded !== "boolean"
   ) {
@@ -900,6 +909,7 @@ export function exportWorldSnapshot(
     godSailEncounterClaimed: worldState.godSailEncounterClaimed,
     story1BefriendGuaranteeConsumed: worldState.story1BefriendGuaranteeConsumed,
     harborBefriendUsed: [...worldState.harborBefriendUsed],
+    sovereignPlateActive: worldState.sovereignPlateActive,
     firstIslandLanded: worldState.firstIslandLanded,
     tideSovereignObtained: worldState.tideSovereignObtained,
     godLandEncounterClaimed: worldState.godLandEncounterClaimed,
@@ -979,6 +989,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     false,
   );
   setHarborBefriendUsed(snapshot.harborBefriendUsed ?? []);
+  setSovereignPlateActive(snapshot.sovereignPlateActive === true, false);
   setFirstIslandLanded(snapshot.firstIslandLanded === true, false);
   if (
     !worldState.firstIslandLanded &&

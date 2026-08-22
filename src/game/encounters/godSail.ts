@@ -1,6 +1,6 @@
 import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
-import { addItem, canAddItem, getItemCount, TIDE_CROWN_ID } from "../inventory/playerInventory";
+import { addItem, canAddItem, getItemCount, ownsSovereignPlate, TIDE_CROWN_ID } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import { questProgress } from "../story/questProgress";
 import {
@@ -96,7 +96,12 @@ export function shouldAttemptGodSailEncounter(
     context.islandIndex === null &&
     !context.visitor &&
     // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
-    !(context.claimed && getItemCount(TIDE_CROWN_ID) > 0)
+    // Sovereign Plate (#289): keep farming crowns even while a crown is held.
+    !(
+      context.claimed &&
+      getItemCount(TIDE_CROWN_ID) > 0 &&
+      !ownsSovereignPlate()
+    )
   );
 }
 
@@ -243,7 +248,8 @@ export function formatGodClaimJoinLine(
   ].filter((part): part is string => Boolean(part));
   const lootLine = loot.length > 0 ? `${loot.join(" and ")} obtained!` : null;
   if (!result.creatureAdded) {
-    return lootLine ?? `${name} already rests with you.`;
+    // Plate farm path (#289) can succeed without a party join; avoid "already rests".
+    return lootLine ?? `${name} slips away.`;
   }
   const subject = defeated ? `The defeated ${name}` : `The ${name}`;
   return lootLine
@@ -260,10 +266,13 @@ function grantCrownIfMissing(itemId: string): boolean {
 
 /** Grants Tide Sovereign up to two copies per save. */
 export function claimTideSovereign(): GodClaimResult {
-  const creatureAdded = canObtainAnotherParentSovereign(
-    getTideSovereignObtained(),
-    countCreatures(TIDE_SOVEREIGN_ID),
-  );
+  // Sovereign Plate (#289): crown-farm path — never add sovereigns to the party.
+  const creatureAdded =
+    !ownsSovereignPlate() &&
+    canObtainAnotherParentSovereign(
+      getTideSovereignObtained(),
+      countCreatures(TIDE_SOVEREIGN_ID),
+    );
   if (creatureAdded) {
     addToPartyFainted(TIDE_SOVEREIGN_ID);
     recordTideSovereignObtained();
@@ -287,7 +296,8 @@ export function resolveTideSovereignOutcome(
     return null;
   }
   const result = claimTideSovereign();
-  if (outcome === "spar-win") {
+  // Spar-win always earns a crown; with Sovereign Plate, befriend does too (no party join).
+  if (outcome === "spar-win" || ownsSovereignPlate()) {
     result.crownGranted = grantCrownIfMissing(TIDE_CROWN_ID);
   }
   return result;

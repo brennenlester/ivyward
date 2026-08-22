@@ -95,6 +95,10 @@ describe("god land encounter", () => {
     expect(shouldAttemptGodLandEncounter({ ...valid, claimed: true })).toBe(
       false,
     );
+    setInventoryFromSnapshot({}, { "boulder-crown": 1, "sovereign-plate": 1 });
+    expect(shouldAttemptGodLandEncounter({ ...valid, claimed: true })).toBe(
+      true,
+    );
   });
 
   it("treats floor and overworld-gate as walkable land, not water or dock", () => {
@@ -258,6 +262,30 @@ describe("god land encounter", () => {
     });
     expect(playerParty.creatures).toHaveLength(2);
     expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
+  });
+
+  it("grants crown without party join when Sovereign Plate is owned", () => {
+    setInventoryFromSnapshot({}, { "sovereign-plate": 1 });
+    expect(resolveCairnSovereignOutcome("spar-win")).toEqual({
+      creatureAdded: false,
+      weaponGranted: true,
+      crownGranted: true,
+    });
+    expect(hasCreature(CAIRN_SOVEREIGN_ID)).toBe(false);
+    expect(getItemCount("boulder-crown")).toBe(1);
+    expect(getItemCount(CAIRN_MAUL_ID)).toBe(1);
+    expect(isGodLandEncounterClaimed()).toBe(true);
+  });
+
+  it("grants crown on befriend when Sovereign Plate is owned without party join", () => {
+    setInventoryFromSnapshot({}, { "sovereign-plate": 1 });
+    expect(resolveCairnSovereignOutcome("befriend")).toEqual({
+      creatureAdded: false,
+      weaponGranted: true,
+      crownGranted: true,
+    });
+    expect(hasCreature(CAIRN_SOVEREIGN_ID)).toBe(false);
+    expect(getItemCount("boulder-crown")).toBe(1);
   });
 
   it("does not add a third Stone Sovereign after the two-copy cap", () => {
