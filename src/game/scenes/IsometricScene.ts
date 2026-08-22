@@ -88,6 +88,7 @@ import {
   shouldAttemptGodLandEncounter,
   type PendingGodLandEncounter,
 } from "../encounters/godLand";
+import { isOverworldEncounterSafeTile } from "../encounters/overworldEncounters";
 import {
   claimSecondActWantOnIslandLand,
   consumeQuestToast,
@@ -573,6 +574,14 @@ export class IsometricScene extends Phaser.Scene {
     if (isVisitorMode()) {
       return;
     }
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
+    if (
+      this.currentZoneId === "overworld" &&
+      isOverworldEncounterSafeTile(tileX, tileY)
+    ) {
+      return;
+    }
     this.travelSinceEncounter += step;
     if (this.travelSinceEncounter < ENCOUNTER_TRAVEL_THRESHOLD) {
       return;
@@ -673,6 +682,8 @@ export class IsometricScene extends Phaser.Scene {
     if (this.inEncounter || this.pendingGodLandEncounter) {
       return;
     }
+    const tileX = Math.round(this.playerGridX);
+    const tileY = Math.round(this.playerGridY);
     if (
       !shouldAttemptGodLandEncounter({
         sailing: isSailing(),
@@ -680,6 +691,8 @@ export class IsometricScene extends Phaser.Scene {
         walkableLand: this.currentWalkableLand(),
         visitor: isVisitorMode(),
         claimed: worldState.godLandEncounterClaimed,
+        tileX,
+        tileY,
       })
     ) {
       this.godLandTravelSinceEncounter = 0;

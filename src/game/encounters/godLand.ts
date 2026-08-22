@@ -10,6 +10,7 @@ import {
   recordCairnSovereignObtained,
   setGodLandEncounterClaimed,
 } from "../world/worldState";
+import { isOverworldEncounterSafeTile } from "./overworldEncounters";
 
 export const CAIRN_SOVEREIGN_ID = "cairn-sovereign";
 export const CAIRN_MAUL_ID = "cairn-maul";
@@ -73,6 +74,8 @@ export type GodLandEncounterContext = {
   walkableLand: boolean;
   visitor: boolean;
   claimed: boolean;
+  tileX: number;
+  tileY: number;
 };
 
 export type PendingGodLandEncounter = {
@@ -93,6 +96,7 @@ export function shouldAttemptGodLandEncounter(
     !context.sailing &&
     context.zoneId === "overworld" &&
     context.walkableLand &&
+    !isOverworldEncounterSafeTile(context.tileX, context.tileY) &&
     !context.visitor &&
     // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
     // Sovereign Plate (#289): keep farming crowns even while a crown is held.

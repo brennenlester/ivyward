@@ -24,6 +24,8 @@ import { rollWildCreature, type RollWildOptions } from "./tables";
 
 /** Session: Flee in overworld remembers this species for the next field roll. */
 let overworldFleeFollowId: string | null = null;
+/** True once the single guaranteed follow encounter was consumed (#268 / #300). */
+let overworldFleeFollowSpent = false;
 
 /** Session: emberfen Flee keeps this creature until Spar/Befriend/leave zone. */
 let emberfenFleeChainId: string | null = null;
@@ -33,6 +35,7 @@ const archipelagoLandingEncountered = new Set<number>();
 
 export function resetHabitatEncounterStateForTest(): void {
   overworldFleeFollowId = null;
+  overworldFleeFollowSpent = false;
   emberfenFleeChainId = null;
   archipelagoLandingEncountered.clear();
 }
@@ -139,6 +142,7 @@ export function resolveWildEncounterCreature(
   if (profile.aftermath.kind === "fleeFollow" && overworldFleeFollowId) {
     const follow = overworldFleeFollowId;
     overworldFleeFollowId = null;
+    overworldFleeFollowSpent = true;
     return follow;
   }
 
@@ -286,7 +290,9 @@ export function onWildFlee(zoneId: ZoneId, creatureId: string): void {
   }
   const profile = getHabitatProfile(zoneId);
   if (profile.aftermath.kind === "fleeFollow") {
-    overworldFleeFollowId = creatureId;
+    if (!overworldFleeFollowSpent && !overworldFleeFollowId) {
+      overworldFleeFollowId = creatureId;
+    }
   }
   if (profile.availability.kind === "fleePersists") {
     emberfenFleeChainId = creatureId;
@@ -309,6 +315,10 @@ export function onWildEncounterResolved(
   // Spar / Befriend clear emberfen chain.
   if (profile.availability.kind === "fleePersists") {
     clearEmberfenFleeChain();
+  }
+  if (profile.aftermath.kind === "fleeFollow") {
+    overworldFleeFollowId = null;
+    overworldFleeFollowSpent = false;
   }
   if (
     outcome === "befriend" &&
