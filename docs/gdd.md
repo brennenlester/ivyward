@@ -1,22 +1,23 @@
 # Ivyward — Game Design Document
 
 **Team:** [inferred: GitHub `brennenlester/ivyward`; no studio name in source]
-**Platform:** Web browser (desktop sit-down RPG; treat the browser as a PC client) [session answer]
+**Platform:** Web browser (desktop sit-down RPG; treat the browser as a PC client)
 **Genre:** Folklore RPG (isometric exploration, creature befriend/spar, shrine crafting)
-**Target Session:** Hour+ sit-down sessions [session answer]
-**Monetization:** ❌ **TBD** (not decided) [session answer]
-**Last Updated:** 2026-08-20
+**Target Session:** Hybrid — a session should pay off in about twenty minutes and can optionally chain into a longer sit-down. Hour-plus is not the default promise.
+**Monetization:** ❌ **TBD** (not decided)
+**Last Updated:** 2026-08-21
+**Product contract:** GitHub #293; glossary `CONTEXT.md`
 **Imported by:** /game-import from README.md + live `src/game/` implementation (design of record; no prior GDD file)
 
 ---
 
 ## 1. Overview & Core Concept
 
-A browser folklore RPG: explore isometric zones, befriend creatures, spar for materials, craft at Moon Shrine, then invite friends into your world.
+A folklore RPG where you spar with your odd little party, craft at the Moon Shrine to help them grow, and wander a soft world between sharper fights. Companionship is the end; shrine craft is the means. Social hosting (invite links) is a frozen satellite, not the headline.
 
 **Play (canonical):** [ivyward-brennen1.vercel.app](https://ivyward-brennen1.vercel.app) (tracks latest production). Fallbacks: [ivyward-git-main-brennen1.vercel.app](https://ivyward-git-main-brennen1.vercel.app) or [poke-wine-kappa.vercel.app](https://poke-wine-kappa.vercel.app). [moved from README]
 
-**Audience / session** [session answer]: Desktop sit-down RPG. Hour+ sessions. Keyboard/mouse. The web client is the PC client, not a 3-minute casual drop-in.
+**Audience / session:** Desktop sit-down RPG. Keyboard/mouse. Hybrid sessions (about twenty minutes to a Session set: spar with the party, then a shrine pit-stop). Longer evenings are optional repeats, not required. Not a 3-minute casual drop-in.
 
 **Controls** [moved from README How to play]:
 
@@ -38,14 +39,17 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 
 ## 2. Core Loop
 
-Repeating cycle:
+Repeating cycle (**spine loop**):
 
-1. **Walk** isometric zones (hold WASD / arrows).
-2. **Encounter** a wild creature (Befriend, Spar, or Flee).
-3. **Payoff:** Befriend adds a companion. Spar win grants creature materials, Folklore Dust, and XP. Flee exits.
-4. **Spend / grow:** Craft on the Moon Shrine 4×4 grid (or Portable Moonshrine after it is crafted). Use tonic / draught / crystal. Apply shrine effects / fusion at the real shrine.
-5. **Open the map:** Story 2 (win a spar) opens the **overworld** gate. The **village** (cottages) opens later via a 4-digit code from the archipelago hermit after Tide Sovereign. Further walking yields new habitats, sailing, and islands.
-6. **Repeat** from walk. Host progress saves automatically in `localStorage`.
+1. **Walk** isometric zones (hold WASD / arrows). Soft overworld.
+2. **Encounter** a wild creature (Befriend, Spar, or Flee). Spars are the sharp beat and primarily feed shrine craft (materials / prep).
+3. **Payoff:** Befriend adds a companion (on-ramp; not every session’s receipt). Spar win grants creature materials, Folklore Dust, and XP.
+4. **Shrine pit-stop:** Craft on the Moon Shrine 4×4 grid (or Portable Moonshrine after it is crafted). Growth unlocks (evolution or presence/cosmetic) make companions feel more yours. Tonics remain usable; Sovereign fusion is frozen.
+5. **Open a little more map,** then repeat. Host progress saves automatically in `localStorage`.
+
+**Freeze (no new work; remain reachable):** village cottages / NPC asks; cottage minigames (Ward the Crossing, Loom Pattern, Hearth Lots); harbor / boat / Archipelago sailing depth; Sovereign fusion endgame; host invite / visitor snapshot. Pitch and FTUE soft-ignore these.
+
+**In spine:** overworld walk and encounters; befriend; spars with party present; gather nodes that feed craft; Moon Shrine pattern craft and growth.
 
 **FTUE close (once):** four story quests on the HUD (`Story N/4` + Next hint):
 
@@ -56,9 +60,9 @@ Repeating cycle:
 
 Gate status reads `Overworld: LOCKED (Story 2/4) · Village: LOCKED (code)` until each unlocks; village unlock is not a Story beat.
 
-**Session loop:** one sit-down can cover FTUE plus overworld/harbor/islands. [inferred from hour+ session answer + current map size]
+**Session loop:** Hybrid. A good short session lands a Session set (spar with companions present + one craft/shrine step). Longer sit-downs can chain more loops, including frozen satellites, without being the promise.
 
-**Meta loop:** unfinished collection (Codex), fusion line (Sovereigns), and new content unlocks (zones / creatures / relics). [session answer + shipped systems]
+**Meta loop:** Growth unlocks that make the party feel more yours; map unlocks; Codex as maintain-only. Fusion line is frozen, not the meta.
 
 ---
 
@@ -78,7 +82,7 @@ Gate status reads `Overworld: LOCKED (Story 2/4) · Village: LOCKED (code)` unti
 - **Sovereign line:** Sovereign Seal fuses Tide Sovereign + Cairn Sovereign → Horizon Sovereign (up to twice). Two Horizons fuse into Eclipse Sovereign.
 - **Map unlocks:** Folklore Fields, Mistwood Reach, Emberfen Hollow, Moonwake Harbor, Archipelago (100×100 ocean, 9×9 island grid).
 
-**Retention hook (stated):** new content unlocks — "I want to see the next zone / creature / relic." [session answer]
+**Retention hook (stated):** companions feel more yours after shrine Growth unlocks; a little more map. Not “see every island / finish fusion.”
 
 ❌ **TBD:** explicit D1 / D7 / D30 retention design (what the second session, the week-later session, and the month-later session each promise). Content-gate intent is recorded; the calendar hooks are not.
 
@@ -114,12 +118,13 @@ Gate status reads `Overworld: LOCKED (Story 2/4) · Village: LOCKED (code)` unti
 
 ## 5. Player Motivation & Fantasy
 
-**Stated fantasy** [session answer]: **power fantasy and discovery together**.
+**Stated fantasy** (contract #293): **companionship**, with shrine craft as the means.
 
-- Power fantasy: "I'm getting stronger, I'm in control" (spars, levels, shrine buffs, fusion, relics).
-- Discovery: "What's on that island? What happens if I befriend this?" (zones, habitats, Codex, Archipelago).
+- Companionship: folklore creatures feel yours — quirky, kept, present in spars and after Growth unlocks.
+- Shrine craft: gather and pattern-craft so they thrive, evolve, or show presence — not a loot-bag loop for the shrine.
+- Challenge: soft overworld / craft; sharp spars that feed craft.
 
-Implied by README but not named until this session: collect folklore companions and host a world friends can walk. Social hosting is a feature (invite links), not the primary stated feeling.
+Social hosting (invite links) remains in the client and is **frozen** — not the primary feeling. Power + discovery as twin headlines is retired.
 
 ---
 
@@ -166,13 +171,17 @@ Moon Shrine: stand on the moon altar, press E. 4×4 grid; drag materials into sh
 
 Relic effects on party creatures (examples shipped): Ember Charm on Mossling (min Lv.3) attack buff + Ember Lash; Moss Salve on Ember Wisp (min Lv.3) HP buff; evolutions at min Lv.5. [inferred: `shrineEffects.ts`]
 
-**Sovereigns:** Tide Sovereign (god sail encounter) and Cairn Sovereign (god land encounter) fuse with a Sovereign Seal into Horizon Sovereign (max two Horizon fusions). Two Horizons fuse into Eclipse Sovereign (once). [README + inferred: `godFusion.ts`, `MAX_HORIZON_FUSIONS = 2`]
+**Sovereigns:** Tide Sovereign and Cairn Sovereign fuse with a Sovereign Seal into Horizon Sovereign (max two Horizon fusions). Two Horizons fuse into Eclipse Sovereign (once). **Frozen endgame** — no new work; remain reachable.
 
 ### World / sailing
+
+**Frozen:** do not deepen harbor / boat / Archipelago sailing. Keep reachable if shipped.
 
 From Folklore Fields, north gate into Moonwake Harbor. Press E near the west Harbor dock while holding a Boat to moor (persists in save; visitors cannot place). Board and sail Harbor water. East Landing is an optional dock. Sailing east off the Harbor water edge enters the **Archipelago**: 100×100 open ocean, 2D grid of multi-biome 9×9 islands (lush, barren, mixed) and docks. E at island docks to disembark/reboard. Mid-sail and on-island stands restore from save. Older Folklore Fields boat stands migrate into Harbor.
 
 ### Village, cottages, minigames
+
+**Frozen:** cottages, NPC asks, and the three minigames (Ward / Loom / Hearth Lots) — no new work.
 
 Hearth Crossing plaza is west; a **code-locked gate** opens east into the cottage yard. Unlock with the 4-digit code from hermit **Reed** on the archipelago’s top-right island (after Tide Sovereign spar-win or befriend). Three cottages, enter via door + E; leave through the bottom doorway.
 
@@ -196,6 +205,8 @@ House prop + E = minigame (same reach as talking; standing on the villager still
 Ward the Crossing needs at least one living **active** companion. Overworld HP does not change. Hearth Lots uses play money; inventory only changes on that first-win tonic. Visitors can play but never receive the first-win gift.
 
 ### Friend invites
+
+**Frozen satellite** (contract #293): remain reachable; no new work; not the pitch.
 
 1. Host: Copy invite link (status panel) or I. Phones copy when possible, else share sheet / selectable URL.
 2. Open the link in another browser/tab as a **visitor**.
@@ -231,9 +242,11 @@ Local Vite only: **U** toggles the overworld gate; `?encounter=` / `?spar=` prev
 
 ## 8. Milestones & Roadmap
 
-**Current milestone (shipped):** vertical slice = current production at the canonical play URL. The player can complete the core loop (explore → encounter → craft) and continue into overworld, harbor, and Archipelago, plus invite visitors into a snapshot. [session answer]
+**Shipped today:** production still contains the old vertical slice (overworld, harbor, Archipelago, invites). That breadth stays visible.
 
-**Later milestones:** ❌ **Not yet defined** (no named post-slice content drops, platforms, or "done" criteria beyond the live build). `package.json` version is `0.0.0`.
+**Current product milestone:** Spine first milestone (#293) — feel gate + about 6–8 companions and 5–7 Growth unlock recipes (at least one evolve, one presence). Frozen satellites get no new work.
+
+**Later:** campaign Spine-quality on the remaining catalog (archipelago-only creatures may be cut). FTUE Story 1–4 rewrite waits until First milestone systems exist.
 
 **Smallest showable version:** already surpassed. Core mechanic and one complete loop exist inside the vertical slice.
 
