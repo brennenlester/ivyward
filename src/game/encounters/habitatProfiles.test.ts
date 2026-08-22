@@ -159,10 +159,12 @@ describe("habitatRuntime behaviors", () => {
     expect(resolveProfileBefriendChance("shrine", "tide-sovereign")).toBeNull();
   });
 
-  it("village withholds Spar except during first-spar", () => {
+  it("village withholds Spar until first-spar unlocks, then keeps it", () => {
     const village = getHabitatProfile("village");
     expect(shouldShowSparVerb(village, "mossling")).toBe(false);
     questProgress["first-spar"] = "active";
+    expect(shouldShowSparVerb(village, "mossling")).toBe(true);
+    questProgress["first-spar"] = "complete";
     expect(shouldShowSparVerb(village, "mossling")).toBe(true);
     expect(shouldShowSparVerb(village, "tide-sovereign")).toBe(true);
   });

@@ -86,12 +86,27 @@ describe("SHRINE_EFFECTS matrix (#272)", () => {
     expect(SHRINE_EFFECTS.slice(0, 4)).toEqual([...LEGACY_SHRINE_ROWS]);
   });
 
-  it("surfaces new charms in Recipes and Fusion UI lists", () => {
+  it("surfaces Growth charm recipes in Recipes and Fusion UI lists", () => {
     const recipeIds = new Set(listRecipePages().map((p) => p.id));
     const fusionIds = new Set(FUSION_ITEM_IDS);
-    for (const id of ["storm-charm", "fox-fire-charm", "fen-charm"] as const) {
+    for (const id of [
+      "storm-charm",
+      "fox-fire-charm",
+      "fen-charm",
+      "nymph-charm",
+      "hound-collar",
+    ] as const) {
       expect(recipeIds.has(id)).toBe(true);
       expect(fusionIds.has(id)).toBe(true);
     }
+  });
+
+  it("tags first-milestone Growth unlocks as evolve or presence", () => {
+    const growthRows = SHRINE_EFFECTS.filter((row) =>
+      ["evolution", "presence"].includes(row.effectType),
+    );
+    expect(growthRows.some((row) => row.effectType === "evolution")).toBe(true);
+    expect(growthRows.some((row) => row.effectType === "presence")).toBe(true);
+    expect(growthRows).toHaveLength(7);
   });
 });

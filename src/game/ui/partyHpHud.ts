@@ -1,12 +1,13 @@
+import { getCreatureDefinition } from "../creatures/catalog";
 import {
   getActiveCreatures,
   getEffectiveMaxHp,
   getReserveCreatures,
   hasLivingPartyMembers,
 } from "../creatures/party";
-import { getCreatureDefinition } from "../creatures/catalog";
 import { hasCraftedWeapon } from "../battle/wandererWeapons";
 import type { CreatureInstance } from "../creatures/types";
+import { hasPresenceGrowth } from "../shrine/presence";
 
 export const HP_PIP_SEGMENTS = 5;
 
@@ -56,7 +57,15 @@ function appendPipRow(parent: HTMLElement, creature: CreatureInstance): void {
 
   const name = document.createElement("span");
   name.className = "party-hp-name";
-  name.textContent = shortName(creature);
+  if (hasPresenceGrowth(creature)) {
+    const moon = document.createElement("span");
+    moon.className = "party-hp-presence";
+    moon.setAttribute("aria-hidden", "true");
+    moon.textContent = "◦";
+    name.append(moon, document.createTextNode(` ${shortName(creature)}`));
+  } else {
+    name.textContent = shortName(creature);
+  }
 
   const pips = document.createElement("span");
   pips.className = "party-hp-pips";

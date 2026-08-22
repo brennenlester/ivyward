@@ -76,6 +76,12 @@ describe("shrine disclosure fusion gate (AC2)", () => {
     addToParty(TIDE_SOVEREIGN_ID);
     expect(isFusionDisclosed()).toBe(true);
   });
+
+  it("reveals fusion when a growth charm is owned (#296)", () => {
+    expect(isFusionDisclosed()).toBe(false);
+    setInventoryFromSnapshot({}, { "moss-salve": 1 });
+    expect(isFusionDisclosed()).toBe(true);
+  });
 });
 
 describe("shrine disclosure persistence (AC3)", () => {

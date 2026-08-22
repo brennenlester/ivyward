@@ -200,7 +200,7 @@ export function shouldShowSparVerb(
     return true;
   }
   if (profile.verbs.kind === "withholdSparUnlessFirstSpar") {
-    return questProgress["first-spar"] === "active";
+    return questProgress["first-spar"] !== "locked";
   }
   return true;
 }

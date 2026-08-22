@@ -12,6 +12,7 @@ import {
   getEffectiveAttack,
   getEffectiveMaxHp,
 } from "../creatures/party";
+import { hasPresenceGrowth, presenceTintForCreature } from "../shrine/presence";
 import { ensureCreatureTextures } from "../creatures/sprites";
 import { resolveCreaturePoseTexture } from "../creatures/creaturePoses";
 import { hasWorldTexture, imagineTexture } from "../render/imagineAssets";
@@ -228,6 +229,7 @@ export class BattleScene extends Phaser.Scene {
       this.getPlayerBattleDisplay(),
     );
     this.syncPlayerBattleFacing();
+    this.syncPlayerPresenceTint();
 
     this.wildHpText = this.add.text(cx + 18, 72, "", {
       color: "#f0e6d2",
@@ -319,6 +321,20 @@ export class BattleScene extends Phaser.Scene {
   /** Party creatures sit on the left; flip battle crops to face the opponent. */
   private syncPlayerBattleFacing(): void {
     this.playerSprite.setFlipX(this.resolvePartyIndex() >= 0);
+  }
+
+  private syncPlayerPresenceTint(): void {
+    const index = this.resolvePartyIndex();
+    if (index < 0) {
+      this.playerSprite.clearTint();
+      return;
+    }
+    const creature = getActiveCreatures()[index];
+    if (creature && hasPresenceGrowth(creature)) {
+      this.playerSprite.setTint(presenceTintForCreature(creature));
+    } else {
+      this.playerSprite.clearTint();
+    }
   }
 
   private getPlayerBattleDisplay(): {
@@ -641,6 +657,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerSprite.setTexture(...this.getPlayerSpriteTexture());
     fitDisplay(this.playerSprite, this.getPlayerBattleDisplay());
     this.syncPlayerBattleFacing();
+    this.syncPlayerPresenceTint();
     this.log(`${this.player.name} steps up to fight!`);
     this.buildActionButtons();
     this.waitingForPlayer = true;
@@ -667,6 +684,7 @@ export class BattleScene extends Phaser.Scene {
     this.playerSprite.setTexture(...this.getPlayerSpriteTexture());
     fitDisplay(this.playerSprite, this.getPlayerBattleDisplay());
     this.syncPlayerBattleFacing();
+    this.syncPlayerPresenceTint();
     this.log(`Go, ${this.player.name}!`);
     this.buildActionButtons();
 

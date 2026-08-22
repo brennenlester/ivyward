@@ -21,6 +21,11 @@
   font-weight: 600;
 }
 
+.party-hp-presence {
+  color: #c9a040;
+  font-weight: 700;
+}
+
 .party-hp-pips {
   display: inline-flex;
   align-items: center;

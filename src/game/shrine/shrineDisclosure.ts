@@ -20,7 +20,9 @@ import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import {
   ECLIPSE_SOVEREIGN_ID,
   HORIZON_SOVEREIGN_ID,
+  SOVEREIGN_SEAL_ID,
 } from "./godFusion";
+import { FUSION_ITEM_IDS } from "./consumables";
 
 /** Prefer simple early-game recipes when several are zone-reachable. */
 const SPOTLIGHT_PRIORITY: readonly string[] = [
@@ -32,6 +34,8 @@ const SPOTLIGHT_PRIORITY: readonly string[] = [
   "storm-charm",
   "fox-fire-charm",
   "fen-charm",
+  "nymph-charm",
+  "hound-collar",
   "brook-tonic",
   "moonwake-draught",
   "boat",
@@ -54,6 +58,13 @@ export function ownedSovereignCount(): number {
 
 export function hasCraftedRelic(): boolean {
   return CRAFT_RECIPES.some((recipe) => getItemCount(recipe.outputItemId) > 0);
+}
+
+/** Growth unlock charms/salves — disclose Fusion without needing a sovereign. */
+export function ownsGrowthFusionItem(): boolean {
+  return FUSION_ITEM_IDS.some(
+    (id) => id !== SOVEREIGN_SEAL_ID && getItemCount(id) > 0,
+  );
 }
 
 /**
@@ -134,12 +145,12 @@ export function clearCraftSpotlight(): void {
   notifyWorldChanged();
 }
 
-/** Fusion UI is sticky once revealed; owning ≥1 sovereign reveals it. */
+/** Fusion UI is sticky once revealed; sovereigns or growth charms reveal it. */
 export function isFusionDisclosed(): boolean {
   if (fusionDisclosed) {
     return true;
   }
-  if (ownedSovereignCount() >= 1) {
+  if (ownedSovereignCount() >= 1 || ownsGrowthFusionItem()) {
     fusionDisclosed = true;
     notifyWorldChanged();
     return true;
@@ -154,7 +165,7 @@ export function getShrineDisclosureSnapshot(): {
   if (!craftSpotlightCleared && hasCraftedRelic()) {
     craftSpotlightCleared = true;
   }
-  if (!fusionDisclosed && ownedSovereignCount() >= 1) {
+  if (!fusionDisclosed && (ownedSovereignCount() >= 1 || ownsGrowthFusionItem())) {
     fusionDisclosed = true;
   }
   return {
@@ -171,7 +182,9 @@ export function setShrineDisclosureFromSnapshot(options: {
   craftSpotlightCleared =
     options.shrineCraftSpotlightCleared === true || hasCraftedRelic();
   fusionDisclosed =
-    options.shrineFusionDisclosed === true || ownedSovereignCount() >= 1;
+    options.shrineFusionDisclosed === true ||
+    ownedSovereignCount() >= 1 ||
+    ownsGrowthFusionItem();
 }
 
 export function resetShrineDisclosure(): void {

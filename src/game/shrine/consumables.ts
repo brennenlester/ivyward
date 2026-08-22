@@ -40,6 +40,8 @@ export const FUSION_ITEM_IDS = [
   "storm-charm",
   "fox-fire-charm",
   "fen-charm",
+  "nymph-charm",
+  "hound-collar",
 ] as const;
 
 export const CONSUMABLE_ITEM_IDS = CONSUMABLE_ITEMS.map((c) => c.itemId);

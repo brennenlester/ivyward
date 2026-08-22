@@ -1,7 +1,11 @@
 import type { FolkloreType } from "../creatures/folkloreTypes";
 import type { MoveDefinition } from "../creatures/types";
 
-export type ShrineEffectType = "attack-buff" | "health-buff" | "evolution";
+export type ShrineEffectType =
+  | "attack-buff"
+  | "health-buff"
+  | "evolution"
+  | "presence";
 
 export type ShrineEffect = {
   creatureId: string;
@@ -60,38 +64,31 @@ export const SHRINE_EFFECTS: ShrineEffect[] = [
     creatureId: "thunder-finch",
     itemId: "storm-charm",
     minLevel: 3,
-    effectType: "attack-buff",
-    secondaryElement: "storm",
-    attackBonus: 4,
-    secondaryMove: {
-      id: "tempest-peck",
-      name: "Tempest Peck",
-      power: 9,
-      type: "storm",
-      accuracy: 90,
-    },
+    effectType: "presence",
   },
   {
     creatureId: "lantern-fox",
     itemId: "fox-fire-charm",
     minLevel: 3,
-    effectType: "attack-buff",
-    secondaryElement: "twilight",
-    attackBonus: 4,
-    secondaryMove: {
-      id: "fox-fire",
-      name: "Fox-fire",
-      power: 9,
-      type: "twilight",
-      accuracy: 90,
-    },
+    effectType: "presence",
   },
   {
     creatureId: "peat-sprite",
     itemId: "fen-charm",
     minLevel: 3,
-    effectType: "health-buff",
-    hpBonus: 8,
+    effectType: "presence",
+  },
+  {
+    creatureId: "brook-nymph",
+    itemId: "nymph-charm",
+    minLevel: 3,
+    effectType: "presence",
+  },
+  {
+    creatureId: "stone-hound",
+    itemId: "hound-collar",
+    minLevel: 3,
+    effectType: "presence",
   },
 ];
 

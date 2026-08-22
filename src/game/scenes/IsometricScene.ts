@@ -48,6 +48,13 @@ import {
   walkFootfallsSince,
 } from "../render/playerWalk";
 import {
+  createPartyOverworldFollowerState,
+  destroyPartyOverworldFollowers,
+  preparePartyOverworldFollowerTextures,
+  syncPartyOverworldFollowers,
+  type PartyOverworldFollowerState,
+} from "../render/partyOverworldFollowers";
+import {
   ENCOUNTER_TRAVEL_THRESHOLD,
   shouldAttemptWildEncounter,
 } from "../encounters/tables";
@@ -60,6 +67,10 @@ import {
   rollWildTriggerChance,
   shouldGuaranteeWildTrigger,
 } from "../encounters/habitatRuntime";
+import {
+  grantEncounterImmunity,
+  isEncounterImmune,
+} from "../encounters/encounterImmunity";
 import {
   appendGodSailCheatKey,
   canForceGodSailEncounter,
@@ -269,6 +280,9 @@ export class IsometricScene extends Phaser.Scene {
   private dockBoat?: Phaser.GameObjects.Image;
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
+  /** Active-party overworld sprites (presence tell). */
+  private partyFollowers: PartyOverworldFollowerState =
+    createPartyOverworldFollowerState();
   /** Westmost column still holding archipelago stream sprites (exclusive cull). */
   /** Live stream-tagged sprites; culls iterate this, never the full display list (#194). */
   private streamSprites = new Set<Phaser.GameObjects.Image>();
@@ -350,6 +364,13 @@ export class IsometricScene extends Phaser.Scene {
     setTouchControlsEnabled(hasPlayerName());
 
     this.events.on("resume", () => {
+      if (
+        this.inEncounter ||
+        this.pendingGodSailEncounter ||
+        this.pendingGodLandEncounter
+      ) {
+        grantEncounterImmunity(this.time.now);
+      }
       this.inEncounter = false;
       this.pendingGodSailEncounter = undefined;
       this.pendingGodLandEncounter = undefined;
@@ -537,6 +558,9 @@ export class IsometricScene extends Phaser.Scene {
     }
     this.tryGodLandEncounter(step);
     if (this.inEncounter || this.pendingGodLandEncounter) {
+      return;
+    }
+    if (isEncounterImmune(this.time.now)) {
       return;
     }
     if (
@@ -994,6 +1018,8 @@ export class IsometricScene extends Phaser.Scene {
     markZoneDiscovered(zoneId);
 
     this.children.removeAll(true);
+    destroyPartyOverworldFollowers(this.partyFollowers);
+    this.partyFollowers = createPartyOverworldFollowerState();
     this.shrinePrompt = undefined;
     this.walkHint = undefined;
     this.dockBoat = undefined;
@@ -1012,6 +1038,7 @@ export class IsometricScene extends Phaser.Scene {
 
     ensureWorldTextures(this, zoneId);
     ensurePlayerAnims(this);
+    preparePartyOverworldFollowerTextures(this);
     this.worldOrigin = this.getZoneWorldOrigin(zone);
     this.cameras.main.setBackgroundColor(ZONE_CAMERA_COLORS[zoneId]);
 
@@ -1970,6 +1997,16 @@ export class IsometricScene extends Phaser.Scene {
     const bob = this.isMoving ? walkBobOffset(this.walkPhase) : 0;
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(this.playerDepth);
+    if (isSailing()) {
+      destroyPartyOverworldFollowers(this.partyFollowers);
+    } else {
+      syncPartyOverworldFollowers(this, this.partyFollowers, {
+        x: screen.x,
+        y: this.playerBaseY + bob,
+        facing: this.playerFacing,
+        depth: this.playerDepth,
+      });
+    }
     this.syncNameTagPosition();
     // Boat stays on the waterline; only the trainer bobs with gait.
     this.syncSailingBoat(screen.x, this.playerBaseY);
