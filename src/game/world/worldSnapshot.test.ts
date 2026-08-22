@@ -40,6 +40,7 @@ import {
 } from "./worldSnapshot";
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
 import { ARCHIPELAGO_ENTRY, islandTemplateAtIndex } from "./archipelagoStream";
+import { getSparWinsForSpecies } from "./sparWins";
 import {
   getCairnSovereignObtained,
   getHorizonFusionCount,
@@ -179,6 +180,24 @@ describe("isValidWorldSnapshot", () => {
         ...validSnapshot(),
         story1BefriendGuaranteeConsumed: "yes",
       }),
+    ).toBe(false);
+  });
+
+  it("soft-adds and validates sparWinsBySpecies", () => {
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ sparWinsBySpecies: { mossling: 3 } }),
+      ),
+    ).toBe(true);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ sparWinsBySpecies: { "not-a-creature": 1 } }),
+      ),
+    ).toBe(false);
+    expect(
+      isValidWorldSnapshot(
+        validSnapshot({ sparWinsBySpecies: { mossling: -1 } }),
+      ),
     ).toBe(false);
   });
 
@@ -540,6 +559,21 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(isStory1BefriendGuaranteeConsumed()).toBe(false);
+  });
+
+  it("round-trips sparWinsBySpecies and defaults older saves to empty", () => {
+    applyWorldSnapshot(
+      validSnapshot({ sparWinsBySpecies: { mossling: 4, "lantern-fox": 2 } }),
+    );
+    expect(getSparWinsForSpecies("mossling")).toBe(4);
+    expect(getSparWinsForSpecies("lantern-fox")).toBe(2);
+    expect(exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 }).sparWinsBySpecies).toEqual({
+      mossling: 4,
+      "lantern-fox": 2,
+    });
+
+    applyWorldSnapshot(validSnapshot());
+    expect(getSparWinsForSpecies("mossling")).toBe(0);
   });
 
   it("restores the god land claim and defaults older saves to unclaimed", () => {

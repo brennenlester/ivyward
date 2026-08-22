@@ -59,6 +59,8 @@ import {
 import { notifyWorldChanged } from "../world/worldSaveSchedule";
 import { markCreatureDiscovered } from "../world/worldState";
 import { unlockCodexHud } from "../ui/hudChrome";
+import { getWildEffectiveLevel } from "../progression/wildLevel";
+import { scaledStat } from "../progression/leveling";
 import { setPartyEditLocked } from "../ui/partyPanel";
 
 type WandererPartnerData = WandererPartner;
@@ -136,11 +138,14 @@ export class BattleScene extends Phaser.Scene {
     if (!wildDef.excludeFromCodex) {
       markCreatureDiscovered(data.wildCreatureId);
     }
+    const wildLevel = getWildEffectiveLevel(data.wildCreatureId);
+    const wildMaxHp = scaledStat(wildDef.maxHp, wildLevel);
+    const wildAttack = scaledStat(wildDef.attack, wildLevel);
     this.wild = {
       name: wildDef.name,
-      maxHp: wildDef.maxHp,
-      currentHp: wildDef.maxHp,
-      attack: wildDef.attack,
+      maxHp: wildMaxHp,
+      currentHp: wildMaxHp,
+      attack: wildAttack,
       defense: wildDef.defense,
       defenseDisabled: isGodCreature(data.wildCreatureId),
       moves: wildDef.moves,

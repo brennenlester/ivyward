@@ -14,6 +14,7 @@ import { XP_PER_SPAR_WIN } from "../progression/leveling";
 import { restoreQuestProgress } from "../story/questProgress";
 import { QUEST_ORDER } from "../story/quests";
 import type { QuestId, QuestStatus } from "../story/questTypes";
+import { getSparWinsForSpecies, setSparWinsBySpecies } from "../world/sparWins";
 
 function member(
   overrides: Partial<CreatureInstance> & Pick<CreatureInstance, "instanceId">,
@@ -52,6 +53,7 @@ describe("grantSparRewards XP share", () => {
     restoreQuestProgress(lockedProgress());
     setInventoryFromSnapshot({}, {});
     setPartyFromSnapshot([], 1);
+    setSparWinsBySpecies({}, false);
   });
 
   it("shares XP across the active party and leaves reserve untouched", () => {
@@ -74,6 +76,7 @@ describe("grantSparRewards XP share", () => {
     expect(playerParty.creatures.find((x) => x.instanceId === "a")?.xp).toBe(35);
     expect(playerParty.creatures.find((x) => x.instanceId === "b")?.xp).toBe(35);
     expect(playerParty.creatures.find((x) => x.instanceId === "c")?.xp).toBe(0);
+    expect(getSparWinsForSpecies("mossling")).toBe(1);
   });
 
   it("gives remainder to the fighter when shares are uneven", () => {
@@ -89,6 +92,12 @@ describe("grantSparRewards XP share", () => {
     setPartyFromSnapshot(creatures, 4, ["a", "b", "c"]);
     grantSparRewards("mossling", 1);
     expect(playerParty.creatures.map((x) => x.xp)).toEqual([23, 24, 23]);
+  });
+
+  it("does not record spar wins for sovereigns", () => {
+    setPartyFromSnapshot([member({ instanceId: "a" })], 2, ["a"]);
+    grantSparRewards("tide-sovereign", 0);
+    expect(getSparWinsForSpecies("tide-sovereign")).toBe(0);
   });
 
   it("formats shared XP without understating totals", () => {

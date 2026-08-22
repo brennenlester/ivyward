@@ -230,8 +230,13 @@ describe("dual-god fusion", () => {
       definitionId: HORIZON_SOVEREIGN_ID,
       level: 47,
       xp: LEVEL_XP_THRESHOLDS[47],
-      currentHp: getCreatureDefinition(HORIZON_SOVEREIGN_ID).maxHp,
     });
+    expect(fused?.currentHp).toBe(
+      Math.floor(
+        getCreatureDefinition(HORIZON_SOVEREIGN_ID).maxHp *
+          (1 + (47 - 1) * (2.25 / 49)),
+      ),
+    );
     expect(fused?.attackBonus).toBeUndefined();
     expect(fused?.hpBonus).toBeUndefined();
     expect(fused?.appliedEffects).toBeUndefined();
@@ -274,8 +279,13 @@ describe("dual-god fusion", () => {
       definitionId: ECLIPSE_SOVEREIGN_ID,
       level: 48,
       xp: LEVEL_XP_THRESHOLDS[48],
-      currentHp: getCreatureDefinition(ECLIPSE_SOVEREIGN_ID).maxHp,
     });
+    expect(fused?.currentHp).toBe(
+      Math.floor(
+        getCreatureDefinition(ECLIPSE_SOVEREIGN_ID).maxHp *
+          (1 + (48 - 1) * (2.25 / 49)),
+      ),
+    );
     expect(getCreatureDefinition(ECLIPSE_SOVEREIGN_ID)).toMatchObject({
       folkloreType: "mist",
       maxHp: 144,
