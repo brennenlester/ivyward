@@ -242,13 +242,15 @@ Local Vite only: **U** toggles the overworld gate; `?encounter=` / `?spar=` prev
 
 ## 8. Milestones & Roadmap
 
-**Shipped today:** production still contains the old vertical slice (overworld, harbor, Archipelago, invites). That breadth stays visible.
+**Shipped today:** production contains the full vertical slice (overworld, harbor, Archipelago, invites). Frozen satellites remain reachable; spine is the optimization target.
 
-**Current product milestone:** Spine first milestone (#293) — feel gate + about 6–8 companions and 5–7 Growth unlock recipes (at least one evolve, one presence). Frozen satellites get no new work.
+**First milestone (shipped, contract #293):** feel gate + Growth unlocks on the locked companion/recipe set (#295 → #296, QA #297). Docs/glossary landed (#294). Session set reads: spar-with-party → shrine pit-stop → companion feels more yours (evolve and/or presence).
 
-**Later:** campaign Spine-quality on the remaining catalog (archipelago-only creatures may be cut). FTUE Story 1–4 rewrite waits until First milestone systems exist.
+**Post-milestone (also shipped, not in original freeze):** level-scaled combat (#287), overworld encounter fixes (#300, #301). Contract assumption on holding #287 was superseded after feel gate — prep-gated spars coexist with level drip; shrine remains the big spike.
 
-**Smallest showable version:** already surpassed. Core mechanic and one complete loop exist inside the vertical slice.
+**Next (not started):** FTUE Story 1–4 rewrite; campaign Spine-quality on remaining catalog; bond meter only if ownership still weak. Open backlog: #218 (item art), #232 (Greg slice, separate gate).
+
+**Smallest showable version:** surpassed — core loop and first milestone bar both met.
 
 ---
 
