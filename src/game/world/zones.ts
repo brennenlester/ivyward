@@ -2,7 +2,13 @@ import {
   ARCHIPELAGO,
   ARCHIPELAGO_ENTRY,
   HARBOR_EAST_SAIL_GATES,
+  hermitDoorWorld,
 } from "./archipelagoStream";
+import {
+  VILLAGE_CODE_GATE,
+  VILLAGE_COTTAGE_DOORS,
+  VILLAGE_OVERWORLD_GATE,
+} from "./villageGate";
 import { TileType, type ZoneDefinition, type ZoneId } from "./zoneTypes";
 
 function borderedFloor(
@@ -57,44 +63,59 @@ const SHRINE: ZoneDefinition = {
   ],
 };
 
-const villageTiles = borderedFloor(10, 10, [
+/** Plaza west + code-locked cottages east (#291). */
+const VILLAGE_WIDTH = 16;
+const VILLAGE_HEIGHT = 10;
+const villageTiles = borderedFloor(VILLAGE_WIDTH, VILLAGE_HEIGHT, [
   { x: 0, y: 5 },
-  { x: 5, y: 0 },
+  { x: VILLAGE_OVERWORLD_GATE.x, y: VILLAGE_OVERWORLD_GATE.y },
 ]);
-villageTiles[0][5] = TileType.OverworldGate;
+villageTiles[VILLAGE_OVERWORLD_GATE.y][VILLAGE_OVERWORLD_GATE.x] =
+  TileType.OverworldGate;
+// Divider wall between plaza and cottage yard; one VillageGate opening.
+for (let y = 1; y < VILLAGE_HEIGHT - 1; y++) {
+  villageTiles[y][VILLAGE_CODE_GATE.x] = TileType.Wall;
+}
+villageTiles[VILLAGE_CODE_GATE.y][VILLAGE_CODE_GATE.x] = TileType.VillageGate;
 
 const VILLAGE: ZoneDefinition = {
   id: "village",
   name: "Hearth Crossing",
-  width: 10,
-  height: 10,
+  width: VILLAGE_WIDTH,
+  height: VILLAGE_HEIGHT,
   tiles: villageTiles,
   lightTint: 0xf0d9b5,
   darkTint: 0xb58863,
   transitions: [
     { x: 0, y: 5, targetZone: "shrine", targetX: 8, targetY: 5 },
-    { x: 5, y: 0, targetZone: "overworld", targetX: 7, targetY: 12 },
+    {
+      x: VILLAGE_OVERWORLD_GATE.x,
+      y: VILLAGE_OVERWORLD_GATE.y,
+      targetZone: "overworld",
+      targetX: 7,
+      targetY: 12,
+    },
   ],
   doors: [
     {
-      x: 2,
-      y: 4,
+      x: VILLAGE_COTTAGE_DOORS.warden.x,
+      y: VILLAGE_COTTAGE_DOORS.warden.y,
       targetZone: "warden-cottage",
       targetX: 3,
       targetY: 5,
       label: "Warden's Cottage",
     },
     {
-      x: 7,
-      y: 3,
+      x: VILLAGE_COTTAGE_DOORS.weaver.x,
+      y: VILLAGE_COTTAGE_DOORS.weaver.y,
       targetZone: "weaver-cottage",
       targetX: 3,
       targetY: 5,
       label: "Weaver's Cottage",
     },
     {
-      x: 2,
-      y: 8,
+      x: VILLAGE_COTTAGE_DOORS.hearthkeep.x,
+      y: VILLAGE_COTTAGE_DOORS.hearthkeep.y,
       targetZone: "hearthkeep-cottage",
       targetX: 3,
       targetY: 5,
@@ -110,7 +131,7 @@ const VILLAGE: ZoneDefinition = {
 function cottageInterior(
   id: ZoneId,
   name: string,
-  exit: { x: number; y: number },
+  exit: { zone: ZoneId; x: number; y: number },
 ): ZoneDefinition {
   return {
     id,
@@ -125,7 +146,7 @@ function cottageInterior(
       {
         x: 3,
         y: 6,
-        targetZone: "village",
+        targetZone: exit.zone,
         targetX: exit.x,
         targetY: exit.y,
       },
@@ -133,23 +154,28 @@ function cottageInterior(
   };
 }
 
-const WARDEN_COTTAGE = cottageInterior(
-  "warden-cottage",
-  "Warden's Cottage",
-  { x: 2, y: 4 },
-);
+const WARDEN_COTTAGE = cottageInterior("warden-cottage", "Warden's Cottage", {
+  zone: "village",
+  ...VILLAGE_COTTAGE_DOORS.warden,
+});
 
-const WEAVER_COTTAGE = cottageInterior(
-  "weaver-cottage",
-  "Weaver's Cottage",
-  { x: 7, y: 3 },
-);
+const WEAVER_COTTAGE = cottageInterior("weaver-cottage", "Weaver's Cottage", {
+  zone: "village",
+  ...VILLAGE_COTTAGE_DOORS.weaver,
+});
 
 const HEARTHKEEP_COTTAGE = cottageInterior(
   "hearthkeep-cottage",
   "Hearthkeep Cottage",
-  { x: 2, y: 8 },
+  { zone: "village", ...VILLAGE_COTTAGE_DOORS.hearthkeep },
 );
+
+const hermitDoor = hermitDoorWorld();
+const HERMIT_COTTAGE = cottageInterior("hermit-cottage", "Island Cottage", {
+  zone: "archipelago",
+  x: hermitDoor.x,
+  y: hermitDoor.y,
+});
 
 /** Folklore Fields — first unlocked overworld region (south back to village). */
 const overworldTiles = borderedFloor(15, 15, [
@@ -263,6 +289,7 @@ export const ZONES: Record<ZoneId, ZoneDefinition> = {
   "warden-cottage": WARDEN_COTTAGE,
   "weaver-cottage": WEAVER_COTTAGE,
   "hearthkeep-cottage": HEARTHKEEP_COTTAGE,
+  "hermit-cottage": HERMIT_COTTAGE,
 };
 
 export const STARTING_ZONE_ID: ZoneId = "grove";

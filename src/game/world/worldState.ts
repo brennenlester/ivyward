@@ -5,6 +5,8 @@ import { evaluateCodexAchievement } from "../progression/achievements";
 /** Story progression flags — quest completion updates overworld access. */
 export const worldState = {
   overworldUnlocked: false,
+  /** East Hearth Crossing cottage gate — opens via hermit 4-digit code (#291). */
+  villageGateUnlocked: false,
   /** Zones visited (kept for saves / invites; codex uses creature discoveries). */
   discoveredZones: [] as ZoneId[],
   /** Creature species seen in an encounter — shown in every matching habitat. */
@@ -35,6 +37,20 @@ export const worldState = {
 
 export function setOverworldUnlocked(unlocked: boolean): void {
   worldState.overworldUnlocked = unlocked;
+}
+
+export function setVillageGateUnlocked(unlocked: boolean, notify = true): void {
+  if (worldState.villageGateUnlocked === unlocked) {
+    return;
+  }
+  worldState.villageGateUnlocked = unlocked;
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function isVillageGateUnlocked(): boolean {
+  return worldState.villageGateUnlocked;
 }
 
 export function setDiscoveredZones(zones: ZoneId[]): void {

@@ -31,6 +31,7 @@ const ZONE_PALETTES: Record<ZoneId, ZonePalette> = {
   "warden-cottage": COTTAGE_PALETTE,
   "weaver-cottage": COTTAGE_PALETTE,
   "hearthkeep-cottage": COTTAGE_PALETTE,
+  "hermit-cottage": COTTAGE_PALETTE,
 };
 
 const BOUNDARY_HEIGHT = 56;
@@ -124,7 +125,8 @@ function generateFloorTextures(scene: Phaser.Scene, zoneId: ZoneId): void {
     } else if (
       zoneId === "warden-cottage" ||
       zoneId === "weaver-cottage" ||
-      zoneId === "hearthkeep-cottage"
+      zoneId === "hearthkeep-cottage" ||
+      zoneId === "hermit-cottage"
     ) {
       g.fillStyle(palette.edge, 0.45);
       g.fillRect(0, 11, TILE_WIDTH, 2);
@@ -440,6 +442,7 @@ function generateWallTextures(scene: Phaser.Scene): void {
     { key: "boundary-warden-cottage", accent: 0x7aa8c8 },
     { key: "boundary-weaver-cottage", accent: 0xc890b0 },
     { key: "boundary-hearthkeep-cottage", accent: 0xe0a060 },
+    { key: "boundary-hermit-cottage", accent: 0x7a9ab0 },
   ];
   for (const { key, accent } of cottageWalls) {
     generateBoundaryTexture(scene, key, (g) => {

@@ -6,7 +6,7 @@ import {
 } from "../inventory/playerInventory";
 import { getItemName, getMaterialName } from "../inventory/materials";
 import { getEffectiveMaxHp, playerParty } from "../creatures/party";
-import { worldState } from "./worldState";
+import { getTideSovereignObtained, worldState } from "./worldState";
 import { notifyWorldChanged } from "./worldSaveSchedule";
 import { isVisitorMode } from "./worldSession";
 import { ALL_NPC_IDS, type NpcDefinition, type NpcGift } from "./npcs";
@@ -26,6 +26,8 @@ import {
   resetDailyAskForTest,
   setDailyAskState,
 } from "./dailyAsk";
+import { HERMIT_NPC_ID } from "./hermitIsland";
+import { VILLAGE_GATE_CODE } from "./villageGate";
 
 const giftsClaimed = new Set<string>();
 const sideQuestStatus = new Map<SideQuestId, SideQuestStatus>();
@@ -316,6 +318,10 @@ export function confirmOddRest(): string[] {
  * claim gifts, move side-quest state, or rest.
  */
 export function beginConversation(npc: NpcDefinition): Conversation {
+  if (npc.id === HERMIT_NPC_ID) {
+    return hermitConversation(npc);
+  }
+
   if (!hasClaimedNpcGift(npc.id)) {
     const lines = [...npc.introLines];
     const giftLine = claimNpcGift(npc);
@@ -353,6 +359,30 @@ export function beginConversation(npc: NpcDefinition): Conversation {
       }
       return talk([quest.completeLine]);
     }
+  }
+
+  return talk([nextIdleLine(npc)]);
+}
+
+function hermitConversation(npc: NpcDefinition): Conversation {
+  if (!hasClaimedNpcGift(npc.id)) {
+    const lines = [...npc.introLines];
+    const giftLine = claimNpcGift(npc);
+    if (giftLine) {
+      lines.push(giftLine);
+    }
+    return talk(lines);
+  }
+
+  if (isVisitorMode()) {
+    return talk([nextIdleLine(npc)]);
+  }
+
+  if (getTideSovereignObtained() > 0) {
+    return talk([
+      `You met the Tide Sovereign. Good. The east gate at Hearth Crossing opens to ${VILLAGE_GATE_CODE}.`,
+      "Four digits. Speak them at the locked gate. The cottages are waiting on the other side.",
+    ]);
   }
 
   return talk([nextIdleLine(npc)]);

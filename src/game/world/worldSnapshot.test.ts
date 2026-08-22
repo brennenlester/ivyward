@@ -565,6 +565,17 @@ describe("applyWorldSnapshot codex achievement", () => {
     expect(getCairnSovereignObtained()).toBe(2);
   });
 
+  it("round-trips villageGateUnlocked (#291)", () => {
+    applyWorldSnapshot(validSnapshot({ villageGateUnlocked: true }));
+    expect(worldState.villageGateUnlocked).toBe(true);
+    expect(
+      exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 }).villageGateUnlocked,
+    ).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(worldState.villageGateUnlocked).toBe(false);
+  });
+
   it("restores the god fusion flag and defaults older saves to incomplete", () => {
     applyWorldSnapshot(validSnapshot({ godFusionCompleted: true }));
     expect(isGodFusionCompleted()).toBe(true);

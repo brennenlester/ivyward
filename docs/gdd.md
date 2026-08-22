@@ -32,7 +32,7 @@ A browser folklore RPG: explore isometric zones, befriend creatures, spar for ma
 | Codex | Habitat codex: what lives where (fills in as you encounter creatures) |
 | Reset game | Wipe local host save and start fresh |
 
-**FTUE / confined region** [moved from README]: Start in **Whisper Grove**, walk map exits through **Moon Shrine** to **Hearth Crossing**. North of the village are **Folklore Fields** (north gate into **Moonwake Harbor**, east into **Mistwood Reach** / **Emberfen Hollow**), locked until Story quest 2 is complete. From Harbor, sail east past East Landing into the open **Archipelago** sea.
+**FTUE / confined region** [moved from README]: Start in **Whisper Grove**, walk map exits through **Moon Shrine** to **Hearth Crossing** (plaza). North of the plaza, **Folklore Fields** unlock after Story quest 2 (overworld gate). East of the plaza, the **cottage village** sits behind a **code-locked village gate**. From Harbor (north of Fields), sail east past East Landing into the open **Archipelago** sea. The top-right island holds a stranded hermit who reveals the village gate code after Tide Sovereign is spar-won or befriended.
 
 ---
 
@@ -44,17 +44,17 @@ Repeating cycle:
 2. **Encounter** a wild creature (Befriend, Spar, or Flee).
 3. **Payoff:** Befriend adds a companion. Spar win grants creature materials, Folklore Dust, and XP. Flee exits.
 4. **Spend / grow:** Craft on the Moon Shrine 4×4 grid (or Portable Moonshrine after it is crafted). Use tonic / draught / crystal. Apply shrine effects / fusion at the real shrine.
-5. **Open the map:** Story 2 (win a spar) opens the overworld gate. Further walking yields new habitats, village asks, sailing, and islands.
+5. **Open the map:** Story 2 (win a spar) opens the **overworld** gate. The **village** (cottages) opens later via a 4-digit code from the archipelago hermit after Tide Sovereign. Further walking yields new habitats, sailing, and islands.
 6. **Repeat** from walk. Host progress saves automatically in `localStorage`.
 
 **FTUE close (once):** four story quests on the HUD (`Story N/4` + Next hint):
 
 1. Befriend a wild creature.
-2. Win a training spar — this **opens the overworld gate**.
-3. Reach Hearth Crossing (Grove → Shrine → Village).
+2. Win a training spar — this **opens the overworld gate** (Folklore Fields / Harbor / Archipelago).
+3. Reach Hearth Crossing plaza (Grove → Shrine → Village).
 4. Craft a relic at Moon Shrine (stand on the moon altar, press E, craft any relic).
 
-Gate status reads `Overworld gate: LOCKED (Story 2/4)` until the spar quest is done, then `OPEN`.
+Gate status reads `Overworld: LOCKED (Story 2/4) · Village: LOCKED (code)` until each unlocks; village unlock is not a Story beat.
 
 **Session loop:** one sit-down can cover FTUE plus overworld/harbor/islands. [inferred from hour+ session answer + current map size]
 
@@ -66,7 +66,7 @@ Gate status reads `Overworld gate: LOCKED (Story 2/4)` until the spar quest is d
 
 **Shipped progression** [moved from README + inferred from `src/game/`]:
 
-- **Story 4/4** as above. Skill/content gate: first spar win unlocks the overworld.
+- **Story 4/4** as above. Skill/content gate: first spar win unlocks the overworld. Village cottages unlock via hermit code after Tide Sovereign.
 - **Party:** active party max 7; extras in reserve. [inferred: `ACTIVE_PARTY_LIMIT`]
 - **Levels:** creatures level from spar XP. [inferred: `XP_PER_SPAR_WIN` = 70 total shared across actives; `MAX_LEVEL` = 50; threshold for level N is `(N - 1) * 10` XP]
 - **Codex:** encountering a creature once lists it under every habitat that can spawn it. 27 encounter-table species required for the hidden **Codex Keeper** achievement (evolution-only `Bramblewarden` and `Hearthflame` are not required). Once per save: Brook Tonic ×5 and Moonwake Draught ×5.
@@ -174,13 +174,14 @@ From Folklore Fields, north gate into Moonwake Harbor. Press E near the west Har
 
 ### Village, cottages, minigames
 
-Three cottages, enter via door + E; leave through the bottom doorway.
+Hearth Crossing plaza is west; a **code-locked gate** opens east into the cottage yard. Unlock with the 4-digit code from hermit **Reed** on the archipelago’s top-right island (after Tide Sovereign spar-win or befriend). Three cottages, enter via door + E; leave through the bottom doorway.
 
 | Villager | Home | First-visit gift |
 | --- | --- | --- |
 | Warden Bryn | Warden's Cottage | Wild Fiber ×3 |
 | Weaver Sable | Weaver's Cottage | Moss Fiber ×3 |
 | Hearthkeep Odd | Hearthkeep Cottage | Brook Tonic ×1 |
+| Reed (hermit) | Island Cottage (archipelago top-right) | Wild Fiber ×2; gate code after Tide Sovereign |
 
 Once per save, host only. Then local talk. Side asks as in section 3.
 

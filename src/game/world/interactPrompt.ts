@@ -1,6 +1,7 @@
 export const INTERACT_PROMPT_PRIORITY = [
   "shrine",
   "door",
+  "gate",
   "minigame",
   "npc",
   "dock",

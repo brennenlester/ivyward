@@ -90,6 +90,7 @@ export const ZONE_ENCOUNTERS: Record<ZoneId, EncounterEntry[]> = {
   "warden-cottage": [],
   "weaver-cottage": [],
   "hearthkeep-cottage": [],
+  "hermit-cottage": [],
 };
 
 function rollFromTable(table: EncounterEntry[]): string | null {

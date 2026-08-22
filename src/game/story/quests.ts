@@ -17,14 +17,14 @@ export const QUESTS: Record<QuestId, QuestDefinition> = {
   "first-spar": {
     id: "first-spar",
     title: "Win a training spar",
-    hint: "Trigger an encounter, choose Spar, and win — this opens the overworld gate.",
+    hint: "Trigger an encounter, choose Spar, and win — this opens the overworld gate to Folklore Fields.",
     objective: { type: "win_spar" },
     unlocksOverworld: true,
   },
   "reach-village": {
     id: "reach-village",
     title: "Reach Hearth Crossing",
-    hint: "Follow the paths through Moon Shrine to Hearth Crossing — folk there trade tales of every creature they have met.",
+    hint: "Follow the paths through Moon Shrine to Hearth Crossing. The cottages sit east behind a code-locked gate.",
     objective: { type: "enter_zone", zoneId: "village" },
   },
   "shrine-craft": {

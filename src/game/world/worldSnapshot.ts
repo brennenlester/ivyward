@@ -43,6 +43,7 @@ import {
   setSovereignPlateActive,
   setStory1BefriendGuaranteeConsumed,
   setTideSovereignObtained,
+  setVillageGateUnlocked,
 } from "./worldState";
 import {
   evaluateCodexAchievement,
@@ -110,6 +111,8 @@ export type WorldSnapshot = {
   /** Host player display name for the overworld nametag. Optional for older saves. */
   playerName?: string;
   overworldUnlocked: boolean;
+  /** East cottage gate unlocked via hermit code (#291). Optional for older saves. */
+  villageGateUnlocked?: boolean;
   /** Zones visited. Optional for older saves. */
   discoveredZones?: ZoneId[];
   /** Creature species discovered via encounter. Optional for older saves. */
@@ -209,6 +212,7 @@ function isSpawnWalkable(
   y: number,
   overworldUnlocked: boolean,
   sailing = false,
+  villageGateUnlocked = false,
 ): boolean {
   // Validate archipelago mid-sail / island stands without mutating the live stream.
   if (zoneId === "archipelago") {
@@ -238,6 +242,9 @@ function isSpawnWalkable(
   }
   if (tile === TileType.OverworldGate) {
     return overworldUnlocked;
+  }
+  if (tile === TileType.VillageGate) {
+    return villageGateUnlocked;
   }
   return false;
 }
@@ -548,6 +555,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     if (s.playerName.length > PLAYER_NAME_MAX_LENGTH) return false;
   }
   if (typeof s.overworldUnlocked !== "boolean") return false;
+  if (
+    s.villageGateUnlocked !== undefined &&
+    typeof s.villageGateUnlocked !== "boolean"
+  ) {
+    return false;
+  }
 
   if (s.discoveredZones !== undefined) {
     if (!Array.isArray(s.discoveredZones)) return false;
@@ -768,6 +781,7 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
       pos.y,
       s.overworldUnlocked === true,
       s.sailing === true,
+      s.villageGateUnlocked === true,
     )
   ) {
     return false;
@@ -893,6 +907,7 @@ export function exportWorldSnapshot(
     hostLabel,
     ...(name ? { playerName: name } : {}),
     overworldUnlocked: worldState.overworldUnlocked,
+    villageGateUnlocked: worldState.villageGateUnlocked,
     discoveredZones: [...worldState.discoveredZones],
     discoveredCreatures: [...worldState.discoveredCreatures],
     unlockedAchievements: getUnlockedAchievements(),
@@ -934,6 +949,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
 
   restoreQuestProgress(snapshot.questProgress);
   setOverworldUnlocked(questProgress["first-spar"] === "complete");
+  setVillageGateUnlocked(snapshot.villageGateUnlocked === true, false);
   setDiscoveredZones(snapshot.discoveredZones ?? [snapshot.position.zoneId]);
   // Older saves lack discoveredCreatures — treat party species as known.
   const fromParty = snapshot.party

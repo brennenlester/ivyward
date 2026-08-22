@@ -27,6 +27,9 @@ export function isTileWalkable(
   if (tile === TileType.OverworldGate) {
     return worldState.overworldUnlocked;
   }
+  if (tile === TileType.VillageGate) {
+    return worldState.villageGateUnlocked;
+  }
   return false;
 }
 

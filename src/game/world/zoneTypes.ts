@@ -9,7 +9,8 @@ export type ZoneId =
   | "emberfen"
   | "warden-cottage"
   | "weaver-cottage"
-  | "hearthkeep-cottage";
+  | "hearthkeep-cottage"
+  | "hermit-cottage";
 
 export const TileType = {
   Wall: 0,
@@ -17,6 +18,8 @@ export const TileType = {
   OverworldGate: 2,
   Water: 3,
   Dock: 4,
+  /** Hearth Crossing east gate — opens with the hermit's 4-digit code (#291). */
+  VillageGate: 5,
 } as const;
 
 export type TileType = (typeof TileType)[keyof typeof TileType];

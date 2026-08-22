@@ -81,6 +81,27 @@ export const NPCS: Partial<Record<ZoneId, NpcDefinition[]>> = {
       gift: { kind: "item", id: "brook-tonic", amount: 1 },
     },
   ],
+  "hermit-cottage": [
+    {
+      id: "island-hermit-reed",
+      name: "Reed",
+      x: 3,
+      y: 2,
+      spriteKey: "npc-villager",
+      tint: 0x7a9ab0,
+      introLines: [
+        "Easy — I am Reed. I left Hearth Crossing for the open water.",
+        "The tide took my boat. I am stuck on this island until the sea forgives me.",
+        "Listen well: the Sovereigns rule the deep places. Tide on the water, Stone on the land. Treat them as peers, not prey.",
+      ],
+      idleLines: [
+        "Tide Sovereign rides the open sail. Win its respect — spar or bond — and come back to me.",
+        "The village gate east of the plaza still waits on a code. I will not speak it until Tide has been met.",
+        "Stone Sovereign keeps the late roads. Tide is the one that matters for the gate.",
+      ],
+      gift: { kind: "material", id: "wild-fiber", amount: 2 },
+    },
+  ],
 };
 
 export function getZoneNpcs(zoneId: ZoneId): NpcDefinition[] {

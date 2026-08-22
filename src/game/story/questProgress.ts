@@ -197,9 +197,13 @@ export function recordQuestEvent(event: QuestEvent): boolean {
 }
 
 export function getGateStatusText(): string {
-  if (questProgress["first-spar"] === "complete") {
-    return "Overworld gate: OPEN";
-  }
   const sparIndex = QUEST_ORDER.indexOf("first-spar") + 1;
-  return `Overworld gate: LOCKED (Story ${sparIndex}/${STORY_QUEST_COUNT})`;
+  const overworld =
+    questProgress["first-spar"] === "complete"
+      ? "Overworld: OPEN"
+      : `Overworld: LOCKED (Story ${sparIndex}/${STORY_QUEST_COUNT})`;
+  const village = worldState.villageGateUnlocked
+    ? "Village: OPEN"
+    : "Village: LOCKED (code)";
+  return `${overworld} · ${village}`;
 }

@@ -1,5 +1,6 @@
 import type { ZoneId } from "./zoneTypes";
 import { getArchipelagoProps } from "./archipelagoStream";
+import { VILLAGE_CODE_GATE } from "./villageGate";
 
 export type PropKind =
   | "tree"
@@ -38,12 +39,16 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
     { x: 2, y: 5, kind: "fern" },
   ],
   village: [
-    { x: 2, y: 3, kind: "cottage" },
-    { x: 7, y: 2, kind: "cottage" },
-    { x: 2, y: 7, kind: "cottage" },
+    // Plaza (west of code gate)
     { x: 5, y: 0, kind: "gate" },
-    { x: 6, y: 2, kind: "pebble-pile" },
+    { x: 8, y: 5, kind: "gate" },
     { x: 3, y: 6, kind: "fern" },
+    { x: 6, y: 3, kind: "pebble-pile" },
+    // Cottage yard (east of code gate)
+    { x: 11, y: 3, kind: "cottage" },
+    { x: 14, y: 2, kind: "cottage" },
+    { x: 11, y: 7, kind: "cottage" },
+    { x: 13, y: 2, kind: "pebble-pile" },
   ],
   "warden-cottage": [
     { x: 5, y: 1, kind: "hearth" },
@@ -56,6 +61,10 @@ export const ZONE_PROPS: Partial<Record<ZoneId, ZoneProp[]>> = {
   "hearthkeep-cottage": [
     { x: 1, y: 1, kind: "hearth" },
     { x: 5, y: 3, kind: "shelf" },
+  ],
+  "hermit-cottage": [
+    { x: 5, y: 1, kind: "hearth" },
+    { x: 1, y: 2, kind: "shelf" },
   ],
   overworld: [
     // North gate → Harbor
@@ -137,4 +146,20 @@ export function propTextureKey(kind: PropKind, gateOpen = true): string {
     return gateOpen ? "prop-gate" : "prop-gate-locked";
   }
   return `prop-${kind}`;
+}
+
+/** Which unlock flag drives a village/overworld gate prop (#291). */
+export function isGatePropOpen(
+  zoneId: ZoneId,
+  prop: ZoneProp,
+  overworldUnlocked: boolean,
+  villageGateUnlocked: boolean,
+): boolean {
+  if (prop.kind !== "gate") {
+    return true;
+  }
+  if (zoneId === "village" && prop.x === VILLAGE_CODE_GATE.x && prop.y === VILLAGE_CODE_GATE.y) {
+    return villageGateUnlocked;
+  }
+  return overworldUnlocked;
 }
