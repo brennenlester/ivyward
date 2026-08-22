@@ -35,6 +35,7 @@ import {
   migrateBoatStateToHarbor,
   repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
+  repairLegacyVillageGateAccess,
   type WorldSnapshot,
 } from "./worldSnapshot";
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
@@ -574,6 +575,36 @@ describe("applyWorldSnapshot codex achievement", () => {
 
     applyWorldSnapshot(validSnapshot());
     expect(worldState.villageGateUnlocked).toBe(false);
+  });
+
+  it("grandfathers village gate for legacy cottage / villager saves (#291)", () => {
+    const inCottage = validSnapshot({
+      position: { zoneId: "warden-cottage", x: 3, y: 3 },
+    });
+    delete (inCottage as { villageGateUnlocked?: boolean }).villageGateUnlocked;
+    repairLegacyVillageGateAccess(inCottage);
+    expect(inCottage.villageGateUnlocked).toBe(true);
+
+    const gifted = validSnapshot({
+      claimedNpcGifts: ["weaver-sable"],
+    });
+    delete (gifted as { villageGateUnlocked?: boolean }).villageGateUnlocked;
+    repairLegacyVillageGateAccess(gifted);
+    expect(gifted.villageGateUnlocked).toBe(true);
+
+    const eastYard = {
+      version: 1,
+      hostLabel: "test",
+      overworldUnlocked: true,
+      questProgress: validSnapshot().questProgress,
+      party: validSnapshot().party,
+      nextInstanceId: 2,
+      materials: {},
+      items: {},
+      position: { zoneId: "village", x: 12, y: 5 },
+    };
+    repairLegacyVillageGateAccess(eastYard);
+    expect(eastYard.position).toEqual({ zoneId: "village", x: 7, y: 5 });
   });
 
   it("restores the god fusion flag and defaults older saves to incomplete", () => {

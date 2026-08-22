@@ -5,6 +5,7 @@ import {
   migrateBoatStateToHarbor,
   repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
+  repairLegacyVillageGateAccess,
   type WorldSnapshot,
 } from "./worldSnapshot";
 import { isVisitorMode } from "./worldSession";
@@ -114,6 +115,7 @@ function repairWithDefaultSpawn(parsed: unknown): WorldSnapshot | null {
   if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
     return null;
   }
+  repairLegacyVillageGateAccess(parsed);
   const respawned = {
     ...(parsed as Record<string, unknown>),
     position: { ...DEFAULT_HOST_POSITION },
@@ -169,6 +171,7 @@ export function loadHostSave(): WorldSnapshot | null {
     migrateBoatStateToHarbor(parsed);
     repairLegacyOverworldShorePosition(parsed);
     repairLegacyArchipelagoLayoutPosition(parsed);
+    repairLegacyVillageGateAccess(parsed);
     if (isValidWorldSnapshot(parsed)) {
       return parsed;
     }

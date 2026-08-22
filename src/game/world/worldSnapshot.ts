@@ -45,6 +45,7 @@ import {
   setTideSovereignObtained,
   setVillageGateUnlocked,
 } from "./worldState";
+import { VILLAGE_CODE_GATE } from "./villageGate";
 import {
   evaluateCodexAchievement,
   getUnlockedAchievements,
@@ -447,6 +448,56 @@ export function migrateBoatStateToHarbor(value: unknown): void {
     pos.zoneId = HARBOR_DOCK.zoneId;
     pos.x = HARBOR_PIER.x;
     pos.y = HARBOR_PIER.y;
+  }
+}
+
+/**
+ * Pre-#291 saves had cottages west of the overworld gate (always reachable).
+ * After relocation, cottage interiors exit into the east yard. Grandfather the
+ * village gate unlock when the save already used village cottages, and clamp
+ * any locked stand east of the code gate back to the plaza.
+ * Run before isValidWorldSnapshot.
+ */
+export function repairLegacyVillageGateAccess(value: unknown): void {
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  const s = value as Record<string, unknown>;
+  if (s.villageGateUnlocked === true) {
+    return;
+  }
+
+  const villageCottageZones = new Set([
+    "warden-cottage",
+    "weaver-cottage",
+    "hearthkeep-cottage",
+  ]);
+  const villageNpcIds = new Set([
+    "warden-bryn",
+    "weaver-sable",
+    "hearthkeep-odd",
+  ]);
+
+  const pos = s.position as Record<string, unknown> | undefined;
+  const inCottage =
+    typeof pos?.zoneId === "string" && villageCottageZones.has(pos.zoneId);
+  const gifts = s.claimedNpcGifts;
+  const hadVillageNpc =
+    Array.isArray(gifts) &&
+    gifts.some((id) => typeof id === "string" && villageNpcIds.has(id));
+
+  if (inCottage || hadVillageNpc) {
+    s.villageGateUnlocked = true;
+    return;
+  }
+
+  if (
+    pos?.zoneId === "village" &&
+    isFiniteNumber(pos.x) &&
+    Math.round(pos.x) > VILLAGE_CODE_GATE.x
+  ) {
+    pos.x = VILLAGE_CODE_GATE.x - 1;
+    pos.y = VILLAGE_CODE_GATE.y;
   }
 }
 
