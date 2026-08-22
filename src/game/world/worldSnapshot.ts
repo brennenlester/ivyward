@@ -496,7 +496,12 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
     Array.isArray(wins) &&
     wins.some((id) => typeof id === "string" && villageMinigameIds.has(id));
 
-  if (inCottage || hadVillageNpc || hadCottageMinigame) {
+  const zones = s.discoveredZones;
+  const visitedCottage =
+    Array.isArray(zones) &&
+    zones.some((id) => typeof id === "string" && villageCottageZones.has(id));
+
+  if (inCottage || hadVillageNpc || hadCottageMinigame || visitedCottage) {
     s.villageGateUnlocked = true;
   }
 

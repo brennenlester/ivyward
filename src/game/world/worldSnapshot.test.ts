@@ -640,6 +640,14 @@ describe("applyWorldSnapshot codex achievement", () => {
       x: 7,
       y: 5,
     });
+
+    const discoveredCottage = validSnapshot({
+      discoveredZones: ["village", "warden-cottage"],
+    });
+    delete (discoveredCottage as { villageGateUnlocked?: boolean })
+      .villageGateUnlocked;
+    repairLegacyVillageGateAccess(discoveredCottage);
+    expect(discoveredCottage.villageGateUnlocked).toBe(true);
   });
 
   it("restores the god fusion flag and defaults older saves to incomplete", () => {
