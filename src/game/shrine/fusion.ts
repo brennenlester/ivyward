@@ -7,6 +7,11 @@ import {
 import { consumeItem } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
 import {
+  applyPresenceStatBoost,
+  PRESENCE_ATTACK_BONUS,
+  PRESENCE_HP_BONUS,
+} from "./presence";
+import {
   effectKey,
   getEffectsForItem,
   getShrineEffect,
@@ -101,8 +106,9 @@ function applyEffect(
       return `${prevName} evolved into ${newDef.name}!`;
     }
     case "presence": {
+      applyPresenceStatBoost(creature);
       const def = getCreatureDefinition(creature.definitionId);
-      return `${def.name} shows a new presence in the world!`;
+      return `${def.name} shows a new presence in the world! (+${PRESENCE_ATTACK_BONUS} ATK, +${PRESENCE_HP_BONUS} HP)`;
     }
   }
 }

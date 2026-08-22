@@ -9,6 +9,10 @@ import {
 /** Moon-dot fill for presence growth on overworld sprites. */
 export const PRESENCE_MOON_DOT_COLOR = 0xffedb0;
 
+/** Shiny-style combat bump when a companion gains presence. */
+export const PRESENCE_ATTACK_BONUS = 2;
+export const PRESENCE_HP_BONUS = 4;
+
 const PRESENCE_KEYS = new Set(
   SHRINE_EFFECTS.filter((row) => row.effectType === "presence").map((row) =>
     effectKey(row.creatureId, row.itemId),
@@ -28,20 +32,130 @@ export function hasPresenceGrowth(creature: {
   );
 }
 
-/** Brighten a catalog spriteColor for the cheap overworld presence tell. */
-export function presenceTintColor(baseColor: number): number {
+function hashSpeciesSeed(speciesId: string): number {
+  let hash = 0;
+  for (let i = 0; i < speciesId.length; i += 1) {
+    hash = (hash * 31 + speciesId.charCodeAt(i)) | 0;
+  }
+  return Math.abs(hash);
+}
+
+function rgbToHsl(
+  r: number,
+  g: number,
+  b: number,
+): [h: number, s: number, l: number] {
+  const rn = r / 255;
+  const gn = g / 255;
+  const bn = b / 255;
+  const max = Math.max(rn, gn, bn);
+  const min = Math.min(rn, gn, bn);
+  const delta = max - min;
+  const l = (max + min) / 2;
+  if (delta === 0) {
+    return [0, 0, l];
+  }
+  const s = delta / (1 - Math.abs(2 * l - 1));
+  let h = 0;
+  if (max === rn) {
+    h = ((gn - bn) / delta) % 6;
+  } else if (max === gn) {
+    h = (bn - rn) / delta + 2;
+  } else {
+    h = (rn - gn) / delta + 4;
+  }
+  h *= 60;
+  if (h < 0) {
+    h += 360;
+  }
+  return [h, s, l];
+}
+
+function hslToRgb(
+  h: number,
+  s: number,
+  l: number,
+): [r: number, g: number, b: number] {
+  const c = (1 - Math.abs(2 * l - 1)) * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = l - c / 2;
+  let rn = 0;
+  let gn = 0;
+  let bn = 0;
+  if (h < 60) {
+    rn = c;
+    gn = x;
+  } else if (h < 120) {
+    rn = x;
+    gn = c;
+  } else if (h < 180) {
+    gn = c;
+    bn = x;
+  } else if (h < 240) {
+    gn = x;
+    bn = c;
+  } else if (h < 300) {
+    rn = x;
+    bn = c;
+  } else {
+    rn = c;
+    bn = x;
+  }
+  return [
+    Math.round((rn + m) * 255),
+    Math.round((gn + m) * 255),
+    Math.round((bn + m) * 255),
+  ];
+}
+
+/** Alternate palette — hue-shifted per species like a Pokémon shiny. */
+export function presenceShinyColor(baseColor: number, speciesId: string): number {
   const r = (baseColor >> 16) & 0xff;
   const g = (baseColor >> 8) & 0xff;
   const b = baseColor & 0xff;
-  const nr = Math.min(255, Math.round(r * 1.22 + 18));
-  const ng = Math.min(255, Math.round(g * 1.22 + 22));
-  const nb = Math.min(255, Math.round(b * 1.12 + 28));
+  const [h, s, l] = rgbToHsl(r, g, b);
+  const hueShift = 70 + (hashSpeciesSeed(speciesId) % 200);
+  const nh = (h + hueShift) % 360;
+  const ns = Math.min(1, s * 1.18 + 0.1);
+  const nl = Math.min(0.92, Math.max(0.12, l * 1.06 + 0.03));
+  const [nr, ng, nb] = hslToRgb(nh, ns, nl);
   return (nr << 16) | (ng << 8) | nb;
 }
 
+/** @deprecated Use presenceShinyColor — kept for callers passing base only. */
+export function presenceTintColor(baseColor: number, speciesId = "unknown"): number {
+  return presenceShinyColor(baseColor, speciesId);
+}
+
 export function presenceTintForCreature(creature: CreatureInstance): number {
-  const base = getCreatureDefinition(creature.definitionId).spriteColor;
-  return hasPresenceGrowth(creature) ? presenceTintColor(base) : base;
+  const def = getCreatureDefinition(creature.definitionId);
+  return hasPresenceGrowth(creature)
+    ? presenceShinyColor(def.spriteColor, creature.definitionId)
+    : def.spriteColor;
+}
+
+/** Apply shiny stat bump (+ATK / +max HP). */
+export function applyPresenceStatBoost(
+  creature: CreatureInstance,
+  options: { healCurrent?: boolean } = {},
+): void {
+  creature.attackBonus =
+    (creature.attackBonus ?? 0) + PRESENCE_ATTACK_BONUS;
+  creature.hpBonus = (creature.hpBonus ?? 0) + PRESENCE_HP_BONUS;
+  if (options.healCurrent !== false) {
+    creature.currentHp += PRESENCE_HP_BONUS;
+  }
+}
+
+/** Backfill stats for saves that gained presence before the shiny bump shipped. */
+export function ensurePresenceStatBoost(creature: CreatureInstance): void {
+  if (!hasPresenceGrowth(creature)) {
+    return;
+  }
+  if ((creature.attackBonus ?? 0) > 0 || (creature.hpBonus ?? 0) > 0) {
+    return;
+  }
+  applyPresenceStatBoost(creature, { healCurrent: false });
 }
 
 /** Prefer presence-bearing actives so the overworld tell stays visible. */
@@ -81,6 +195,7 @@ export function migrateLegacyPresenceCharmBuffs(creature: CreatureInstance): voi
       creature.hpBonus = undefined;
     }
   }
+  ensurePresenceStatBoost(creature);
 }
 
 /** Logical moon-dot offset above a creature display box (see CREATURE_DISPLAY). */

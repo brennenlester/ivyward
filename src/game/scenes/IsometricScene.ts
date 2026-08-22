@@ -68,6 +68,10 @@ import {
   shouldGuaranteeWildTrigger,
 } from "../encounters/habitatRuntime";
 import {
+  grantEncounterImmunity,
+  isEncounterImmune,
+} from "../encounters/encounterImmunity";
+import {
   appendGodSailCheatKey,
   canForceGodSailEncounter,
   lockPendingGodSailEncounter,
@@ -360,6 +364,13 @@ export class IsometricScene extends Phaser.Scene {
     setTouchControlsEnabled(hasPlayerName());
 
     this.events.on("resume", () => {
+      if (
+        this.inEncounter ||
+        this.pendingGodSailEncounter ||
+        this.pendingGodLandEncounter
+      ) {
+        grantEncounterImmunity(this.time.now);
+      }
       this.inEncounter = false;
       this.pendingGodSailEncounter = undefined;
       this.pendingGodLandEncounter = undefined;
@@ -547,6 +558,9 @@ export class IsometricScene extends Phaser.Scene {
     }
     this.tryGodLandEncounter(step);
     if (this.inEncounter || this.pendingGodLandEncounter) {
+      return;
+    }
+    if (isEncounterImmune(this.time.now)) {
       return;
     }
     if (

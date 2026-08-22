@@ -18,7 +18,9 @@ import { effectKey } from "./shrineEffects";
 import {
   hasPresenceGrowth,
   migrateLegacyPresenceCharmBuffs,
-  presenceTintColor,
+  PRESENCE_ATTACK_BONUS,
+  PRESENCE_HP_BONUS,
+  presenceShinyColor,
   presenceTintForCreature,
   selectOverworldFollowers,
 } from "./presence";
@@ -79,12 +81,15 @@ describe("Growth unlock fusion (#296)", () => {
 
     expect(applyShrineFusion(fox.instanceId, "fox-fire-charm")).toEqual({
       ok: true,
-      message: "Lantern Fox shows a new presence in the world!",
+      message:
+        "Lantern Fox shows a new presence in the world! (+2 ATK, +4 HP)",
     });
     const updated = playerParty.creatures.find(
       (c) => c.instanceId === fox.instanceId,
     )!;
     expect(hasPresenceGrowth(updated)).toBe(true);
+    expect(updated.attackBonus).toBe(PRESENCE_ATTACK_BONUS);
+    expect(updated.hpBonus).toBe(PRESENCE_HP_BONUS);
 
     const snapshot = exportWorldSnapshot({ zoneId: "grove", x: 3, y: 7 });
     setPartyFromSnapshot([], 1);
@@ -129,15 +134,26 @@ describe("Growth unlock fusion (#296)", () => {
 });
 
 describe("presence overworld tell seam (#296)", () => {
-  it("brightens spriteColor only when presence growth is applied", () => {
+  it("hue-shifts spriteColor like a shiny when presence growth is applied", () => {
     const fox = member({ instanceId: "c-f", definitionId: "lantern-fox" });
     const base = getCreatureDefinition("lantern-fox").spriteColor;
     expect(presenceTintForCreature(fox)).toBe(base);
 
     fox.appliedEffects = [effectKey("lantern-fox", "fox-fire-charm")];
     expect(hasPresenceGrowth(fox)).toBe(true);
-    expect(presenceTintForCreature(fox)).toBe(presenceTintColor(base));
-    expect(presenceTintForCreature(fox)).not.toBe(base);
+    const shiny = presenceTintForCreature(fox);
+    expect(shiny).toBe(presenceShinyColor(base, "lantern-fox"));
+    expect(shiny).not.toBe(base);
+  });
+
+  it("derives a stable shiny palette per species", () => {
+    const base = getCreatureDefinition("lantern-fox").spriteColor;
+    expect(presenceShinyColor(base, "lantern-fox")).toBe(
+      presenceShinyColor(base, "lantern-fox"),
+    );
+    expect(presenceShinyColor(base, "lantern-fox")).not.toBe(
+      presenceShinyColor(base, "thunder-finch"),
+    );
   });
 
   it("prioritizes presence companions in overworld follower selection", () => {
@@ -170,7 +186,8 @@ describe("presence overworld tell seam (#296)", () => {
     });
 
     migrateLegacyPresenceCharmBuffs(finch);
-    expect(finch.attackBonus).toBeUndefined();
+    expect(finch.attackBonus).toBe(PRESENCE_ATTACK_BONUS);
+    expect(finch.hpBonus).toBe(PRESENCE_HP_BONUS);
     expect(finch.secondaryElement).toBeUndefined();
     expect(finch.secondaryMove).toBeUndefined();
   });

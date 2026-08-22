@@ -8,7 +8,7 @@ import {
   hasPresenceGrowth,
   PRESENCE_MOON_DOT_COLOR,
   presenceMoonDotOffset,
-  presenceTintColor,
+  presenceTintForCreature,
   selectOverworldFollowers,
 } from "../shrine/presence";
 import { CREATURE_DISPLAY, fitDisplay } from "./displaySizes";
@@ -94,7 +94,7 @@ function syncFollowerVisual(
   }
 
   if (hasPresenceGrowth(creature)) {
-    sprite.setTint(presenceTintColor(def.spriteColor));
+    sprite.setTint(presenceTintForCreature(creature));
   } else {
     sprite.clearTint();
   }
