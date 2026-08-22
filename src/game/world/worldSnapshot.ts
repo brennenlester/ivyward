@@ -498,16 +498,23 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
 
   if (inCottage || hadVillageNpc || hadCottageMinigame) {
     s.villageGateUnlocked = true;
-    return;
   }
 
   if (
     pos?.zoneId === "village" &&
     isFiniteNumber(pos.x) &&
-    Math.round(pos.x) >= VILLAGE_CODE_GATE.x
+    isFiniteNumber(pos.y)
   ) {
-    pos.x = VILLAGE_CODE_GATE.x - 1;
-    pos.y = VILLAGE_CODE_GATE.y;
+    const x = Math.round(pos.x);
+    const y = Math.round(pos.y);
+    const unlocked = s.villageGateUnlocked === true;
+    const onOpenGate =
+      unlocked && x === VILLAGE_CODE_GATE.x && y === VILLAGE_CODE_GATE.y;
+    const inEastYard = unlocked && x > VILLAGE_CODE_GATE.x;
+    if (x >= VILLAGE_CODE_GATE.x && !onOpenGate && !inEastYard) {
+      pos.x = VILLAGE_CODE_GATE.x - 1;
+      pos.y = VILLAGE_CODE_GATE.y;
+    }
   }
 }
 

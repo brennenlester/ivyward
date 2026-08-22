@@ -1825,6 +1825,7 @@ export class IsometricScene extends Phaser.Scene {
     }
     setTouchControlsEnabled(false);
     openVillageGateCode((unlocked) => {
+      this.input.keyboard?.resetKeys();
       setTouchControlsEnabled(hasPlayerName());
       this.syncKeyboardGate();
       if (unlocked) {
@@ -1833,7 +1834,6 @@ export class IsometricScene extends Phaser.Scene {
       }
       this.updateInteractPrompt();
     });
-    this.syncKeyboardGate();
     return true;
   }
 
