@@ -605,6 +605,20 @@ describe("applyWorldSnapshot codex achievement", () => {
     };
     repairLegacyVillageGateAccess(eastYard);
     expect(eastYard.position).toEqual({ zoneId: "village", x: 7, y: 5 });
+
+    const dividerColumn = {
+      version: 1,
+      hostLabel: "test",
+      overworldUnlocked: true,
+      questProgress: validSnapshot().questProgress,
+      party: validSnapshot().party,
+      nextInstanceId: 2,
+      materials: {},
+      items: {},
+      position: { zoneId: "village", x: 8, y: 3 },
+    };
+    repairLegacyVillageGateAccess(dividerColumn);
+    expect(dividerColumn.position).toEqual({ zoneId: "village", x: 7, y: 5 });
   });
 
   it("restores the god fusion flag and defaults older saves to incomplete", () => {

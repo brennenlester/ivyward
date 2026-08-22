@@ -494,7 +494,7 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
   if (
     pos?.zoneId === "village" &&
     isFiniteNumber(pos.x) &&
-    Math.round(pos.x) > VILLAGE_CODE_GATE.x
+    Math.round(pos.x) >= VILLAGE_CODE_GATE.x
   ) {
     pos.x = VILLAGE_CODE_GATE.x - 1;
     pos.y = VILLAGE_CODE_GATE.y;
