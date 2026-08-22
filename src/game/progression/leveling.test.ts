@@ -44,14 +44,13 @@ describe("leveling", () => {
     expect(getLevelForXp(999_999)).toBe(50);
   });
 
-  it("scales stats to ~3× at level 50", () => {
+  it("scales stats to ~3.25× at level 50", () => {
     expect(statMultForLevel(1)).toBe(1);
-    expect(statMultForLevel(50)).toBeCloseTo(3, 10);
+    expect(statMultForLevel(50)).toBeCloseTo(3.25, 10);
     expect(scaledStat(28, 1)).toBe(28);
-    expect(scaledStat(28, 50)).toBe(84);
-    expect(scaledStat(6, 50)).toBe(18);
+    expect(scaledStat(28, 50)).toBe(91);
+    expect(scaledStat(6, 50)).toBe(19);
   });
-
   it("grants spar xp and levels without healing", () => {
     const creature = creatureAt(4, 80);
     creature.currentHp = 3;

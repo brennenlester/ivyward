@@ -9,11 +9,10 @@ export const XP_PER_SPAR_WIN = 70;
 export const MAX_LEVEL = 50;
 
 /**
- * Per-level growth so Lv 50 ≈ 3× Lv 1:
- * mult = 1 + (level - 1) * (2 / 49).
+ * Per-level growth so Lv 50 ≈ 3.25× Lv 1:
+ * mult = 1 + (level - 1) * (2.25 / 49).
  */
-export const LEVEL_STAT_GROWTH = 2 / 49;
-
+export const LEVEL_STAT_GROWTH = 2.25 / 49;
 /** Cumulative XP required to reach each level: XP_CURVE_COEFFICIENT * (level - 1)². */
 export const LEVEL_XP_THRESHOLDS: Record<number, number> = Object.fromEntries(
   Array.from({ length: MAX_LEVEL }, (_, i) => {

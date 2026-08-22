@@ -234,7 +234,7 @@ describe("dual-god fusion", () => {
     expect(fused?.currentHp).toBe(
       Math.floor(
         getCreatureDefinition(HORIZON_SOVEREIGN_ID).maxHp *
-          (1 + (47 - 1) * (2 / 49)),
+          (1 + (47 - 1) * (2.25 / 49)),
       ),
     );
     expect(fused?.attackBonus).toBeUndefined();
@@ -283,7 +283,7 @@ describe("dual-god fusion", () => {
     expect(fused?.currentHp).toBe(
       Math.floor(
         getCreatureDefinition(ECLIPSE_SOVEREIGN_ID).maxHp *
-          (1 + (48 - 1) * (2 / 49)),
+          (1 + (48 - 1) * (2.25 / 49)),
       ),
     );
     expect(getCreatureDefinition(ECLIPSE_SOVEREIGN_ID)).toMatchObject({
