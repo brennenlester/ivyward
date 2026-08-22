@@ -463,9 +463,8 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
     return;
   }
   const s = value as Record<string, unknown>;
-  if (s.villageGateUnlocked === true) {
-    return;
-  }
+  const flag = s.villageGateUnlocked;
+  const flagMalformed = flag !== undefined && typeof flag !== "boolean";
 
   const villageCottageZones = new Set([
     "warden-cottage",
@@ -501,8 +500,16 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
     Array.isArray(zones) &&
     zones.some((id) => typeof id === "string" && villageCottageZones.has(id));
 
-  if (inCottage || hadVillageNpc || hadCottageMinigame || visitedCottage) {
+  // Only grandfather when the field is absent so malformed flags still fail validation.
+  if (
+    flag === undefined &&
+    (inCottage || hadVillageNpc || hadCottageMinigame || visitedCottage)
+  ) {
     s.villageGateUnlocked = true;
+  }
+
+  if (flagMalformed) {
+    return;
   }
 
   if (

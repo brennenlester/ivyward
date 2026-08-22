@@ -648,6 +648,14 @@ describe("applyWorldSnapshot codex achievement", () => {
       .villageGateUnlocked;
     repairLegacyVillageGateAccess(discoveredCottage);
     expect(discoveredCottage.villageGateUnlocked).toBe(true);
+
+    const malformed = validSnapshot({
+      claimedNpcGifts: ["warden-bryn"],
+      villageGateUnlocked: "yes" as unknown as boolean,
+    });
+    repairLegacyVillageGateAccess(malformed);
+    expect(malformed.villageGateUnlocked).toBe("yes");
+    expect(isValidWorldSnapshot(malformed)).toBe(false);
   });
 
   it("restores the god fusion flag and defaults older saves to incomplete", () => {
