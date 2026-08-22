@@ -225,9 +225,13 @@ describe("crafting HUD", () => {
     row.click();
     cellAt(host, 0, 0).click();
     const cell = cellAt(host, 0, 0);
-    expect(cell.querySelector("img.material-icon")?.getAttribute("src")).toBe(
-      getMaterialIconSrc("wood"),
-    );
+    const cellLabel = cell.querySelector(".material-icon-name");
+    const cellImg = cell.querySelector("img.material-icon");
+    expect(
+      cellLabel?.compareDocumentPosition(cellImg!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(cellImg?.getAttribute("src")).toBe(getMaterialIconSrc("wood"));
     expect(cell.getAttribute("aria-label")).toBe("Wood");
     hud.destroy();
   });

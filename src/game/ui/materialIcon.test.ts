@@ -36,7 +36,7 @@ describe("appendMaterialVisual", () => {
     expect(el.getAttribute("aria-label")).toBe("Pebble");
   });
 
-  it("falls back to the material name when the image fails", () => {
+  it("reveals the label when img load errors (showName false)", () => {
     const el = document.createElement("button");
     appendMaterialVisual(el, "stone", { showName: false });
     const img = el.querySelector("img.material-icon");
