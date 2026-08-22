@@ -55,6 +55,42 @@ export function setPartyFromSnapshot(
   );
 }
 
+/**
+ * Remap currentHp from pre-#287 flat max HP onto level-scaled max.
+ * Used once when loading older saves that lack sparWinsBySpecies.
+ */
+export function migratePartyHpForLevelScaling(
+  creatures: CreatureInstance[],
+): void {
+  for (const creature of creatures) {
+    const def = getCreatureDefinition(creature.definitionId);
+    const oldMax = def.maxHp + (creature.hpBonus ?? 0);
+    const newMax = getEffectiveMaxHp(creature);
+    if (oldMax <= 0) {
+      creature.currentHp = Math.min(Math.max(0, creature.currentHp), newMax);
+      continue;
+    }
+    if (creature.currentHp >= oldMax) {
+      creature.currentHp = newMax;
+      continue;
+    }
+    creature.currentHp = Math.min(
+      newMax,
+      Math.max(0, Math.round((creature.currentHp / oldMax) * newMax)),
+    );
+  }
+}
+
+/** Clamp party HP to the current effective max (post-scale safety). */
+export function clampPartyHpToEffectiveMax(
+  creatures: CreatureInstance[],
+): void {
+  for (const creature of creatures) {
+    const maxHp = getEffectiveMaxHp(creature);
+    creature.currentHp = Math.min(Math.max(0, creature.currentHp), maxHp);
+  }
+}
+
 function addToPartyWithHp(
   definitionId: string,
   currentHp: number | "full",

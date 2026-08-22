@@ -94,6 +94,12 @@ describe("grantSparRewards XP share", () => {
     expect(playerParty.creatures.map((x) => x.xp)).toEqual([23, 24, 23]);
   });
 
+  it("does not record spar wins for sovereigns", () => {
+    setPartyFromSnapshot([member({ instanceId: "a" })], 2, ["a"]);
+    grantSparRewards("tide-sovereign", 0);
+    expect(getSparWinsForSpecies("tide-sovereign")).toBe(0);
+  });
+
   it("formats shared XP without understating totals", () => {
     const message = formatRewardMessage({
       dustGained: 1,

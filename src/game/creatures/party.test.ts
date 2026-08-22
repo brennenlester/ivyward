@@ -6,6 +6,7 @@ import {
   getEffectiveAttack,
   getEffectiveMaxHp,
   getReserveCreatures,
+  migratePartyHpForLevelScaling,
   moveActiveToReserve,
   moveReserveToActive,
   playerParty,
@@ -139,5 +140,26 @@ describe("active party / reserve", () => {
     const def = getCreatureDefinition("mossling");
     expect(getEffectiveMaxHp(creature)).toBe(scaledStat(def.maxHp, 50) + 8);
     expect(getEffectiveAttack(creature)).toBe(scaledStat(def.attack, 50) + 4);
+  });
+
+  it("migrates legacy flat HP onto level-scaled max", () => {
+    const def = getCreatureDefinition("mossling");
+    const full = member({
+      instanceId: "full",
+      definitionId: "mossling",
+      level: 50,
+      currentHp: def.maxHp,
+    });
+    const half = member({
+      instanceId: "half",
+      definitionId: "mossling",
+      level: 50,
+      currentHp: Math.floor(def.maxHp / 2),
+    });
+    migratePartyHpForLevelScaling([full, half]);
+    expect(full.currentHp).toBe(scaledStat(def.maxHp, 50));
+    expect(half.currentHp).toBe(
+      Math.round((Math.floor(def.maxHp / 2) / def.maxHp) * scaledStat(def.maxHp, 50)),
+    );
   });
 });

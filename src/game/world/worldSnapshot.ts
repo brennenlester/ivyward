@@ -4,6 +4,8 @@ import {
   setPartyFromSnapshot,
   ACTIVE_PARTY_LIMIT,
   countCreatures,
+  migratePartyHpForLevelScaling,
+  clampPartyHpToEffectiveMax,
 } from "../creatures/party";
 import type { CreatureInstance } from "../creatures/types";
 import { FOLKLORE_TYPES } from "../creatures/folkloreTypes";
@@ -1083,6 +1085,12 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
     migrateLegacyPresenceCharmBuffs(creature);
     return creature;
   });
+  // Older saves lack sparWinsBySpecies and stored HP against flat catalog max.
+  if (snapshot.sparWinsBySpecies === undefined) {
+    migratePartyHpForLevelScaling(party);
+  } else {
+    clampPartyHpToEffectiveMax(party);
+  }
   setPartyFromSnapshot(
     party,
     nextInstanceIdAfter(party, snapshot.nextInstanceId),
