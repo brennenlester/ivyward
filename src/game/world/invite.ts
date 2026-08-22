@@ -7,6 +7,7 @@ import {
   migrateBoatStateToHarbor,
   repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
+  repairLegacyVillageGateAccess,
 } from "./worldSnapshot";
 import type { ZoneId } from "./zoneTypes";
 
@@ -80,6 +81,7 @@ export function parseInviteParam(): InviteParseResult {
     migrateBoatStateToHarbor(parsed);
     repairLegacyOverworldShorePosition(parsed);
     repairLegacyArchipelagoLayoutPosition(parsed);
+    repairLegacyVillageGateAccess(parsed);
     if (!isValidWorldSnapshot(parsed)) {
       return { status: "invalid" };
     }

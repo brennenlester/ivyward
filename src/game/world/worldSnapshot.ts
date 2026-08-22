@@ -43,7 +43,9 @@ import {
   setSovereignPlateActive,
   setStory1BefriendGuaranteeConsumed,
   setTideSovereignObtained,
+  setVillageGateUnlocked,
 } from "./worldState";
+import { VILLAGE_CODE_GATE } from "./villageGate";
 import {
   evaluateCodexAchievement,
   getUnlockedAchievements,
@@ -110,6 +112,8 @@ export type WorldSnapshot = {
   /** Host player display name for the overworld nametag. Optional for older saves. */
   playerName?: string;
   overworldUnlocked: boolean;
+  /** East cottage gate unlocked via hermit code (#291). Optional for older saves. */
+  villageGateUnlocked?: boolean;
   /** Zones visited. Optional for older saves. */
   discoveredZones?: ZoneId[];
   /** Creature species discovered via encounter. Optional for older saves. */
@@ -209,6 +213,7 @@ function isSpawnWalkable(
   y: number,
   overworldUnlocked: boolean,
   sailing = false,
+  villageGateUnlocked = false,
 ): boolean {
   // Validate archipelago mid-sail / island stands without mutating the live stream.
   if (zoneId === "archipelago") {
@@ -238,6 +243,9 @@ function isSpawnWalkable(
   }
   if (tile === TileType.OverworldGate) {
     return overworldUnlocked;
+  }
+  if (tile === TileType.VillageGate) {
+    return villageGateUnlocked;
   }
   return false;
 }
@@ -444,6 +452,85 @@ export function migrateBoatStateToHarbor(value: unknown): void {
 }
 
 /**
+ * Pre-#291 saves had cottages west of the overworld gate (always reachable).
+ * After relocation, cottage interiors exit into the east yard. Grandfather the
+ * village gate unlock when the save already used village cottages, and clamp
+ * any locked stand east of the code gate back to the plaza.
+ * Run before isValidWorldSnapshot.
+ */
+export function repairLegacyVillageGateAccess(value: unknown): void {
+  if (typeof value !== "object" || value === null) {
+    return;
+  }
+  const s = value as Record<string, unknown>;
+  const flag = s.villageGateUnlocked;
+  const flagMalformed = flag !== undefined && typeof flag !== "boolean";
+
+  const villageCottageZones = new Set([
+    "warden-cottage",
+    "weaver-cottage",
+    "hearthkeep-cottage",
+  ]);
+  const villageNpcIds = new Set([
+    "warden-bryn",
+    "weaver-sable",
+    "hearthkeep-odd",
+  ]);
+
+  const villageMinigameIds = new Set([
+    "ward-crossing",
+    "loom-pattern",
+    "hearth-lots",
+  ]);
+
+  const pos = s.position as Record<string, unknown> | undefined;
+  const inCottage =
+    typeof pos?.zoneId === "string" && villageCottageZones.has(pos.zoneId);
+  const gifts = s.claimedNpcGifts;
+  const hadVillageNpc =
+    Array.isArray(gifts) &&
+    gifts.some((id) => typeof id === "string" && villageNpcIds.has(id));
+  const wins = s.claimedMinigameWins;
+  const hadCottageMinigame =
+    Array.isArray(wins) &&
+    wins.some((id) => typeof id === "string" && villageMinigameIds.has(id));
+
+  const zones = s.discoveredZones;
+  const visitedCottage =
+    Array.isArray(zones) &&
+    zones.some((id) => typeof id === "string" && villageCottageZones.has(id));
+
+  // Only grandfather when the field is absent so malformed flags still fail validation.
+  if (
+    flag === undefined &&
+    (inCottage || hadVillageNpc || hadCottageMinigame || visitedCottage)
+  ) {
+    s.villageGateUnlocked = true;
+  }
+
+  if (flagMalformed) {
+    return;
+  }
+
+  if (
+    pos?.zoneId === "village" &&
+    isFiniteNumber(pos.x) &&
+    isFiniteNumber(pos.y)
+  ) {
+    const x = Math.round(pos.x);
+    const y = Math.round(pos.y);
+    const unlocked = s.villageGateUnlocked === true;
+    const onOpenGate =
+      unlocked && x === VILLAGE_CODE_GATE.x && y === VILLAGE_CODE_GATE.y;
+    const inEastYard = unlocked && x > VILLAGE_CODE_GATE.x;
+    if (x >= VILLAGE_CODE_GATE.x && !onOpenGate && !inEastYard) {
+      pos.x = VILLAGE_CODE_GATE.x - 1;
+      pos.y = VILLAGE_CODE_GATE.y;
+    }
+  }
+}
+
+/**
  * Pre-#83 saves may stand on Folklore Fields y=13 floor tiles that are now water.
  * Relocate those positions to the village-gate land spawn instead of invalidating the save.
  * Run after migrateBoatStateToHarbor so mid-sail overworld stands are already in Harbor.
@@ -548,6 +635,12 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
     if (s.playerName.length > PLAYER_NAME_MAX_LENGTH) return false;
   }
   if (typeof s.overworldUnlocked !== "boolean") return false;
+  if (
+    s.villageGateUnlocked !== undefined &&
+    typeof s.villageGateUnlocked !== "boolean"
+  ) {
+    return false;
+  }
 
   if (s.discoveredZones !== undefined) {
     if (!Array.isArray(s.discoveredZones)) return false;
@@ -768,6 +861,7 @@ export function isValidWorldSnapshot(value: unknown): value is WorldSnapshot {
       pos.y,
       s.overworldUnlocked === true,
       s.sailing === true,
+      s.villageGateUnlocked === true,
     )
   ) {
     return false;
@@ -893,6 +987,7 @@ export function exportWorldSnapshot(
     hostLabel,
     ...(name ? { playerName: name } : {}),
     overworldUnlocked: worldState.overworldUnlocked,
+    villageGateUnlocked: worldState.villageGateUnlocked,
     discoveredZones: [...worldState.discoveredZones],
     discoveredCreatures: [...worldState.discoveredCreatures],
     unlockedAchievements: getUnlockedAchievements(),
@@ -934,6 +1029,7 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
 
   restoreQuestProgress(snapshot.questProgress);
   setOverworldUnlocked(questProgress["first-spar"] === "complete");
+  setVillageGateUnlocked(snapshot.villageGateUnlocked === true, false);
   setDiscoveredZones(snapshot.discoveredZones ?? [snapshot.position.zoneId]);
   // Older saves lack discoveredCreatures — treat party species as known.
   const fromParty = snapshot.party

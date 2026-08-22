@@ -1,5 +1,10 @@
 import { TileType, type ZoneDefinition, type ZoneId } from "./zoneTypes";
 import type { PropKind, ZoneProp } from "./zoneProps";
+import {
+  HERMIT_COTTAGE_LOCAL,
+  HERMIT_DOOR_LOCAL,
+  HERMIT_ISLAND_INDEX,
+} from "./hermitIsland";
 
 /** Full open-ocean height (sailing north/south stays in-bounds). */
 export const ARCHIPELAGO_HEIGHT = 100;
@@ -220,6 +225,7 @@ export const ARCHIPELAGO: ZoneDefinition = {
   lightTint: 0xa8d0e8,
   darkTint: 0x4a7898,
   transitions: westHarborTransitions(),
+  doors: [],
 };
 
 /** Island index for a NW-corner column/row pair, or -1 if not a grid origin. */
@@ -270,6 +276,40 @@ export function islandTemplateAtIndex(index: number): IslandTemplate {
   };
   islandTemplateCache.set(index, template);
   return template;
+}
+
+/** World tile of the hermit cottage E-door on island 3 (#291). */
+export function hermitDoorWorld(): { x: number; y: number } {
+  const island = islandTemplateAtIndex(HERMIT_ISLAND_INDEX);
+  return {
+    x: island.x + HERMIT_DOOR_LOCAL.dx,
+    y: island.y + HERMIT_DOOR_LOCAL.dy,
+  };
+}
+
+/** World tile of the hermit cottage prop on island 3 (#291). */
+export function hermitCottageWorld(): { x: number; y: number } {
+  const island = islandTemplateAtIndex(HERMIT_ISLAND_INDEX);
+  return {
+    x: island.x + HERMIT_COTTAGE_LOCAL.dx,
+    y: island.y + HERMIT_COTTAGE_LOCAL.dy,
+  };
+}
+
+function hermitIslandDoor(): NonNullable<ZoneDefinition["doors"]>[number] {
+  const door = hermitDoorWorld();
+  return {
+    x: door.x,
+    y: door.y,
+    targetZone: "hermit-cottage",
+    targetX: 3,
+    targetY: 5,
+    label: "Island Cottage",
+  };
+}
+
+function applyHermitDoor(): void {
+  ARCHIPELAGO.doors = [hermitIslandDoor()];
 }
 
 const islandListCache = new Map<number, readonly IslandTemplate[]>();
@@ -400,7 +440,7 @@ export function islandIndexAtTile(
 }
 
 function stampIsland(island: IslandTemplate): void {
-  const { x, y, dock, biome, pier } = island;
+  const { x, y, dock, biome, pier, index } = island;
   for (let dx = 0; dx < ISLAND_WIDTH; dx++) {
     for (let dy = 0; dy < ISLAND_WIDTH; dy++) {
       const tx = x + dx;
@@ -415,6 +455,21 @@ function stampIsland(island: IslandTemplate): void {
     ARCHIPELAGO.tiles[dock.y][dock.x] = TileType.Dock;
   }
 
+  const hermitCottage =
+    index === HERMIT_ISLAND_INDEX
+      ? {
+          x: x + HERMIT_COTTAGE_LOCAL.dx,
+          y: y + HERMIT_COTTAGE_LOCAL.dy,
+        }
+      : null;
+  const hermitDoor =
+    index === HERMIT_ISLAND_INDEX
+      ? {
+          x: x + HERMIT_DOOR_LOCAL.dx,
+          y: y + HERMIT_DOOR_LOCAL.dy,
+        }
+      : null;
+
   const kinds = propKindsForBiome(biome);
   for (let i = 0; i < ISLAND_PROP_CELLS.length; i++) {
     const cell = ISLAND_PROP_CELLS[i]!;
@@ -422,6 +477,16 @@ function stampIsland(island: IslandTemplate): void {
     const py = y + cell.dy;
     // Keep the embark pier clear of props.
     if (px === pier.x && py === pier.y) {
+      continue;
+    }
+    if (
+      hermitCottage &&
+      px === hermitCottage.x &&
+      py === hermitCottage.y
+    ) {
+      continue;
+    }
+    if (hermitDoor && px === hermitDoor.x && py === hermitDoor.y) {
       continue;
     }
     if (
@@ -437,6 +502,14 @@ function stampIsland(island: IslandTemplate): void {
       x: px,
       y: py,
       kind: kinds[i % kinds.length]!,
+    });
+  }
+
+  if (hermitCottage && inBounds(hermitCottage.x, hermitCottage.y)) {
+    archipelagoProps.push({
+      x: hermitCottage.x,
+      y: hermitCottage.y,
+      kind: "cottage",
     });
   }
 }
@@ -608,7 +681,9 @@ export function resetArchipelagoStream(): void {
   );
   ARCHIPELAGO.transitions = westHarborTransitions();
   stampIslandsInColumnRange(0, ARCHIPELAGO_INITIAL_WIDTH);
+  applyHermitDoor();
 }
 
 // Stamp the full island grid into the module singleton on load.
 stampIslandsInColumnRange(0, ARCHIPELAGO_INITIAL_WIDTH);
+applyHermitDoor();

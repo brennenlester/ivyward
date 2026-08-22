@@ -9,7 +9,7 @@ import { findNearbyDoor, isNearShrine } from "./interactProximity";
 import { getZone } from "./zones";
 
 describe("pickInteractPrompt", () => {
-  it("returns exactly one label in shrine → door → minigame → npc → dock → sailing → gather order", () => {
+  it("returns exactly one label in shrine → door → gate → minigame → npc → dock → sailing → gather order", () => {
     const picked = pickInteractPrompt({
       shrine: "Press E — Moon Shrine",
       door: "Press E — Weaver's Cottage",
@@ -23,8 +23,8 @@ describe("pickInteractPrompt", () => {
 
   it("picks door over gather when both sit on the same village tile", () => {
     const village = getZone("village");
-    const door = findNearbyDoor(village, 6, 2);
-    const gather = findGatherPropNearPlayer("village", 6, 2);
+    const door = findNearbyDoor(village, 13, 2);
+    const gather = findGatherPropNearPlayer("village", 13, 2);
     expect(door?.label).toBe("Weaver's Cottage");
     expect(gather?.kind).toBe("pebble-pile");
     expect(
@@ -56,6 +56,7 @@ describe("pickInteractPrompt", () => {
     const labels = {
       shrine: "Press E — Moon Shrine",
       door: "Press E — Weaver's Cottage",
+      gate: "Press E — Enter gate code",
       minigame: "Press E — Hearth Lots",
       npc: "Press E — Talk to Odd",
       dock: "Press E — Board boat",
@@ -65,6 +66,7 @@ describe("pickInteractPrompt", () => {
     expect(INTERACT_PROMPT_PRIORITY).toEqual([
       "shrine",
       "door",
+      "gate",
       "minigame",
       "npc",
       "dock",

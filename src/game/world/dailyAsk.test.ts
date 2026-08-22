@@ -95,6 +95,7 @@ describe("ensureDailyAsk stability (AC1)", () => {
     expect(snap.dailyAsk?.status).toBe("active");
 
     resetDailyAskForTest();
+    setDailyAskNowForTest(() => dateAt("2026-08-21"));
     expect(getDailyAskState()).toBeNull();
     applyWorldSnapshot(snap);
     expect(getDailyAskState()?.materialId).toBe(first!.materialId);

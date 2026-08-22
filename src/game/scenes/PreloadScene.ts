@@ -70,6 +70,10 @@ export class PreloadScene extends Phaser.Scene {
       "boundary-hearthkeep-cottage",
       "assets/world/boundary-cottage.png",
     );
+    this.load.image(
+      "boundary-hermit-cottage",
+      "assets/world/boundary-cottage.png",
+    );
     preloadGameAudio(this);
   }
 

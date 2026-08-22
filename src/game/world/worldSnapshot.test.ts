@@ -35,6 +35,7 @@ import {
   migrateBoatStateToHarbor,
   repairLegacyArchipelagoLayoutPosition,
   repairLegacyOverworldShorePosition,
+  repairLegacyVillageGateAccess,
   type WorldSnapshot,
 } from "./worldSnapshot";
 import { HARBOR_EMBARK_WATER } from "./dockBoat";
@@ -563,6 +564,98 @@ describe("applyWorldSnapshot codex achievement", () => {
     applyWorldSnapshot(validSnapshot({ eclipseFusionCompleted: true, horizonFusionCount: 2 }));
     expect(getTideSovereignObtained()).toBe(2);
     expect(getCairnSovereignObtained()).toBe(2);
+  });
+
+  it("round-trips villageGateUnlocked (#291)", () => {
+    applyWorldSnapshot(validSnapshot({ villageGateUnlocked: true }));
+    expect(worldState.villageGateUnlocked).toBe(true);
+    expect(
+      exportWorldSnapshot({ zoneId: "grove", x: 5, y: 5 }).villageGateUnlocked,
+    ).toBe(true);
+
+    applyWorldSnapshot(validSnapshot());
+    expect(worldState.villageGateUnlocked).toBe(false);
+  });
+
+  it("grandfathers village gate for legacy cottage / villager saves (#291)", () => {
+    const inCottage = validSnapshot({
+      position: { zoneId: "warden-cottage", x: 3, y: 3 },
+    });
+    delete (inCottage as { villageGateUnlocked?: boolean }).villageGateUnlocked;
+    repairLegacyVillageGateAccess(inCottage);
+    expect(inCottage.villageGateUnlocked).toBe(true);
+
+    const gifted = validSnapshot({
+      claimedNpcGifts: ["weaver-sable"],
+    });
+    delete (gifted as { villageGateUnlocked?: boolean }).villageGateUnlocked;
+    repairLegacyVillageGateAccess(gifted);
+    expect(gifted.villageGateUnlocked).toBe(true);
+
+    const eastYard = {
+      version: 1,
+      hostLabel: "test",
+      overworldUnlocked: true,
+      questProgress: validSnapshot().questProgress,
+      party: validSnapshot().party,
+      nextInstanceId: 2,
+      materials: {},
+      items: {},
+      position: { zoneId: "village", x: 12, y: 5 },
+    };
+    repairLegacyVillageGateAccess(eastYard);
+    expect(eastYard.position).toEqual({ zoneId: "village", x: 7, y: 5 });
+
+    const dividerColumn = {
+      version: 1,
+      hostLabel: "test",
+      overworldUnlocked: true,
+      questProgress: validSnapshot().questProgress,
+      party: validSnapshot().party,
+      nextInstanceId: 2,
+      materials: {},
+      items: {},
+      position: { zoneId: "village", x: 8, y: 3 },
+    };
+    repairLegacyVillageGateAccess(dividerColumn);
+    expect(dividerColumn.position).toEqual({ zoneId: "village", x: 7, y: 5 });
+
+    const minigameOnly = validSnapshot({
+      claimedMinigameWins: ["hearth-lots"],
+    });
+    delete (minigameOnly as { villageGateUnlocked?: boolean }).villageGateUnlocked;
+    repairLegacyVillageGateAccess(minigameOnly);
+    expect(minigameOnly.villageGateUnlocked).toBe(true);
+
+    const giftedOnDivider = validSnapshot({
+      claimedNpcGifts: ["warden-bryn"],
+      position: { zoneId: "village", x: 8, y: 3 },
+    });
+    delete (giftedOnDivider as { villageGateUnlocked?: boolean })
+      .villageGateUnlocked;
+    repairLegacyVillageGateAccess(giftedOnDivider);
+    expect(giftedOnDivider.villageGateUnlocked).toBe(true);
+    expect(giftedOnDivider.position).toEqual({
+      zoneId: "village",
+      x: 7,
+      y: 5,
+    });
+
+    const discoveredCottage = validSnapshot({
+      discoveredZones: ["village", "warden-cottage"],
+    });
+    delete (discoveredCottage as { villageGateUnlocked?: boolean })
+      .villageGateUnlocked;
+    repairLegacyVillageGateAccess(discoveredCottage);
+    expect(discoveredCottage.villageGateUnlocked).toBe(true);
+
+    const malformed = validSnapshot({
+      claimedNpcGifts: ["warden-bryn"],
+      villageGateUnlocked: "yes" as unknown as boolean,
+    });
+    repairLegacyVillageGateAccess(malformed);
+    expect(malformed.villageGateUnlocked).toBe("yes");
+    expect(isValidWorldSnapshot(malformed)).toBe(false);
   });
 
   it("restores the god fusion flag and defaults older saves to incomplete", () => {
