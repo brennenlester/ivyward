@@ -57,6 +57,15 @@ describe("archipelago exclusive encounters", () => {
     expect(shouldAttemptWildEncounter(false)).toBe(true);
   });
 
+  it("suppresses wild rolls when Sovereign Plate suppress flag is set", () => {
+    expect(shouldAttemptWildEncounter(false, { suppressWild: true })).toBe(
+      false,
+    );
+    expect(shouldAttemptWildEncounter(false, { suppressWild: false })).toBe(
+      true,
+    );
+  });
+
   it("maps each island index to a unique creature", () => {
     const islandCount = ISLAND_ROWS * ISLAND_COLS;
     expect(ARCHIPELAGO_ISLAND_CREATURE_IDS).toHaveLength(islandCount);

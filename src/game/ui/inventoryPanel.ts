@@ -5,8 +5,13 @@ import {
 import {
   getItemCount,
   playerInventory,
+  SOVEREIGN_PLATE_ID,
 } from "../inventory/playerInventory";
 import { isVisitorMode } from "../world/worldSession";
+import {
+  isSovereignPlateActive,
+  toggleSovereignPlateActive,
+} from "../world/worldState";
 import {
   mountCraftingHud,
   OPEN_PORTABLE_SHRINE_EVENT,
@@ -168,6 +173,25 @@ function renderInventoryBody(): void {
             usePortableMoonshrine();
           });
           li.appendChild(useBtn);
+        } else if (
+          line.kind === "item" &&
+          line.id === SOVEREIGN_PLATE_ID &&
+          !isVisitorMode()
+        ) {
+          const toggleBtn = document.createElement("button");
+          toggleBtn.type = "button";
+          toggleBtn.className = "inventory-use";
+          toggleBtn.dataset.inventoryUse = line.id;
+          toggleBtn.textContent = isSovereignPlateActive() ? "On" : "Off";
+          toggleBtn.setAttribute(
+            "aria-pressed",
+            isSovereignPlateActive() ? "true" : "false",
+          );
+          toggleBtn.addEventListener("click", () => {
+            toggleSovereignPlateActive();
+            renderInventoryBody();
+          });
+          li.appendChild(toggleBtn);
         } else if (canShowInventoryConsumableUse(line.id)) {
           const useBtn = document.createElement("button");
           useBtn.type = "button";

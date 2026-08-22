@@ -29,6 +29,8 @@ export const worldState = {
   firstIslandLanded: false,
   /** Harbor once-per-species Befriend claims (#275). */
   harborBefriendUsed: [] as string[],
+  /** Sovereign Plate toggle: suppress wild encounters while owned + active (#289). */
+  sovereignPlateActive: false,
 };
 
 export function setOverworldUnlocked(unlocked: boolean): void {
@@ -45,6 +47,22 @@ export function setDiscoveredCreatures(creatureIds: string[]): void {
 
 export function setHarborBefriendUsed(creatureIds: string[]): void {
   worldState.harborBefriendUsed = [...new Set(creatureIds)];
+}
+
+export function isSovereignPlateActive(): boolean {
+  return worldState.sovereignPlateActive;
+}
+
+export function setSovereignPlateActive(active: boolean, notify = true): void {
+  worldState.sovereignPlateActive = active;
+  if (notify) {
+    notifyWorldChanged();
+  }
+}
+
+export function toggleSovereignPlateActive(notify = true): boolean {
+  setSovereignPlateActive(!worldState.sovereignPlateActive, notify);
+  return worldState.sovereignPlateActive;
 }
 
 export function isGodSailEncounterClaimed(): boolean {

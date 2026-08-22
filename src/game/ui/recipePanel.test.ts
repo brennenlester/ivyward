@@ -8,6 +8,7 @@ describe("listRecipePages", () => {
     expect(pages.map((p) => p.id)).toContain("brook-tonic");
     expect(pages.map((p) => p.id)).toContain("portable-moonshrine");
     expect(pages.map((p) => p.id)).toContain("sovereign-seal");
+    expect(pages.map((p) => p.id)).toContain("sovereign-plate");
     expect(pages.map((p) => p.id)).not.toContain("tide-crown");
     expect(pages.map((p) => p.id)).not.toContain("boulder-crown");
     const tonic = pages.find((p) => p.id === "brook-tonic")!;
@@ -23,6 +24,14 @@ describe("listRecipePages", () => {
     expect(seal.name).toBe("Sovereign Seal");
     expect(seal.outputItemId).toBe("sovereign-seal");
     expect(seal.grid[3]).toEqual(["tide-crown", "wild-fiber", "boulder-crown"]);
+    const plate = pages.find((p) => p.id === "sovereign-plate")!;
+    expect(plate.name).toBe("Sovereign Plate");
+    expect(plate.uniqueOwned).toBe(true);
+    expect(plate.grid).toEqual([
+      ["wild-fiber", "stone", "stone", "wild-fiber"],
+      ["stone", "boulder-crown", "tide-crown", "stone"],
+      ["wild-fiber", "stone", "stone", "wild-fiber"],
+    ]);
   });
 });
 

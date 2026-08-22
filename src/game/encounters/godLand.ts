@@ -1,6 +1,6 @@
 import { addToPartyFainted, countCreatures } from "../creatures/party";
 import type { MoveDefinition } from "../creatures/types";
-import { addItem, canAddItem, getItemCount, BOULDER_CROWN_ID } from "../inventory/playerInventory";
+import { addItem, canAddItem, getItemCount, ownsSovereignPlate, BOULDER_CROWN_ID } from "../inventory/playerInventory";
 import type { ZoneId } from "../world/zoneTypes";
 import { TileType } from "../world/zoneTypes";
 import {
@@ -95,7 +95,12 @@ export function shouldAttemptGodLandEncounter(
     context.walkableLand &&
     !context.visitor &&
     // ponytail: claimed stops natural rolls only after the crown is earned, so befriend-first and legacy claimed saves can still spar for it.
-    !(context.claimed && getItemCount(BOULDER_CROWN_ID) > 0)
+    // Sovereign Plate (#289): keep farming crowns even while a crown is held.
+    !(
+      context.claimed &&
+      getItemCount(BOULDER_CROWN_ID) > 0 &&
+      !ownsSovereignPlate()
+    )
   );
 }
 
@@ -163,10 +168,13 @@ function grantCrownIfMissing(itemId: string): boolean {
 
 /** Grants Stone Sovereign up to two copies per save. */
 export function claimCairnSovereign(): GodLandClaimResult {
-  const creatureAdded = canObtainAnotherParentSovereign(
-    getCairnSovereignObtained(),
-    countCreatures(CAIRN_SOVEREIGN_ID),
-  );
+  // Sovereign Plate (#289): crown-farm path — never add sovereigns to the party.
+  const creatureAdded =
+    !ownsSovereignPlate() &&
+    canObtainAnotherParentSovereign(
+      getCairnSovereignObtained(),
+      countCreatures(CAIRN_SOVEREIGN_ID),
+    );
   if (creatureAdded) {
     addToPartyFainted(CAIRN_SOVEREIGN_ID);
     recordCairnSovereignObtained();

@@ -259,6 +259,70 @@ describe("sovereign seal recipe", () => {
   });
 });
 
+describe("sovereign plate recipe", () => {
+  const plateRecipe = CRAFT_RECIPES.find((r) => r.id === "sovereign-plate")!;
+  const plateMats = {
+    "wild-fiber": 4,
+    stone: 6,
+  };
+
+  it("forms Sovereign Plate from fiber, stone, and both crowns", () => {
+    expect(plateRecipe).toMatchObject({
+      name: "Sovereign Plate",
+      outputItemId: "sovereign-plate",
+      pattern: ["FSSF", "SCTS", "FSSF"],
+      uniqueOwned: true,
+      consumeItemIngredients: true,
+    });
+    expect(getRecipeMaterials(plateRecipe)).toEqual([
+      { materialId: "wild-fiber", count: 4 },
+      { materialId: "stone", count: 6 },
+      { materialId: "boulder-crown", count: 1 },
+      { materialId: "tide-crown", count: 1 },
+    ]);
+  });
+
+  it("consumes crowns and materials when craftItem succeeds", () => {
+    setInventoryFromSnapshot(plateMats, {
+      "tide-crown": 1,
+      "boulder-crown": 1,
+    });
+    expect(craftItem(plateRecipe)).toBe(true);
+    expect(getItemCount("sovereign-plate")).toBe(1);
+    expect(getItemCount("tide-crown")).toBe(0);
+    expect(getItemCount("boulder-crown")).toBe(0);
+    expect(getMaterialCount("wild-fiber")).toBe(0);
+    expect(getMaterialCount("stone")).toBe(0);
+  });
+
+  it("crafts from the grid without returning crowns", () => {
+    setInventoryFromSnapshot({}, {});
+    const grid = placePattern(emptyGrid(), plateRecipe.pattern, 0, 0);
+    const result = craftFromGrid(grid, "altar");
+    expect(result.ok).toBe(true);
+    expect(getItemCount("sovereign-plate")).toBe(1);
+    expect(getItemCount("tide-crown")).toBe(0);
+    expect(getItemCount("boulder-crown")).toBe(0);
+    if (result.ok) {
+      expect(result.grid).toEqual(emptyGrid());
+    }
+  });
+
+  it("blocks a second plate while one is owned", () => {
+    setInventoryFromSnapshot(plateMats, {
+      "tide-crown": 1,
+      "boulder-crown": 1,
+      "sovereign-plate": 1,
+    });
+    expect(canCraft(plateRecipe)).toBe(false);
+    expect(
+      matchGrid(placePattern(emptyGrid(), plateRecipe.pattern, 0, 0), "altar"),
+    ).toMatchObject({
+      status: "blocked",
+    });
+  });
+});
+
 describe("matchGrid", () => {
   it("matches a pattern translated on the 4×4", () => {
     const grid = placePattern(emptyGrid(), cudgelRecipe.pattern, 1, 2);

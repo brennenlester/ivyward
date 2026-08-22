@@ -97,6 +97,8 @@ describe("god sail encounter", () => {
     expect(shouldAttemptGodSailEncounter({ ...valid, claimed: true })).toBe(true);
     setInventoryFromSnapshot({}, { "tide-crown": 1 });
     expect(shouldAttemptGodSailEncounter({ ...valid, claimed: true })).toBe(false);
+    setInventoryFromSnapshot({}, { "tide-crown": 1, "sovereign-plate": 1 });
+    expect(shouldAttemptGodSailEncounter({ ...valid, claimed: true })).toBe(true);
   });
 
   it("keeps the god out of normal encounter tables and the codex", () => {
@@ -313,6 +315,19 @@ describe("god sail encounter", () => {
     });
     expect(playerParty.creatures).toHaveLength(2);
     expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
+  });
+
+  it("grants crown without party join when Sovereign Plate is owned", () => {
+    setInventoryFromSnapshot({}, { "sovereign-plate": 1 });
+    expect(resolveTideSovereignOutcome("spar-win")).toEqual({
+      creatureAdded: false,
+      weaponGranted: true,
+      crownGranted: true,
+    });
+    expect(hasCreature(TIDE_SOVEREIGN_ID)).toBe(false);
+    expect(getItemCount("tide-crown")).toBe(1);
+    expect(getItemCount(TIDE_CLEAVER_ID)).toBe(1);
+    expect(isGodSailEncounterClaimed()).toBe(true);
   });
 
   it("does not add a third Tide after the two-copy cap", () => {
