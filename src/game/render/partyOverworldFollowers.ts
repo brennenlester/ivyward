@@ -8,7 +8,8 @@ import {
   hasPresenceGrowth,
   PRESENCE_MOON_DOT_COLOR,
   presenceMoonDotOffset,
-  presenceTintForCreature,
+  presenceTintColor,
+  selectOverworldFollowers,
 } from "../shrine/presence";
 import { CREATURE_DISPLAY, fitDisplay } from "./displaySizes";
 
@@ -92,8 +93,11 @@ function syncFollowerVisual(
     fitDisplay(sprite, CREATURE_DISPLAY);
   }
 
-  const tint = presenceTintForCreature(creature);
-  sprite.setTint(tint);
+  if (hasPresenceGrowth(creature)) {
+    sprite.setTint(presenceTintColor(def.spriteColor));
+  } else {
+    sprite.clearTint();
+  }
   sprite.setAlpha(creature.currentHp > 0 ? 1 : 0.45);
   sprite.setDepth(depth - 1 - index * 0.01);
 
@@ -120,7 +124,7 @@ export function syncPartyOverworldFollowers(
   state: PartyOverworldFollowerState,
   options: { x: number; y: number; facing: Facing; depth: number },
 ): void {
-  const actives = getActiveCreatures().slice(0, MAX_FOLLOWERS);
+  const actives = selectOverworldFollowers(getActiveCreatures(), MAX_FOLLOWERS);
   for (let i = 0; i < actives.length; i += 1) {
     syncFollowerVisual(
       scene,

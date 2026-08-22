@@ -25,6 +25,7 @@ import {
 import type { QuestId, QuestStatus } from "../story/questTypes";
 import { QUEST_ORDER } from "../story/quests";
 import { reopenParentSovereignEncounters } from "../shrine/godFusion";
+import { migrateLegacyPresenceCharmBuffs } from "../shrine/presence";
 import { CAIRN_SOVEREIGN_ID } from "../encounters/godLand";
 import { TIDE_SOVEREIGN_ID } from "../encounters/godSail";
 import {
@@ -1049,10 +1050,14 @@ export function applyWorldSnapshot(snapshot: WorldSnapshot): void {
   // Pre-evolution saves lack speciesId; hasCreature() matches on it, so a
   // missing value reads owned sovereigns as absent and re-opens their claimed
   // encounters (#192).
-  const party = snapshot.party.map((member) => ({
-    ...member,
-    speciesId: member.speciesId ?? member.definitionId,
-  }));
+  const party = snapshot.party.map((member) => {
+    const creature = {
+      ...member,
+      speciesId: member.speciesId ?? member.definitionId,
+    };
+    migrateLegacyPresenceCharmBuffs(creature);
+    return creature;
+  });
   setPartyFromSnapshot(
     party,
     nextInstanceIdAfter(party, snapshot.nextInstanceId),

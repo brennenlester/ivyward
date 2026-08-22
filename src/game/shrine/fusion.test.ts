@@ -17,8 +17,10 @@ import { applyShrineFusion } from "./fusion";
 import { effectKey } from "./shrineEffects";
 import {
   hasPresenceGrowth,
+  migrateLegacyPresenceCharmBuffs,
   presenceTintColor,
   presenceTintForCreature,
+  selectOverworldFollowers,
 } from "./presence";
 
 function member(
@@ -136,5 +138,40 @@ describe("presence overworld tell seam (#296)", () => {
     expect(hasPresenceGrowth(fox)).toBe(true);
     expect(presenceTintForCreature(fox)).toBe(presenceTintColor(base));
     expect(presenceTintForCreature(fox)).not.toBe(base);
+  });
+
+  it("prioritizes presence companions in overworld follower selection", () => {
+    const actives = [
+      member({ instanceId: "c-1", definitionId: "mossling" }),
+      member({ instanceId: "c-2", definitionId: "brook-nymph" }),
+      member({ instanceId: "c-3", definitionId: "stone-hound" }),
+      member({ instanceId: "c-4", definitionId: "lantern-fox" }),
+    ];
+    actives[3]!.appliedEffects = [effectKey("lantern-fox", "fox-fire-charm")];
+
+    const visible = selectOverworldFollowers(actives, 3);
+    expect(visible.map((c) => c.instanceId)).toEqual(["c-4", "c-1", "c-2"]);
+  });
+
+  it("strips legacy combat buffs when remapped presence keys load from save", () => {
+    const finch = member({
+      instanceId: "c-t",
+      definitionId: "thunder-finch",
+      attackBonus: 4,
+      secondaryElement: "storm",
+      secondaryMove: {
+        id: "tempest-peck",
+        name: "Tempest Peck",
+        power: 9,
+        type: "storm",
+        accuracy: 90,
+      },
+      appliedEffects: [effectKey("thunder-finch", "storm-charm")],
+    });
+
+    migrateLegacyPresenceCharmBuffs(finch);
+    expect(finch.attackBonus).toBeUndefined();
+    expect(finch.secondaryElement).toBeUndefined();
+    expect(finch.secondaryMove).toBeUndefined();
   });
 });

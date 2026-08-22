@@ -44,6 +44,45 @@ export function presenceTintForCreature(creature: CreatureInstance): number {
   return hasPresenceGrowth(creature) ? presenceTintColor(base) : base;
 }
 
+/** Prefer presence-bearing actives so the overworld tell stays visible. */
+export function selectOverworldFollowers(
+  actives: readonly CreatureInstance[],
+  limit = 3,
+): CreatureInstance[] {
+  const withPresence = actives.filter((creature) => hasPresenceGrowth(creature));
+  const withoutPresence = actives.filter(
+    (creature) => !hasPresenceGrowth(creature),
+  );
+  return [...withPresence, ...withoutPresence].slice(0, limit);
+}
+
+const LEGACY_PRESENCE_BUFF_KEYS: Record<
+  string,
+  { clearAttack?: true; clearHp?: true }
+> = {
+  [effectKey("thunder-finch", "storm-charm")]: { clearAttack: true },
+  [effectKey("lantern-fox", "fox-fire-charm")]: { clearAttack: true },
+  [effectKey("peat-sprite", "fen-charm")]: { clearHp: true },
+};
+
+/** Strip combat buffs from saves that applied remapped charms under old semantics. */
+export function migrateLegacyPresenceCharmBuffs(creature: CreatureInstance): void {
+  for (const key of creature.appliedEffects ?? []) {
+    const rule = LEGACY_PRESENCE_BUFF_KEYS[key];
+    if (!rule) {
+      continue;
+    }
+    if (rule.clearAttack) {
+      creature.attackBonus = undefined;
+      creature.secondaryElement = undefined;
+      creature.secondaryMove = undefined;
+    }
+    if (rule.clearHp) {
+      creature.hpBonus = undefined;
+    }
+  }
+}
+
 /** Logical moon-dot offset above a creature display box (see CREATURE_DISPLAY). */
 export function presenceMoonDotOffset(displayHeight: number): number {
   return displayHeight + 4;
