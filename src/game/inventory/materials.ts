@@ -78,6 +78,8 @@ export const ITEM_NAMES: Record<string, string> = {
   "storm-charm": "Storm Charm",
   "fox-fire-charm": "Fox-fire Charm",
   "fen-charm": "Fen Charm",
+  "nymph-charm": "Nymph Charm",
+  "hound-collar": "Hound Collar",
   "brook-tonic": "Brook Tonic",
   "brook-crystal": "Brook Crystal",
   "moonwake-draught": "Moonwake Draught",

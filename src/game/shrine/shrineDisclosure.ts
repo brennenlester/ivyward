@@ -32,6 +32,8 @@ const SPOTLIGHT_PRIORITY: readonly string[] = [
   "storm-charm",
   "fox-fire-charm",
   "fen-charm",
+  "nymph-charm",
+  "hound-collar",
   "brook-tonic",
   "moonwake-draught",
   "boat",

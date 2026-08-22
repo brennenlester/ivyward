@@ -5,6 +5,7 @@ import {
   playerParty,
 } from "../creatures/party";
 import { consumeItem } from "../inventory/playerInventory";
+import { isVisitorMode } from "../world/worldSession";
 import {
   effectKey,
   getEffectsForItem,
@@ -21,6 +22,10 @@ export function applyShrineFusion(
   instanceId: string,
   itemId: string,
 ): FusionResult {
+  if (isVisitorMode()) {
+    return { ok: false, message: "Visitors cannot apply shrine effects." };
+  }
+
   const creature = getCreatureInstance(instanceId);
   if (!creature) {
     return { ok: false, message: "Creature not found." };
@@ -94,6 +99,10 @@ function applyEffect(
       const newMax = getEffectiveMaxHp(creature);
       creature.currentHp = Math.max(1, Math.round(newMax * hpRatio));
       return `${prevName} evolved into ${newDef.name}!`;
+    }
+    case "presence": {
+      const def = getCreatureDefinition(creature.definitionId);
+      return `${def.name} shows a new presence in the world!`;
     }
   }
 }

@@ -48,6 +48,12 @@ import {
   walkFootfallsSince,
 } from "../render/playerWalk";
 import {
+  createPartyOverworldFollowerState,
+  destroyPartyOverworldFollowers,
+  syncPartyOverworldFollowers,
+  type PartyOverworldFollowerState,
+} from "../render/partyOverworldFollowers";
+import {
   ENCOUNTER_TRAVEL_THRESHOLD,
   shouldAttemptWildEncounter,
 } from "../encounters/tables";
@@ -269,6 +275,9 @@ export class IsometricScene extends Phaser.Scene {
   private dockBoat?: Phaser.GameObjects.Image;
   /** Boat sprite that follows the player while sailing. */
   private sailingBoat?: Phaser.GameObjects.Image;
+  /** Active-party overworld sprites (presence tell). */
+  private partyFollowers: PartyOverworldFollowerState =
+    createPartyOverworldFollowerState();
   /** Westmost column still holding archipelago stream sprites (exclusive cull). */
   /** Live stream-tagged sprites; culls iterate this, never the full display list (#194). */
   private streamSprites = new Set<Phaser.GameObjects.Image>();
@@ -994,6 +1003,8 @@ export class IsometricScene extends Phaser.Scene {
     markZoneDiscovered(zoneId);
 
     this.children.removeAll(true);
+    destroyPartyOverworldFollowers(this.partyFollowers);
+    this.partyFollowers = createPartyOverworldFollowerState();
     this.shrinePrompt = undefined;
     this.walkHint = undefined;
     this.dockBoat = undefined;
@@ -1970,6 +1981,12 @@ export class IsometricScene extends Phaser.Scene {
     const bob = this.isMoving ? walkBobOffset(this.walkPhase) : 0;
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(this.playerDepth);
+    syncPartyOverworldFollowers(this, this.partyFollowers, {
+      x: screen.x,
+      y: this.playerBaseY + bob,
+      facing: this.playerFacing,
+      depth: this.playerDepth,
+    });
     this.syncNameTagPosition();
     // Boat stays on the waterline; only the trainer bobs with gait.
     this.syncSailingBoat(screen.x, this.playerBaseY);

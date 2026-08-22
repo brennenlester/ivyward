@@ -119,6 +119,21 @@ export const CRAFT_RECIPES: CraftRecipe[] = [
     pattern: ["UD", "U."],
   },
   {
+    id: "nymph-charm",
+    name: "Nymph Charm",
+    outputItemId: "nymph-charm",
+    outputCount: 1,
+    // Pearl + dust like brook-tonic, distinct bounding box so matchGrid stays unambiguous.
+    pattern: ["DP", "P."],
+  },
+  {
+    id: "hound-collar",
+    name: "Hound Collar",
+    outputItemId: "hound-collar",
+    outputCount: 1,
+    pattern: ["BD", "B."],
+  },
+  {
     id: "brook-tonic",
     name: "Brook Tonic",
     outputItemId: "brook-tonic",
