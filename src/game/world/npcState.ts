@@ -371,6 +371,12 @@ function hermitConversation(npc: NpcDefinition): Conversation {
     if (giftLine) {
       lines.push(giftLine);
     }
+    if (!isVisitorMode() && getTideSovereignObtained() > 0) {
+      lines.push(
+        `You already met the Tide Sovereign. The east gate at Hearth Crossing opens to ${VILLAGE_GATE_CODE}.`,
+        "Four digits. Speak them at the locked gate. The cottages are waiting on the other side.",
+      );
+    }
     return talk(lines);
   }
 
