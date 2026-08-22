@@ -3,6 +3,8 @@ import { getActiveCreatures } from "../creatures/party";
 import { getMaterialForCreature, getMaterialName } from "../inventory/materials";
 import { addMaterial } from "../inventory/playerInventory";
 import { grantSparXp, XP_PER_SPAR_WIN } from "../progression/leveling";
+import { isDefeatScalingExcluded } from "../progression/wildLevel";
+import { recordSparWin } from "../world/sparWins";
 import { recordQuestEvent } from "../story/questProgress";
 
 export type SparXpShareEntry = {
@@ -112,6 +114,10 @@ export function grantSparRewards(
   }
 
   recordQuestEvent({ type: "win_spar" });
+
+  if (!isDefeatScalingExcluded(wildCreatureId)) {
+    recordSparWin(wildCreatureId);
+  }
 
   return summary;
 }

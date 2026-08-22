@@ -38,6 +38,7 @@ import {
 import type { ZoneId } from "../world/zoneTypes";
 import { isVisitorMode } from "../world/worldSession";
 import { markCreatureDiscovered } from "../world/worldState";
+import { getWildEffectiveLevel } from "../progression/wildLevel";
 import { unlockCodexHud } from "../ui/hudChrome";
 
 const PANEL_WIDTH = 460;
@@ -326,7 +327,8 @@ export class EncounterScene extends Phaser.Scene {
           );
         }
       } else {
-        addToParty(this.creatureId);
+        const level = getWildEffectiveLevel(this.creatureId);
+        addToParty(this.creatureId, level);
         this.showResult(`${getCreatureDefinition(this.creatureId).name} joined you!`);
       }
     } else {

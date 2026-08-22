@@ -1,8 +1,10 @@
 import { getCreatureDefinition } from "./catalog";
 import {
+  createCreatureProgressAtLevel,
   createNewCreatureProgress,
   LEVEL_XP_THRESHOLDS,
   MAX_LEVEL,
+  scaledStat,
 } from "../progression/leveling";
 import { hasCraftedWeapon } from "../battle/wandererWeapons";
 import { recordQuestEvent } from "../story/questProgress";
@@ -55,17 +57,27 @@ export function setPartyFromSnapshot(
 
 function addToPartyWithHp(
   definitionId: string,
-  currentHp: number,
+  currentHp: number | "full",
+  level = 1,
 ): CreatureInstance {
   const def = getCreatureDefinition(definitionId);
+  const progress =
+    level <= 1
+      ? createNewCreatureProgress()
+      : createCreatureProgressAtLevel(level);
   const instance: CreatureInstance = {
     instanceId: `c-${nextInstanceId++}`,
     definitionId,
     speciesId: definitionId,
-    currentHp: Math.min(def.maxHp, Math.max(0, currentHp)),
-    ...createNewCreatureProgress(),
+    currentHp: 0,
+    ...progress,
     trait: rollSignatureTrait(definitionId, def.folkloreType),
   };
+  const maxHp = getEffectiveMaxHp(instance);
+  instance.currentHp =
+    currentHp === "full"
+      ? maxHp
+      : Math.min(maxHp, Math.max(0, currentHp));
   playerParty.creatures.push(instance);
   // Overflow joins go to reserve when the active party is full.
   if (playerParty.activeInstanceIds.length < ACTIVE_PARTY_LIMIT) {
@@ -76,15 +88,19 @@ function addToPartyWithHp(
   return instance;
 }
 
-export function addToParty(definitionId: string): CreatureInstance {
-  return addToPartyWithHp(
-    definitionId,
-    getCreatureDefinition(definitionId).maxHp,
-  );
+/** Befriend / join at an optional level (defaults to Lv 1). */
+export function addToParty(
+  definitionId: string,
+  level = 1,
+): CreatureInstance {
+  return addToPartyWithHp(definitionId, "full", level);
 }
 
-export function addToPartyFainted(definitionId: string): CreatureInstance {
-  return addToPartyWithHp(definitionId, 0);
+export function addToPartyFainted(
+  definitionId: string,
+  level = 1,
+): CreatureInstance {
+  return addToPartyWithHp(definitionId, 0, level);
 }
 
 export function removeFromParty(instanceId: string): boolean {
@@ -111,11 +127,12 @@ export function addFusedCreature(
     instanceId: `c-${nextInstanceId++}`,
     definitionId,
     speciesId: definitionId,
-    currentHp: def.maxHp,
+    currentHp: 0,
     level: clampedLevel,
     xp: LEVEL_XP_THRESHOLDS[clampedLevel] ?? 0,
     trait: rollSignatureTrait(definitionId, def.folkloreType),
   };
+  instance.currentHp = getEffectiveMaxHp(instance);
   playerParty.creatures.push(instance);
   if (playerParty.activeInstanceIds.length < ACTIVE_PARTY_LIMIT) {
     playerParty.activeInstanceIds.push(instance.instanceId);
@@ -204,12 +221,12 @@ export function moveActiveToReserve(activeInstanceId: string): boolean {
 
 export function getEffectiveMaxHp(creature: CreatureInstance): number {
   const def = getCreatureDefinition(creature.definitionId);
-  return def.maxHp + (creature.hpBonus ?? 0);
+  return scaledStat(def.maxHp, creature.level) + (creature.hpBonus ?? 0);
 }
 
 export function getEffectiveAttack(creature: CreatureInstance): number {
   const def = getCreatureDefinition(creature.definitionId);
-  return def.attack + (creature.attackBonus ?? 0);
+  return scaledStat(def.attack, creature.level) + (creature.attackBonus ?? 0);
 }
 
 export function hasLivingPartyMembers(): boolean {

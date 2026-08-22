@@ -3,6 +3,8 @@ import {
   ACTIVE_PARTY_LIMIT,
   addToParty,
   getActiveCreatures,
+  getEffectiveAttack,
+  getEffectiveMaxHp,
   getReserveCreatures,
   moveActiveToReserve,
   moveReserveToActive,
@@ -11,6 +13,8 @@ import {
   swapActiveWithReserve,
 } from "./party";
 import type { CreatureInstance } from "./types";
+import { LEVEL_XP_THRESHOLDS, scaledStat } from "../progression/leveling";
+import { getCreatureDefinition } from "./catalog";
 
 function member(
   overrides: Partial<CreatureInstance> & Pick<CreatureInstance, "instanceId" | "definitionId">,
@@ -112,5 +116,28 @@ describe("active party / reserve", () => {
     );
     const reserveId = creatures[ACTIVE_PARTY_LIMIT]!.instanceId;
     expect(moveReserveToActive(reserveId)).toBe(false);
+  });
+
+  it("inherits befriend level into stats and XP threshold", () => {
+    const joined = addToParty("mossling", 10);
+    const def = getCreatureDefinition("mossling");
+    expect(joined.level).toBe(10);
+    expect(joined.xp).toBe(LEVEL_XP_THRESHOLDS[10]);
+    expect(joined.currentHp).toBe(scaledStat(def.maxHp, 10));
+    expect(getEffectiveMaxHp(joined)).toBe(scaledStat(def.maxHp, 10));
+    expect(getEffectiveAttack(joined)).toBe(scaledStat(def.attack, 10));
+  });
+
+  it("stacks shrine bonuses on top of level-scaled stats", () => {
+    const creature = member({
+      instanceId: "buffed",
+      definitionId: "mossling",
+      level: 50,
+      hpBonus: 8,
+      attackBonus: 4,
+    });
+    const def = getCreatureDefinition("mossling");
+    expect(getEffectiveMaxHp(creature)).toBe(scaledStat(def.maxHp, 50) + 8);
+    expect(getEffectiveAttack(creature)).toBe(scaledStat(def.attack, 50) + 4);
   });
 });
