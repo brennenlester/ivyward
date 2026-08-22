@@ -1,3 +1,5 @@
+import { existsSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { PATTERN_GLYPHS } from "../crafting/recipes";
 import {
@@ -42,5 +44,19 @@ describe("ingredient icon paths", () => {
     expect(getMaterialIconSrc("unknown-mat")).toBeUndefined();
     expect(getItemIconSrc("unknown-item")).toBeUndefined();
     expect(getIngredientIconSrc("not-in-catalog")).toBeUndefined();
+  });
+
+  it("has a PNG on disk for every catalog id", () => {
+    const root = process.cwd();
+    for (const id of Object.keys(MATERIAL_NAMES)) {
+      expect(
+        existsSync(path.join(root, "public/assets/materials", `${id}.png`)),
+      ).toBe(true);
+    }
+    for (const id of Object.keys(ITEM_NAMES)) {
+      expect(
+        existsSync(path.join(root, "public/assets/items", `${id}.png`)),
+      ).toBe(true);
+    }
   });
 });

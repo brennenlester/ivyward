@@ -51,6 +51,11 @@ describe("recipe overlay icons", () => {
     expect(filled?.querySelector(".material-icon-name")?.textContent).toBe(
       "Brook Pearl",
     );
+    const pearlLabel = filled?.querySelector(".material-icon-name");
+    expect(
+      pearlLabel?.compareDocumentPosition(pearl!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
     expect(
       filled
         ?.querySelector(".material-icon-name")

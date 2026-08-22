@@ -215,9 +215,13 @@ describe("crafting HUD", () => {
   it("shows craft-material icons in the list and grid", () => {
     const { host, hud } = mountHud();
     const row = listRow(host, "Wood");
+    const rowLabel = row.querySelector(".material-icon-name");
+    const rowImg = row.querySelector("img.material-icon");
     expect(
-      row.querySelector("img.material-icon")?.getAttribute("src"),
-    ).toBe(getMaterialIconSrc("wood"));
+      rowLabel?.compareDocumentPosition(rowImg!) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(rowImg?.getAttribute("src")).toBe(getMaterialIconSrc("wood"));
     row.click();
     cellAt(host, 0, 0).click();
     const cell = cellAt(host, 0, 0);
