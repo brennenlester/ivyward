@@ -25,6 +25,11 @@ export function createPartyOverworldFollowerState(): PartyOverworldFollowerState
   return { sprites: [], moonDots: [] };
 }
 
+/** Call once per zone load before syncing followers. */
+export function preparePartyOverworldFollowerTextures(scene: Phaser.Scene): void {
+  ensureCreatureTextures(scene);
+}
+
 export function destroyPartyOverworldFollowers(
   state: PartyOverworldFollowerState,
 ): void {
@@ -115,7 +120,6 @@ export function syncPartyOverworldFollowers(
   state: PartyOverworldFollowerState,
   options: { x: number; y: number; facing: Facing; depth: number },
 ): void {
-  ensureCreatureTextures(scene);
   const actives = getActiveCreatures().slice(0, MAX_FOLLOWERS);
   for (let i = 0; i < actives.length; i += 1) {
     syncFollowerVisual(

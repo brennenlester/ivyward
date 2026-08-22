@@ -50,6 +50,7 @@ import {
 import {
   createPartyOverworldFollowerState,
   destroyPartyOverworldFollowers,
+  preparePartyOverworldFollowerTextures,
   syncPartyOverworldFollowers,
   type PartyOverworldFollowerState,
 } from "../render/partyOverworldFollowers";
@@ -1023,6 +1024,7 @@ export class IsometricScene extends Phaser.Scene {
 
     ensureWorldTextures(this, zoneId);
     ensurePlayerAnims(this);
+    preparePartyOverworldFollowerTextures(this);
     this.worldOrigin = this.getZoneWorldOrigin(zone);
     this.cameras.main.setBackgroundColor(ZONE_CAMERA_COLORS[zoneId]);
 
@@ -1981,12 +1983,16 @@ export class IsometricScene extends Phaser.Scene {
     const bob = this.isMoving ? walkBobOffset(this.walkPhase) : 0;
     this.player.setPosition(screen.x, this.playerBaseY + bob);
     this.player.setDepth(this.playerDepth);
-    syncPartyOverworldFollowers(this, this.partyFollowers, {
-      x: screen.x,
-      y: this.playerBaseY + bob,
-      facing: this.playerFacing,
-      depth: this.playerDepth,
-    });
+    if (isSailing()) {
+      destroyPartyOverworldFollowers(this.partyFollowers);
+    } else {
+      syncPartyOverworldFollowers(this, this.partyFollowers, {
+        x: screen.x,
+        y: this.playerBaseY + bob,
+        facing: this.playerFacing,
+        depth: this.playerDepth,
+      });
+    }
     this.syncNameTagPosition();
     // Boat stays on the waterline; only the trainer bobs with gait.
     this.syncSailingBoat(screen.x, this.playerBaseY);
