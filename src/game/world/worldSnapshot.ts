@@ -478,6 +478,12 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
     "hearthkeep-odd",
   ]);
 
+  const villageMinigameIds = new Set([
+    "ward-crossing",
+    "loom-pattern",
+    "hearth-lots",
+  ]);
+
   const pos = s.position as Record<string, unknown> | undefined;
   const inCottage =
     typeof pos?.zoneId === "string" && villageCottageZones.has(pos.zoneId);
@@ -485,8 +491,12 @@ export function repairLegacyVillageGateAccess(value: unknown): void {
   const hadVillageNpc =
     Array.isArray(gifts) &&
     gifts.some((id) => typeof id === "string" && villageNpcIds.has(id));
+  const wins = s.claimedMinigameWins;
+  const hadCottageMinigame =
+    Array.isArray(wins) &&
+    wins.some((id) => typeof id === "string" && villageMinigameIds.has(id));
 
-  if (inCottage || hadVillageNpc) {
+  if (inCottage || hadVillageNpc || hadCottageMinigame) {
     s.villageGateUnlocked = true;
     return;
   }

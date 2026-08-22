@@ -619,6 +619,13 @@ describe("applyWorldSnapshot codex achievement", () => {
     };
     repairLegacyVillageGateAccess(dividerColumn);
     expect(dividerColumn.position).toEqual({ zoneId: "village", x: 7, y: 5 });
+
+    const minigameOnly = validSnapshot({
+      claimedMinigameWins: ["hearth-lots"],
+    });
+    delete (minigameOnly as { villageGateUnlocked?: boolean }).villageGateUnlocked;
+    repairLegacyVillageGateAccess(minigameOnly);
+    expect(minigameOnly.villageGateUnlocked).toBe(true);
   });
 
   it("restores the god fusion flag and defaults older saves to incomplete", () => {
