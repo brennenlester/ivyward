@@ -56,13 +56,21 @@ export function setPartyFromSnapshot(
 }
 
 /**
- * Remap currentHp from pre-#287 flat max HP onto level-scaled max.
+ * Remap legacy flat-curve saves onto level-scaled HP and quadratic XP.
  * Used once when loading older saves that lack sparWinsBySpecies.
+ * Preserves stored level; snaps XP to the new threshold for that level.
  */
 export function migratePartyHpForLevelScaling(
   creatures: CreatureInstance[],
 ): void {
   for (const creature of creatures) {
+    const level = Math.min(
+      MAX_LEVEL,
+      Math.max(1, Math.floor(creature.level)),
+    );
+    creature.level = level;
+    creature.xp = LEVEL_XP_THRESHOLDS[level] ?? 0;
+
     const def = getCreatureDefinition(creature.definitionId);
     const oldMax = def.maxHp + (creature.hpBonus ?? 0);
     const newMax = getEffectiveMaxHp(creature);

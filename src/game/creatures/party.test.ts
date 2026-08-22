@@ -149,17 +149,34 @@ describe("active party / reserve", () => {
       definitionId: "mossling",
       level: 50,
       currentHp: def.maxHp,
+      xp: 490, // old linear threshold for Lv 50
     });
     const half = member({
       instanceId: "half",
       definitionId: "mossling",
       level: 50,
       currentHp: Math.floor(def.maxHp / 2),
+      xp: 490,
     });
     migratePartyHpForLevelScaling([full, half]);
+    expect(full.level).toBe(50);
+    expect(full.xp).toBe(LEVEL_XP_THRESHOLDS[50]);
     expect(full.currentHp).toBe(scaledStat(def.maxHp, 50));
     expect(half.currentHp).toBe(
       Math.round((Math.floor(def.maxHp / 2) / def.maxHp) * scaledStat(def.maxHp, 50)),
     );
+  });
+
+  it("snaps legacy XP to the quadratic threshold so levels do not drop on next grant", () => {
+    const creature = member({
+      instanceId: "legacy",
+      definitionId: "mossling",
+      level: 20,
+      xp: 190, // old (20-1)*10
+      currentHp: 10,
+    });
+    migratePartyHpForLevelScaling([creature]);
+    expect(creature.level).toBe(20);
+    expect(creature.xp).toBe(LEVEL_XP_THRESHOLDS[20]);
   });
 });
